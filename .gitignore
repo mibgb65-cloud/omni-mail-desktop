@@ -1,0 +1,6 @@
+build/bin
+node_modules
+frontend/dist
+.gocache/
+.omnimail-desktop/
+frontend/package.json.md5
