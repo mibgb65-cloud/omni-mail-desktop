@@ -873,6 +873,54 @@ body.is-resizing-panels * {
     margin-left: auto;
 }
 
+.metadata-toggle {
+    min-height: 34px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 0 var(--space-3);
+    font-size: 12px;
+    font-weight: 620;
+    transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+}
+
+.metadata-toggle:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.message-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+    margin: 0 0 var(--space-5);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-3);
+}
+
+.message-detail-grid div {
+    min-width: 0;
+}
+
+.message-detail-grid dt {
+    margin-bottom: 2px;
+    color: var(--text-tertiary);
+    font-size: 11px;
+}
+
+.message-detail-grid dd {
+    margin: 0;
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .message-body {
     border-top: 1px solid var(--border-subtle);
     padding-top: var(--space-5);
@@ -895,15 +943,15 @@ body.is-resizing-panels * {
 
 .attachment-card {
     display: grid;
-    grid-template-columns: 24px minmax(0, 1fr) 20px;
+    grid-template-columns: 42px minmax(0, 1fr) 34px;
     align-items: center;
     gap: var(--space-2);
-    min-height: 62px;
+    min-height: 68px;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
     background: var(--bg-panel-soft);
     color: var(--text-secondary);
-    padding: var(--space-3);
+    padding: var(--space-2);
     text-align: left;
 }
 
@@ -912,22 +960,59 @@ body.is-resizing-panels * {
     background: var(--bg-hover);
 }
 
-.attachment-card strong,
-.attachment-card small {
+.attachment-kind {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: var(--radius-md);
+    background: var(--bg-active);
+    color: var(--text-secondary);
+}
+
+.attachment-kind em {
+    font-size: 9px;
+    font-style: normal;
+    font-weight: 760;
+    line-height: 1;
+}
+
+.attachment-copy {
+    min-width: 0;
+}
+
+.attachment-copy strong,
+.attachment-copy small {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.attachment-card strong {
+.attachment-copy strong {
     color: var(--text-primary);
     font-size: 13px;
 }
 
-.attachment-card small {
+.attachment-copy small {
     color: var(--text-tertiary);
     font-size: 12px;
+}
+
+.attachment-card button {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.attachment-card button:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
 }
 
 .composer-card {
@@ -1533,6 +1618,10 @@ button:disabled {
     .message-inline-actions {
         grid-column: 1 / -1;
         margin-left: 0;
+    }
+
+    .message-detail-grid {
+        grid-template-columns: 1fr;
     }
 
     .endpoint-meta-grid {

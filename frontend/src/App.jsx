@@ -121,6 +121,55 @@ function formatProfileDate(value) {
     });
 }
 
+function formatFileSize(value) {
+    if (!value || value <= 0) {
+        return '未知大小';
+    }
+
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = value;
+    let unitIndex = 0;
+
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex += 1;
+    }
+
+    return `${size >= 10 || unitIndex === 0 ? Math.round(size) : size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+function attachmentKind(attachment) {
+    const mimeType = attachment.mimeType || '';
+    const filename = attachment.filename || '';
+    const extension = filename.includes('.') ? filename.split('.').pop().toUpperCase() : '文件';
+
+    if (mimeType.startsWith('image/')) {
+        return {label: '图片', short: 'IMG'};
+    }
+
+    if (mimeType === 'application/pdf') {
+        return {label: 'PDF', short: 'PDF'};
+    }
+
+    if (mimeType.includes('zip') || mimeType.includes('archive') || ['ZIP', 'RAR', '7Z'].includes(extension)) {
+        return {label: '压缩包', short: 'ZIP'};
+    }
+
+    if (mimeType.includes('spreadsheet') || ['XLS', 'XLSX', 'CSV'].includes(extension)) {
+        return {label: '表格', short: 'XLS'};
+    }
+
+    if (mimeType.includes('word') || ['DOC', 'DOCX'].includes(extension)) {
+        return {label: '文档', short: 'DOC'};
+    }
+
+    if (mimeType.startsWith('text/') || ['TXT', 'MD', 'LOG'].includes(extension)) {
+        return {label: '文本', short: 'TXT'};
+    }
+
+    return {label: extension, short: extension.slice(0, 3)};
+}
+
 function App() {
     const [profiles, setProfiles] = useState([]);
     const [selectedProfileId, setSelectedProfileId] = useState('');
@@ -1187,6 +1236,12 @@ function ReaderToolbar({busy, onArchive, onDelete, onOpenSettings, onReload, sel
 }
 
 function ReadingView({busy, message, onArchive, onDelete, onDownload, selectedProfile}) {
+    const [detailsExpanded, setDetailsExpanded] = useState(false);
+
+    useEffect(() => {
+        setDetailsExpanded(false);
+    }, [message?.id]);
+
     if (busy === 'initial') {
         return <ReadingSkeleton />;
     }
@@ -1211,6 +1266,11 @@ function ReadingView({busy, message, onArchive, onDelete, onDownload, selectedPr
         );
     }
 
+    const directionLabel = message.direction === 'outbound' ? '已发送' : '已接收';
+    const peerLabel = message.direction === 'outbound' ? '收件人' : '发件人';
+    const peerAddress = message.email || '未知地址';
+    const authorName = message.author || message.email || '未知发件人';
+
     return (
         <article className="reading-view">
             <section className="message-block">
@@ -1221,16 +1281,47 @@ function ReadingView({busy, message, onArchive, onDelete, onDownload, selectedPr
                     <div>
                         <h3>{message.subject || '无主题'}</h3>
                         <p>
-                            <strong>{message.author || message.email || '未知发件人'}</strong>
-                            <span>{message.direction === 'outbound' ? '发往' : '来自'} {message.email || '未知地址'}</span>
+                            <strong>{authorName}</strong>
+                            <span>{message.direction === 'outbound' ? '发往' : '来自'} {peerAddress}</span>
                             <time>{formatMessageTime(message.time)}</time>
+                            <span>{directionLabel}</span>
                         </p>
                     </div>
                     <div className="message-inline-actions">
+                        <button className="metadata-toggle" type="button" onClick={() => setDetailsExpanded((value) => !value)}>
+                            {detailsExpanded ? '隐藏详情' : '查看详情'}
+                        </button>
                         <IconButton icon={message.archivedAt ? ArchiveRestore : Archive} label={message.archivedAt ? '取消归档' : '归档'} onClick={() => onArchive(message)} />
                         <IconButton icon={Trash2} label="删除" onClick={() => onDelete(message)} tone="danger" />
                     </div>
                 </header>
+
+                {detailsExpanded ? (
+                    <dl className="message-detail-grid">
+                        <div>
+                            <dt>{peerLabel}</dt>
+                            <dd>{authorName} &lt;{peerAddress}&gt;</dd>
+                        </div>
+                        <div>
+                            <dt>时间</dt>
+                            <dd>{formatMessageTime(message.time)}</dd>
+                        </div>
+                        <div>
+                            <dt>方向</dt>
+                            <dd>{directionLabel}</dd>
+                        </div>
+                        <div>
+                            <dt>状态</dt>
+                            <dd>
+                                {message.deletedAt ? '已删除' : message.archivedAt ? `已归档：${message.archivedAt}` : '收件箱'}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>账号</dt>
+                            <dd>{message.accountId || '未知账号'}</dd>
+                        </div>
+                    </dl>
+                ) : null}
 
                 <div className="message-body">
                     {(message.body || message.preview || '无正文内容').split('\n').map((line, index) => (
@@ -1240,22 +1331,35 @@ function ReadingView({busy, message, onArchive, onDelete, onDownload, selectedPr
 
                 {message.attachments?.length ? (
                     <div className="attachment-grid" aria-label="附件">
-                        {message.attachments.map((attachment) => (
-                            <button
-                                className="attachment-card"
-                                type="button"
-                                key={attachment.id}
-                                onClick={() => onDownload(attachment)}
-                                disabled={!attachment.downloadable || busy === 'download'}
-                            >
-                                <FileText size={18} />
-                                <span>
-                                    <strong>{attachment.filename}</strong>
-                                    <small>{attachment.downloadable ? '点击保存到本地' : '附件内容未存储'}</small>
-                                </span>
-                                <Download size={16} />
-                            </button>
-                        ))}
+                        {message.attachments.map((attachment) => {
+                            const kind = attachmentKind(attachment);
+                            const filename = attachment.filename || '未命名附件';
+
+                            return (
+                                <article className="attachment-card" key={attachment.id}>
+                                    <span className="attachment-kind" aria-label={kind.label}>
+                                        <FileText size={16} />
+                                        <em>{kind.short}</em>
+                                    </span>
+                                    <span className="attachment-copy">
+                                        <strong>{filename}</strong>
+                                        <small>
+                                            {kind.label} · {formatFileSize(attachment.size)}
+                                            {attachment.mimeType ? ` · ${attachment.mimeType}` : ''}
+                                        </small>
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => onDownload(attachment)}
+                                        disabled={!attachment.downloadable || busy === 'download'}
+                                        title={attachment.downloadable ? '保存附件' : '附件内容未存储'}
+                                        aria-label={attachment.downloadable ? `保存附件 ${filename}` : `${filename} 不可下载`}
+                                    >
+                                        <Download size={16} />
+                                    </button>
+                                </article>
+                            );
+                        })}
                     </div>
                 ) : null}
             </section>
