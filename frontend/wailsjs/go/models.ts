@@ -427,6 +427,8 @@ export namespace main {
 	    profileId: string;
 	    accountId: string;
 	    to: string;
+	    cc: string;
+	    bcc: string;
 	    subject: string;
 	    text: string;
 	
@@ -439,6 +441,8 @@ export namespace main {
 	        this.profileId = source["profileId"];
 	        this.accountId = source["accountId"];
 	        this.to = source["to"];
+	        this.cc = source["cc"];
+	        this.bcc = source["bcc"];
 	        this.subject = source["subject"];
 	        this.text = source["text"];
 	    }

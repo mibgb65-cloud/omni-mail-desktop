@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -263,13 +264,21 @@ func (a *App) SendMessage(input SendMessageInput) (*SendResult, error) {
 		return nil, err
 	}
 
-	var result SendResult
-	if err := a.apiRequest(profile.BaseURL, profile.Token, http.MethodPost, "/api/v1/messages/send", map[string]string{
+	payload := map[string]string{
 		"accountId": input.AccountID,
-		"to":        input.To,
-		"subject":   input.Subject,
+		"to":        strings.TrimSpace(input.To),
+		"subject":   strings.TrimSpace(input.Subject),
 		"text":      input.Text,
-	}, &result); err != nil {
+	}
+	if cc := strings.TrimSpace(input.Cc); cc != "" {
+		payload["cc"] = cc
+	}
+	if bcc := strings.TrimSpace(input.Bcc); bcc != "" {
+		payload["bcc"] = bcc
+	}
+
+	var result SendResult
+	if err := a.apiRequest(profile.BaseURL, profile.Token, http.MethodPost, "/api/v1/messages/send", payload, &result); err != nil {
 		return nil, err
 	}
 

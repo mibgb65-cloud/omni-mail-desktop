@@ -6,6 +6,13 @@
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
+  "info": {
+    "companyName": "OmniMail",
+    "productName": "OmniMail Desktop",
+    "productVersion": "1.1.0",
+    "copyright": "Copyright 2026 OmniMail",
+    "comments": "AI-native desktop email client for OmniMail Worker endpoints"
+  },
   "author": {
     "name": "mimanchi412",
     "email": "1915992742@qq.com"

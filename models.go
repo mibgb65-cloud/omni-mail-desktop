@@ -48,6 +48,8 @@ type SendMessageInput struct {
 	ProfileID string `json:"profileId"`
 	AccountID string `json:"accountId"`
 	To        string `json:"to"`
+	Cc        string `json:"cc"`
+	Bcc       string `json:"bcc"`
 	Subject   string `json:"subject"`
 	Text      string `json:"text"`
 }

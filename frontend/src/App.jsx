@@ -52,7 +52,7 @@ import {
 
 const emptyProfileForm = {id: '', name: '', baseUrl: ''};
 const emptyAuthForm = {email: '', password: '', deviceLabel: 'Windows 桌面端', setup: false};
-const emptyComposeForm = {to: '', subject: '', text: ''};
+const emptyComposeForm = {to: '', cc: '', bcc: '', subject: '', text: ''};
 const layoutDefaults = {
     sidebar: 292,
     list: 388
@@ -92,6 +92,27 @@ function readStoredWidth(key, fallback, limits) {
     }
 
     return clamp(stored, limits.min, limits.max);
+}
+
+function recipientAddress(value) {
+    const match = String(value || '').match(/<([^<>]+)>/);
+    return (match?.[1] || value || '').trim();
+}
+
+function splitRecipients(value) {
+    return String(value || '')
+        .split(/[,\n;，；]+/)
+        .map(recipientAddress)
+        .filter(Boolean);
+}
+
+function invalidRecipients(value) {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return splitRecipients(value).filter((recipient) => !emailPattern.test(recipient));
+}
+
+function composeHasContent(form) {
+    return Object.values(form || {}).some((value) => String(value || '').trim());
 }
 
 function isTypingTarget(event) {
@@ -176,8 +197,11 @@ function App() {
     const [profileForm, setProfileForm] = useState(emptyProfileForm);
     const [authForm, setAuthForm] = useState(emptyAuthForm);
     const [composeForm, setComposeForm] = useState(emptyComposeForm);
+    const [composeOptionsOpen, setComposeOptionsOpen] = useState(false);
+    const [hasSavedDraft, setHasSavedDraft] = useState(false);
     const [manualToken, setManualToken] = useState('');
     const [status, setStatus] = useState(null);
+    const [storagePath, setStoragePath] = useState('');
     const [workspace, setWorkspace] = useState(null);
     const [selectedMessageId, setSelectedMessageId] = useState('');
     const [activeFolder, setActiveFolder] = useState('inbox');
@@ -204,6 +228,14 @@ function App() {
         () => (workspace?.accounts || []).find((account) => account.id === workspace?.selectedAccountId) || null,
         [workspace]
     );
+
+    const composeDraftKey = useMemo(() => (
+        selectedProfile?.id && workspace?.selectedAccountId
+            ? `omnimail_compose_draft:${selectedProfile.id}:${workspace.selectedAccountId}`
+            : ''
+    ), [selectedProfile?.id, workspace?.selectedAccountId]);
+
+    const canClearCurrentDraft = Boolean(composeDraftKey && (hasSavedDraft || composeHasContent(composeForm)));
 
     const visibleMessages = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -269,6 +301,52 @@ function App() {
     useEffect(() => {
         localStorage.setItem('omnimail_list_width', String(listWidth));
     }, [listWidth]);
+
+    useEffect(() => {
+        if (!composerOpen) {
+            return;
+        }
+
+        if (!composeDraftKey) {
+            setComposeForm(emptyComposeForm);
+            setComposeOptionsOpen(false);
+            setHasSavedDraft(false);
+            return;
+        }
+
+        const rawDraft = localStorage.getItem(composeDraftKey);
+        if (!rawDraft) {
+            setComposeForm(emptyComposeForm);
+            setComposeOptionsOpen(false);
+            setHasSavedDraft(false);
+            return;
+        }
+
+        try {
+            const draft = {...emptyComposeForm, ...JSON.parse(rawDraft)};
+            setComposeForm(draft);
+            setComposeOptionsOpen(Boolean(draft.cc || draft.bcc));
+            setHasSavedDraft(true);
+        } catch {
+            localStorage.removeItem(composeDraftKey);
+            setComposeForm(emptyComposeForm);
+            setComposeOptionsOpen(false);
+            setHasSavedDraft(false);
+        }
+    }, [composerOpen, composeDraftKey]);
+
+    useEffect(() => {
+        if (!composerOpen || !composeDraftKey || !composeHasContent(composeForm)) {
+            return undefined;
+        }
+
+        const timer = window.setTimeout(() => {
+            localStorage.setItem(composeDraftKey, JSON.stringify(composeForm));
+            setHasSavedDraft(true);
+        }, 250);
+
+        return () => window.clearTimeout(timer);
+    }, [composerOpen, composeDraftKey, composeForm]);
 
     useEffect(() => () => {
         document.body.classList.remove('is-resizing-panels');
@@ -373,6 +451,26 @@ function App() {
         setLayoutWidth(panel, layoutDefaults[panel]);
     }
 
+    function resetLayoutPreferences() {
+        localStorage.removeItem('omnimail_sidebar_width');
+        localStorage.removeItem('omnimail_list_width');
+        localStorage.removeItem('omnimail_sidebar_collapsed');
+        setSidebarCollapsed(false);
+        setSidebarWidth(layoutDefaults.sidebar);
+        setListWidth(layoutDefaults.list);
+        showToast('success', '布局已恢复默认');
+    }
+
+    function clearCurrentDraft() {
+        if (composeDraftKey) {
+            localStorage.removeItem(composeDraftKey);
+        }
+        setComposeForm(emptyComposeForm);
+        setComposeOptionsOpen(false);
+        setHasSavedDraft(false);
+        showToast('success', '当前草稿已清空');
+    }
+
     function startPanelResize(panel, event) {
         if (panel === 'sidebar' && sidebarCollapsed) {
             return;
@@ -426,6 +524,7 @@ function App() {
             const state = await GetInitialState();
             const nextProfiles = state.profiles || [];
             setProfiles(nextProfiles);
+            setStoragePath(state.storagePath || '');
 
             const nextSelected = state.selectedProfileId || nextProfiles[0]?.id || '';
             setSelectedProfileId(nextSelected);
@@ -645,15 +744,48 @@ function App() {
             return;
         }
 
+        const to = splitRecipients(composeForm.to);
+        const cc = splitRecipients(composeForm.cc);
+        const bcc = splitRecipients(composeForm.bcc);
+        const invalid = [
+            ...invalidRecipients(composeForm.to),
+            ...invalidRecipients(composeForm.cc),
+            ...invalidRecipients(composeForm.bcc)
+        ];
+
+        if (!to.length) {
+            showToast('error', '缺少收件人', '请至少填写一个收件人邮箱。');
+            return;
+        }
+
+        if (invalid.length) {
+            showToast('error', '邮箱格式不正确', invalid.slice(0, 3).join('，'));
+            return;
+        }
+
+        if (!composeForm.subject.trim()) {
+            showToast('error', '缺少主题', '请填写一个清晰的邮件主题。');
+            return;
+        }
+
         setBusy('send');
 
         try {
             const result = await SendMessage({
                 profileId: selectedProfile.id,
                 accountId: workspace.selectedAccountId,
-                ...composeForm
+                to: to.join(', '),
+                cc: cc.join(', '),
+                bcc: bcc.join(', '),
+                subject: composeForm.subject.trim(),
+                text: composeForm.text
             });
+            if (composeDraftKey) {
+                localStorage.removeItem(composeDraftKey);
+            }
             setComposeForm(emptyComposeForm);
+            setComposeOptionsOpen(false);
+            setHasSavedDraft(false);
             setComposerOpen(false);
             showToast('success', '邮件已提交', result.provider ? `处理方式：${result.provider}` : '已提交到 OmniMail。');
             await reloadCurrentMailbox();
@@ -828,9 +960,13 @@ function App() {
                             account={selectedAccount}
                             busy={busy}
                             form={composeForm}
+                            hasSavedDraft={hasSavedDraft}
+                            optionsOpen={composeOptionsOpen}
                             onChange={setComposeForm}
+                            onClearDraft={clearCurrentDraft}
                             onClose={() => setComposerOpen(false)}
                             onSubmit={handleSendMessage}
+                            onToggleOptions={() => setComposeOptionsOpen((value) => !value)}
                         />
                     ) : (
                         <>
@@ -882,11 +1018,15 @@ function App() {
 
                 {modal === 'settings' ? (
                     <SettingsModal
+                        canClearCurrentDraft={canClearCurrentDraft}
                         onClose={() => setModal(null)}
+                        onClearCurrentDraft={clearCurrentDraft}
                         selectedProfile={selectedProfile}
                         status={status}
+                        storagePath={storagePath}
                         theme={theme}
                         onOpenProfiles={handleOpenProfileManager}
+                        onResetLayout={resetLayoutPreferences}
                         toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
                     />
                 ) : null}
@@ -1194,7 +1334,7 @@ function EmailListPanel({
 }
 
 function EmailListItem({message, onContextMenu, onSelect, selected}) {
-    const unread = message.direction !== 'outbound' && !message.archivedAt;
+    const unread = Boolean(message.unread);
 
     return (
         <button
@@ -1367,8 +1507,31 @@ function ReadingView({busy, message, onArchive, onDelete, onDownload, selectedPr
     );
 }
 
-function Composer({account, busy, form, onChange, onClose, onSubmit}) {
-    const disabled = !account || busy === 'send';
+function Composer({
+    account,
+    busy,
+    form,
+    hasSavedDraft,
+    onChange,
+    onClearDraft,
+    onClose,
+    onSubmit,
+    onToggleOptions,
+    optionsOpen
+}) {
+    const sending = busy === 'send';
+    const disabled = !account || sending;
+    const recipients = splitRecipients(form.to);
+    const ccRecipients = splitRecipients(form.cc);
+    const bccRecipients = splitRecipients(form.bcc);
+    const invalid = [
+        ...invalidRecipients(form.to),
+        ...invalidRecipients(form.cc),
+        ...invalidRecipients(form.bcc)
+    ];
+    const recipientCount = recipients.length + ccRecipients.length + bccRecipients.length;
+    const hasDraft = hasSavedDraft || composeHasContent(form);
+    const canSend = Boolean(account && recipients.length && form.subject.trim() && !invalid.length && !sending);
 
     return (
         <section className="composer-card" aria-label="写邮件">
@@ -1378,7 +1541,12 @@ function Composer({account, busy, form, onChange, onClose, onSubmit}) {
                         <p>新邮件</p>
                         <h3>{account?.address || '未选择发件身份'}</h3>
                     </div>
-                    <IconButton icon={X} label="关闭写信窗口" onClick={onClose} />
+                    <div className="composer-header-actions">
+                        <button className="composer-secondary-action" type="button" onClick={onToggleOptions} disabled={disabled}>
+                            {optionsOpen ? '隐藏抄送/密送' : '抄送/密送'}
+                        </button>
+                        <IconButton icon={X} label="关闭写信窗口" onClick={onClose} />
+                    </div>
                 </header>
 
                 <label>
@@ -1386,13 +1554,36 @@ function Composer({account, busy, form, onChange, onClose, onSubmit}) {
                     <input
                         value={form.to}
                         onChange={(event) => onChange({...form, to: event.target.value})}
-                        placeholder="name@example.com"
-                        type="email"
+                        placeholder="name@example.com，多个收件人用逗号分隔"
+                        type="text"
                         disabled={disabled}
                         autoFocus
-                        required
                     />
                 </label>
+                {optionsOpen ? (
+                    <div className="composer-field-grid">
+                        <label>
+                            <span>抄送</span>
+                            <input
+                                value={form.cc}
+                                onChange={(event) => onChange({...form, cc: event.target.value})}
+                                placeholder="cc@example.com"
+                                type="text"
+                                disabled={disabled}
+                            />
+                        </label>
+                        <label>
+                            <span>密送</span>
+                            <input
+                                value={form.bcc}
+                                onChange={(event) => onChange({...form, bcc: event.target.value})}
+                                placeholder="bcc@example.com"
+                                type="text"
+                                disabled={disabled}
+                            />
+                        </label>
+                    </div>
+                ) : null}
                 <label>
                     <span>主题</span>
                     <input
@@ -1400,7 +1591,6 @@ function Composer({account, busy, form, onChange, onClose, onSubmit}) {
                         onChange={(event) => onChange({...form, subject: event.target.value})}
                         placeholder="写一个清晰的主题"
                         disabled={disabled}
-                        required
                     />
                 </label>
                 <label>
@@ -1414,11 +1604,22 @@ function Composer({account, busy, form, onChange, onClose, onSubmit}) {
                     />
                 </label>
                 <footer>
-                    <span>当前后端发送接口仍取决于 OmniMail Worker 的实现。</span>
-                    <button className="primary-action" type="submit" disabled={disabled || !form.to || !form.subject}>
-                        <Send size={16} />
-                        发送
-                    </button>
+                    <span className={invalid.length ? 'composer-meta-line error' : 'composer-meta-line'} aria-live="polite">
+                        {invalid.length
+                            ? `${invalid.length} 个邮箱格式需要检查`
+                            : hasDraft
+                                ? `本机草稿已按当前接入点保存${recipientCount ? ` · ${recipientCount} 位收件人` : ''}`
+                                : '草稿会自动保存在本机当前接入点下'}
+                    </span>
+                    <div className="composer-footer-actions">
+                        <button type="button" onClick={onClearDraft} disabled={disabled || !hasDraft}>
+                            清空草稿
+                        </button>
+                        <button className="primary-action" type="submit" disabled={!canSend}>
+                            {sending ? <RefreshCw className="spin-inline" size={16} /> : <Send size={16} />}
+                            {sending ? '发送中' : '发送'}
+                        </button>
+                    </div>
                 </footer>
             </form>
         </section>
@@ -1647,7 +1848,18 @@ function EndpointManagerModal({
     );
 }
 
-function SettingsModal({onClose, onOpenProfiles, selectedProfile, status, theme, toggleTheme}) {
+function SettingsModal({
+    canClearCurrentDraft,
+    onClearCurrentDraft,
+    onClose,
+    onOpenProfiles,
+    onResetLayout,
+    selectedProfile,
+    status,
+    storagePath,
+    theme,
+    toggleTheme
+}) {
     return (
         <Modal title="设置" onClose={onClose}>
             <div className="settings-grid">
@@ -1668,6 +1880,30 @@ function SettingsModal({onClose, onOpenProfiles, selectedProfile, status, theme,
                     title="接入点管理"
                     body="集中管理 Base URL、授权状态、Token 和连接测试。"
                     action={<button type="button" onClick={onOpenProfiles}>打开管理</button>}
+                />
+                <SettingRow
+                    icon={Mail}
+                    title="本机草稿"
+                    body="写信草稿按当前接入点和发件账号分别保存在本机。"
+                    action={<button type="button" onClick={onClearCurrentDraft} disabled={!canClearCurrentDraft}>清除当前草稿</button>}
+                />
+                <SettingRow
+                    icon={PanelLeftOpen}
+                    title="布局偏好"
+                    body="恢复侧栏、邮件列表宽度和侧栏收起状态。"
+                    action={<button type="button" onClick={onResetLayout}>恢复默认</button>}
+                />
+                <SettingRow
+                    icon={KeyRound}
+                    title="快捷键"
+                    body="Ctrl K 搜索，J/K 切换邮件，R 刷新，N 写邮件。"
+                    action={<StatusBadge ok label="已启用" />}
+                />
+                <SettingRow
+                    icon={ShieldCheck}
+                    title="本地存储"
+                    body={storagePath || '正在读取本地配置路径'}
+                    action={<StatusBadge ok label="本机" />}
                 />
                 <SettingRow
                     icon={KeyRound}
