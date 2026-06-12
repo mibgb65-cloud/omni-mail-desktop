@@ -671,10 +671,7 @@ function TitleBar({theme, toggleTheme}) {
             <div className="titlebar-drag-region">
                 <div className="titlebar-brand">
                     <span className="titlebar-logo">OM</span>
-                    <span>
-                        <strong>OmniMail Desktop</strong>
-                        <small>智能邮箱客户端</small>
-                    </span>
+                    <strong>OmniMail Desktop</strong>
                 </div>
             </div>
             <div className="titlebar-actions">
@@ -723,13 +720,10 @@ function Sidebar({
     return (
         <aside className="sidebar" aria-label="邮箱导航">
             <div className="sidebar-top">
-                <button className="brand-button" type="button" title="OmniMail Desktop">
-                    <span className="brand-mark">OM</span>
-                    <span className="brand-copy">
-                        <strong>OmniMail</strong>
-                        <small>AI-native 邮箱工作台</small>
-                    </span>
-                </button>
+                <div className="workspace-heading" title="OmniMail Desktop">
+                    <strong>OmniMail</strong>
+                    <small>AI-native 邮箱工作台</small>
+                </div>
                 <IconButton
                     icon={collapsed ? PanelLeftOpen : PanelLeftClose}
                     label={collapsed ? '展开侧栏' : '收起侧栏'}

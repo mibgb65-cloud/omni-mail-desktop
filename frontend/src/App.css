@@ -124,22 +124,13 @@
     font-weight: 760;
 }
 
-.titlebar-brand strong,
-.titlebar-brand small {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .titlebar-brand strong {
+    overflow: hidden;
+    color: var(--text-primary);
     font-size: 12px;
     font-weight: 650;
-}
-
-.titlebar-brand small {
-    color: var(--text-tertiary);
-    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .titlebar-actions {
@@ -248,33 +239,14 @@
     min-height: 44px;
 }
 
-.brand-button {
-    display: flex;
+.workspace-heading {
+    display: grid;
     min-width: 0;
     flex: 1;
-    align-items: center;
-    gap: var(--space-2);
-    border: 0;
-    background: transparent;
-    padding: 0;
-    text-align: left;
+    gap: 2px;
 }
 
-.brand-mark {
-    display: grid;
-    width: 34px;
-    height: 34px;
-    flex: 0 0 auto;
-    place-items: center;
-    border-radius: var(--radius-md);
-    background: var(--text-primary);
-    color: var(--text-inverse);
-    font-size: 11px;
-    font-weight: 760;
-    letter-spacing: 0;
-}
-
-.brand-copy,
+.workspace-heading,
 .endpoint-button > span:nth-child(2),
 .mail-row-main,
 .message-meta > div:nth-child(2),
@@ -282,7 +254,7 @@
     min-width: 0;
 }
 
-.brand-copy strong,
+.workspace-heading strong,
 .endpoint-button strong {
     display: block;
     overflow: hidden;
@@ -294,7 +266,7 @@
     white-space: nowrap;
 }
 
-.brand-copy small,
+.workspace-heading small,
 .endpoint-button small,
 .muted-line,
 .modal-note,
@@ -304,7 +276,7 @@
     line-height: 1.45;
 }
 
-.sidebar-collapsed .brand-copy,
+.sidebar-collapsed .workspace-heading,
 .sidebar-collapsed .compose-primary span,
 .sidebar-collapsed .nav-item span,
 .sidebar-collapsed .nav-item small,
@@ -1207,7 +1179,7 @@ button:disabled {
         align-items: center;
     }
 
-    .brand-copy,
+    .workspace-heading,
     .compose-primary span,
     .nav-item span,
     .nav-item small,
