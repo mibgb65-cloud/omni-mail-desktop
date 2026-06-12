@@ -634,36 +634,38 @@ function App() {
                     workspace={workspace}
                 />
 
-                <main id="reader" className="reader-panel">
-                    <ReaderToolbar
-                        busy={busy}
-                        onArchive={() => handleArchiveMessage(selectedMessage)}
-                        onDelete={() => handleDeleteMessage(selectedMessage)}
-                        onOpenSettings={() => setModal('settings')}
-                        onReload={reloadCurrentMailbox}
-                        selectedMessage={selectedMessage}
-                        selectedProfile={selectedProfile}
-                    />
+                <main id="reader" className={`reader-panel ${composerOpen ? 'composing' : ''}`}>
+                    {composerOpen ? (
+                        <Composer
+                            account={selectedAccount}
+                            busy={busy}
+                            form={composeForm}
+                            onChange={setComposeForm}
+                            onClose={() => setComposerOpen(false)}
+                            onSubmit={handleSendMessage}
+                        />
+                    ) : (
+                        <>
+                            <ReaderToolbar
+                                busy={busy}
+                                onArchive={() => handleArchiveMessage(selectedMessage)}
+                                onDelete={() => handleDeleteMessage(selectedMessage)}
+                                onOpenSettings={() => setModal('settings')}
+                                onReload={reloadCurrentMailbox}
+                                selectedMessage={selectedMessage}
+                                selectedProfile={selectedProfile}
+                            />
 
-                {composerOpen ? (
-                    <Composer
-                        account={selectedAccount}
-                        busy={busy}
-                        form={composeForm}
-                        onChange={setComposeForm}
-                        onClose={() => setComposerOpen(false)}
-                        onSubmit={handleSendMessage}
-                    />
-                ) : null}
-
-                <ReadingView
-                    busy={busy}
-                    message={selectedMessage}
-                    onArchive={handleArchiveMessage}
-                    onDelete={handleDeleteMessage}
-                    onDownload={handleDownloadAttachment}
-                    selectedProfile={selectedProfile}
-                />
+                            <ReadingView
+                                busy={busy}
+                                message={selectedMessage}
+                                onArchive={handleArchiveMessage}
+                                onDelete={handleDeleteMessage}
+                                onDownload={handleDownloadAttachment}
+                                selectedProfile={selectedProfile}
+                            />
+                        </>
+                    )}
                 </main>
 
                 {modal === 'profile' ? (
@@ -1107,8 +1109,8 @@ function Composer({account, busy, form, onChange, onClose, onSubmit}) {
             <form onSubmit={onSubmit}>
                 <header>
                     <div>
-                        <p>发件身份</p>
-                        <h3>{account?.address || '未选择邮箱'}</h3>
+                        <p>新邮件</p>
+                        <h3>{account?.address || '未选择发件身份'}</h3>
                     </div>
                     <IconButton icon={X} label="关闭写信窗口" onClick={onClose} />
                 </header>
@@ -1121,6 +1123,7 @@ function Composer({account, busy, form, onChange, onClose, onSubmit}) {
                         placeholder="name@example.com"
                         type="email"
                         disabled={disabled}
+                        autoFocus
                         required
                     />
                 </label>

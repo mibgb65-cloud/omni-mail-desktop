@@ -740,6 +740,10 @@
     background: var(--bg-panel);
 }
 
+.reader-panel.composing {
+    background: var(--bg-panel);
+}
+
 .reader-toolbar {
     border-bottom: 1px solid var(--border-subtle);
 }
@@ -849,20 +853,29 @@
 }
 
 .composer-card {
-    border-bottom: 1px solid var(--border-subtle);
-    background: var(--bg-panel-soft);
-    padding: var(--space-5) var(--space-8);
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg-panel);
+    padding: var(--space-8);
 }
 
 .composer-card form {
     display: grid;
+    width: min(860px, 100%);
     max-width: 860px;
-    gap: var(--space-3);
+    gap: var(--space-4);
     margin: 0 auto;
 }
 
 .composer-card header {
     justify-content: space-between;
+    min-height: 48px;
+    margin-bottom: var(--space-2);
+}
+
+.composer-card textarea {
+    min-height: 240px;
 }
 
 .composer-card label,
