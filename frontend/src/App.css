@@ -950,6 +950,10 @@ button:disabled {
     padding: var(--space-5);
 }
 
+.modal-card.wide {
+    width: min(1040px, 100%);
+}
+
 .modal-card header {
     justify-content: space-between;
     margin-bottom: var(--space-5);
@@ -966,7 +970,8 @@ button:disabled {
 
 .modal-form > button,
 .modal-form footer button,
-.settings-grid button {
+.settings-grid button,
+.endpoint-manager-actions button {
     min-height: 38px;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
@@ -974,6 +979,11 @@ button:disabled {
     color: var(--text-primary);
     padding: 0 var(--space-4);
     font-weight: 620;
+}
+
+.primary-action.compact {
+    min-height: 38px;
+    padding: 0 var(--space-4);
 }
 
 .auth-modal-grid {
@@ -998,6 +1008,160 @@ button:disabled {
 .settings-grid {
     display: grid;
     gap: var(--space-3);
+}
+
+.endpoint-manager {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.endpoint-manager-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+
+.endpoint-manager-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.endpoint-manager-counts span {
+    display: grid;
+    min-width: 86px;
+    gap: 2px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-3);
+}
+
+.endpoint-manager-counts strong {
+    color: var(--text-primary);
+    font-size: 20px;
+    line-height: 1;
+}
+
+.endpoint-manager-counts small,
+.endpoint-manager-title small,
+.endpoint-meta-grid small,
+.endpoint-test-result {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.endpoint-manager-list {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.endpoint-manager-card {
+    display: grid;
+    gap: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-4);
+}
+
+.endpoint-manager-card.active {
+    border-color: var(--border-strong);
+    background: var(--bg-active);
+}
+
+.endpoint-manager-card header,
+.endpoint-manager-actions,
+.endpoint-manager-badges {
+    display: flex;
+    align-items: center;
+}
+
+.endpoint-manager-card header {
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin: 0;
+}
+
+.endpoint-manager-title {
+    min-width: 0;
+}
+
+.endpoint-manager-title strong,
+.endpoint-manager-title small,
+.endpoint-meta-grid strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.endpoint-manager-title strong,
+.endpoint-meta-grid strong {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.endpoint-manager-title small {
+    margin-top: 3px;
+}
+
+.endpoint-manager-badges {
+    flex: 0 0 auto;
+    gap: var(--space-1);
+}
+
+.endpoint-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-2);
+}
+
+.endpoint-meta-grid span {
+    min-width: 0;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-2);
+}
+
+.endpoint-meta-grid small {
+    display: block;
+    margin-bottom: 3px;
+}
+
+.endpoint-test-result {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+}
+
+.endpoint-test-result.ok {
+    color: var(--success);
+}
+
+.endpoint-test-result.error {
+    color: var(--danger);
+}
+
+.endpoint-manager-actions {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.endpoint-manager-actions button {
+    background: var(--bg-panel);
+}
+
+.endpoint-manager-actions button:hover,
+.settings-grid button:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.endpoint-manager-actions .danger {
+    color: var(--danger);
 }
 
 .setting-row {
@@ -1230,6 +1394,15 @@ button:disabled {
     .auth-modal-grid {
         grid-template-columns: 1fr;
     }
+
+    .endpoint-manager-summary {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .endpoint-meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 720px) {
@@ -1263,5 +1436,9 @@ button:disabled {
     .message-inline-actions {
         grid-column: 1 / -1;
         margin-left: 0;
+    }
+
+    .endpoint-meta-grid {
+        grid-template-columns: 1fr;
     }
 }

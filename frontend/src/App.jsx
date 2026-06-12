@@ -77,6 +77,24 @@ function formatMessageTime(value) {
     return value || '刚刚';
 }
 
+function formatProfileDate(value) {
+    if (!value) {
+        return '从未';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString('zh-CN', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
 function App() {
     const [profiles, setProfiles] = useState([]);
     const [selectedProfileId, setSelectedProfileId] = useState('');
@@ -300,8 +318,42 @@ function App() {
         }
     }
 
+    function handleAddProfile() {
+        setProfileForm(emptyProfileForm);
+        setProfileMenuOpen(false);
+        setModal('profile');
+    }
+
+    function handleOpenProfileManager() {
+        setProfileMenuOpen(false);
+        setModal('profiles');
+    }
+
+    async function handleOpenAuth(profile = selectedProfile) {
+        if (!profile) {
+            return;
+        }
+
+        setSelectedProfileId(profile.id);
+        setWorkspace(null);
+        setStatus(null);
+        setContextMenu(null);
+        setProfileMenuOpen(false);
+        await SelectProfile(profile.id).catch(() => null);
+        setModal('auth');
+    }
+
+    async function handleTestProfile(profile) {
+        if (!profile) {
+            return;
+        }
+
+        await testConnection(profile.baseUrl, '');
+    }
+
     function handleEditProfile(profile) {
         setProfileForm({id: profile.id, name: profile.name, baseUrl: profile.baseUrl});
+        setProfileMenuOpen(false);
         setModal('profile');
     }
 
@@ -545,15 +597,13 @@ function App() {
                         domain: workspace?.selectedDomain || '',
                         accountId
                     })}
-                    onAddProfile={() => {
-                        setProfileForm(emptyProfileForm);
-                        setModal('profile');
-                    }}
-                    onAuth={() => setModal('auth')}
+                    onAddProfile={handleAddProfile}
+                    onAuth={() => handleOpenAuth(selectedProfile)}
                     onDeleteProfile={handleDeleteProfile}
                     onDomainChange={(domain) => loadMailbox({profileId: selectedProfile?.id, domain})}
                     onEditProfile={handleEditProfile}
                     onFolderChange={setActiveFolder}
+                    onManageProfiles={handleOpenProfileManager}
                     onCompose={() => setComposerOpen(true)}
                     onProfileSelect={handleSelectProfile}
                     onToggle={() => setSidebarCollapsed((value) => !value)}
@@ -646,7 +696,24 @@ function App() {
                         selectedProfile={selectedProfile}
                         status={status}
                         theme={theme}
+                        onOpenProfiles={handleOpenProfileManager}
                         toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
+                    />
+                ) : null}
+
+                {modal === 'profiles' ? (
+                    <EndpointManagerModal
+                        busy={busy}
+                        onAddProfile={handleAddProfile}
+                        onAuth={handleOpenAuth}
+                        onClose={() => setModal(null)}
+                        onDeleteProfile={handleDeleteProfile}
+                        onEditProfile={handleEditProfile}
+                        onProfileSelect={handleSelectProfile}
+                        onTestProfile={handleTestProfile}
+                        profiles={profiles}
+                        selectedProfileId={selectedProfileId}
+                        status={status}
                     />
                 ) : null}
 
@@ -705,6 +772,7 @@ function Sidebar({
     onDomainChange,
     onEditProfile,
     onFolderChange,
+    onManageProfiles,
     onProfileSelect,
     onToggle,
     profiles,
@@ -825,6 +893,10 @@ function Sidebar({
                         <button type="button" onClick={onAuth} disabled={!selectedProfile}>
                             <KeyRound size={16} />
                             授权当前接入点
+                        </button>
+                        <button type="button" onClick={onManageProfiles}>
+                            <ShieldCheck size={16} />
+                            管理接入点
                         </button>
                         <button type="button" onClick={() => selectedProfile && onEditProfile(selectedProfile)} disabled={!selectedProfile}>
                             <Settings size={16} />
@@ -1189,7 +1261,124 @@ function AuthModal({
     );
 }
 
-function SettingsModal({onClose, selectedProfile, status, theme, toggleTheme}) {
+function EndpointManagerModal({
+    busy,
+    onAddProfile,
+    onAuth,
+    onClose,
+    onDeleteProfile,
+    onEditProfile,
+    onProfileSelect,
+    onTestProfile,
+    profiles,
+    selectedProfileId,
+    status
+}) {
+    const authorizedCount = profiles.filter((profile) => profile.hasToken).length;
+
+    return (
+        <Modal title="接入点管理" onClose={onClose} wide>
+            <div className="endpoint-manager">
+                <div className="endpoint-manager-summary">
+                    <div className="endpoint-manager-counts">
+                        <span>
+                            <strong>{profiles.length}</strong>
+                            <small>接入点</small>
+                        </span>
+                        <span>
+                            <strong>{authorizedCount}</strong>
+                            <small>已授权</small>
+                        </span>
+                        <span>
+                            <strong>{profiles.length - authorizedCount}</strong>
+                            <small>待授权</small>
+                        </span>
+                    </div>
+                    <button className="primary-action compact" type="button" onClick={onAddProfile}>
+                        <Plus size={16} />
+                        添加接入点
+                    </button>
+                </div>
+
+                {profiles.length ? (
+                    <div className="endpoint-manager-list">
+                        {profiles.map((profile) => {
+                            const isSelected = profile.id === selectedProfileId;
+                            const rowStatus = status?.baseUrl === profile.baseUrl ? status : null;
+
+                            return (
+                                <article className={`endpoint-manager-card ${isSelected ? 'active' : ''}`} key={profile.id}>
+                                    <header>
+                                        <div className="endpoint-manager-title">
+                                            <strong>{profile.name || '未命名接入点'}</strong>
+                                            <small>{profile.baseUrl}</small>
+                                        </div>
+                                        <div className="endpoint-manager-badges">
+                                            {isSelected ? <StatusBadge ok label="当前使用" /> : null}
+                                            <StatusBadge ok={profile.hasToken} label={profile.hasToken ? '已授权' : '未授权'} />
+                                        </div>
+                                    </header>
+
+                                    <div className="endpoint-meta-grid">
+                                        <span>
+                                            <small>Token</small>
+                                            <strong>{profile.hasToken ? profile.tokenPreview : '未保存'}</strong>
+                                        </span>
+                                        <span>
+                                            <small>设备名称</small>
+                                            <strong>{profile.deviceLabel || 'Windows 桌面端'}</strong>
+                                        </span>
+                                        <span>
+                                            <small>最后使用</small>
+                                            <strong>{formatProfileDate(profile.lastUsedAt)}</strong>
+                                        </span>
+                                        <span>
+                                            <small>更新时间</small>
+                                            <strong>{formatProfileDate(profile.updatedAt)}</strong>
+                                        </span>
+                                    </div>
+
+                                    {rowStatus ? (
+                                        <p className={`endpoint-test-result ${rowStatus.ok ? 'ok' : 'error'}`}>
+                                            {rowStatus.ok ? <CircleCheck size={15} /> : <CircleAlert size={15} />}
+                                            {rowStatus.message || (rowStatus.ok ? '连接正常' : '连接失败')}
+                                        </p>
+                                    ) : null}
+
+                                    <footer className="endpoint-manager-actions">
+                                        <button type="button" onClick={() => onProfileSelect(profile)} disabled={isSelected || busy === 'mailbox'}>
+                                            {isSelected ? '当前使用' : '设为当前'}
+                                        </button>
+                                        <button type="button" onClick={() => onTestProfile(profile)} disabled={busy === 'test'}>
+                                            测试连接
+                                        </button>
+                                        <button type="button" onClick={() => onAuth(profile)} disabled={busy === 'auth'}>
+                                            {profile.hasToken ? '重新授权' : '授权'}
+                                        </button>
+                                        <button type="button" onClick={() => onEditProfile(profile)} disabled={busy === 'profile'}>
+                                            编辑
+                                        </button>
+                                        <button className="danger" type="button" onClick={() => onDeleteProfile(profile)} disabled={busy === 'delete'}>
+                                            删除
+                                        </button>
+                                    </footer>
+                                </article>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <EmptyState
+                        icon={ShieldCheck}
+                        title="还没有接入点"
+                        body="添加部署后的 OmniMail Worker Base URL，即可开始接入邮箱。"
+                    />
+                )}
+            </div>
+        </Modal>
+    );
+}
+
+function SettingsModal({onClose, onOpenProfiles, selectedProfile, status, theme, toggleTheme}) {
     return (
         <Modal title="设置" onClose={onClose}>
             <div className="settings-grid">
@@ -1204,6 +1393,12 @@ function SettingsModal({onClose, selectedProfile, status, theme, toggleTheme}) {
                     title="接入点状态"
                     body={selectedProfile ? selectedProfile.baseUrl : '尚未选择接入点'}
                     action={<StatusBadge ok={Boolean(status?.ok)} label={status?.ok ? '正常' : '未验证'} />}
+                />
+                <SettingRow
+                    icon={ShieldCheck}
+                    title="接入点管理"
+                    body="集中管理 Base URL、授权状态、Token 和连接测试。"
+                    action={<button type="button" onClick={onOpenProfiles}>打开管理</button>}
                 />
                 <SettingRow
                     icon={KeyRound}
@@ -1250,10 +1445,10 @@ function ContextMenu({contextMenu, onArchive, onClose, onDelete}) {
     );
 }
 
-function Modal({children, onClose, title}) {
+function Modal({children, onClose, title, wide = false}) {
     return (
         <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-            <section className="modal-card" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
+            <section className={`modal-card ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
                 <header>
                     <h2>{title}</h2>
                     <IconButton icon={X} label="关闭" onClick={onClose} />
