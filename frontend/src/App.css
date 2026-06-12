@@ -180,7 +180,7 @@
 }
 
 .app-shell.sidebar-collapsed {
-    --sidebar-width: 76px;
+    --sidebar-width: 68px;
 }
 
 .skip-link {
@@ -217,6 +217,12 @@
 
 .sidebar-collapsed .sidebar {
     align-items: center;
+    padding: var(--space-3) var(--space-2);
+}
+
+.sidebar-collapsed .sidebar-top {
+    justify-content: center;
+    width: 100%;
 }
 
 .sidebar-top,
@@ -281,9 +287,9 @@
 .sidebar-collapsed .nav-item span,
 .sidebar-collapsed .nav-item small,
 .sidebar-collapsed .section-label,
-.sidebar-collapsed .domain-item span,
-.sidebar-collapsed .account-chip span,
-.sidebar-collapsed .account-chip small,
+.sidebar-collapsed .nav-section:not(:first-of-type),
+.sidebar-collapsed .domain-item,
+.sidebar-collapsed .account-chip,
 .sidebar-collapsed .endpoint-card,
 .sidebar-collapsed .endpoint-button > span:nth-child(2),
 .sidebar-collapsed .endpoint-button > svg,
@@ -337,6 +343,25 @@
 .compose-primary {
     width: 100%;
     margin: var(--space-4) 0 var(--space-3);
+}
+
+.sidebar-collapsed .compose-primary {
+    width: 40px;
+    min-height: 40px;
+    padding: 0;
+}
+
+.sidebar-collapsed .nav-section {
+    width: 100%;
+}
+
+.sidebar-collapsed .nav-item {
+    display: grid;
+    width: 40px;
+    min-height: 40px;
+    grid-template-columns: 1fr;
+    place-items: center;
+    padding: 0;
 }
 
 .compose-primary:hover,
@@ -479,6 +504,15 @@
     width: 100%;
     min-height: 44px;
     padding: var(--space-1);
+}
+
+.sidebar-collapsed .endpoint-button {
+    display: grid;
+    width: 40px;
+    min-height: 40px;
+    grid-template-columns: 1fr;
+    place-items: center;
+    padding: 0;
 }
 
 .endpoint-avatar,
