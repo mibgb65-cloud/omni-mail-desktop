@@ -17,6 +17,7 @@
     --motion: 220ms ease;
     --sidebar-width: 292px;
     --list-width: 388px;
+    --titlebar-height: 42px;
 
     --bg-canvas: #f7f7f5;
     --bg-rail: #f3f3f0;
@@ -71,10 +72,116 @@
     --focus: 0 0 0 3px rgba(25, 195, 125, 0.26);
 }
 
+.window-shell {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg-canvas);
+    color: var(--text-primary);
+}
+
+.titlebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    height: var(--titlebar-height);
+    flex: 0 0 auto;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-rail);
+    color: var(--text-primary);
+    transition: background-color var(--motion), border-color var(--motion), color var(--motion);
+    user-select: none;
+    --wails-draggable: drag;
+}
+
+.titlebar-drag-region {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    padding-left: var(--space-3);
+}
+
+.titlebar-brand {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.titlebar-logo {
+    display: grid;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: var(--radius-sm);
+    background: var(--text-primary);
+    color: var(--text-inverse);
+    font-size: 9px;
+    font-weight: 760;
+}
+
+.titlebar-brand strong,
+.titlebar-brand small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.titlebar-brand strong {
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.titlebar-brand small {
+    color: var(--text-tertiary);
+    font-size: 10px;
+}
+
+.titlebar-actions {
+    display: flex;
+    height: 100%;
+    align-items: stretch;
+    --wails-draggable: no-drag;
+}
+
+.titlebar-tool,
+.window-control {
+    display: grid;
+    width: 44px;
+    height: 100%;
+    place-items: center;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    transition: background-color var(--motion-fast), color var(--motion-fast);
+}
+
+.titlebar-tool {
+    width: 40px;
+}
+
+.titlebar-tool:hover,
+.window-control:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.window-control.close:hover {
+    background: #e5484d;
+    color: #ffffff;
+}
+
 .app-shell {
     display: grid;
     grid-template-columns: var(--sidebar-width) var(--list-width) minmax(0, 1fr);
-    height: 100vh;
+    min-height: 0;
+    flex: 1 1 auto;
     overflow: hidden;
     background: var(--bg-canvas);
     color: var(--text-primary);
@@ -128,7 +235,7 @@
 .composer-card header,
 .modal-card header,
 .compose-primary,
-.profile-button,
+.endpoint-button,
 .message-meta,
 .setting-row {
     display: flex;
@@ -168,7 +275,7 @@
 }
 
 .brand-copy,
-.profile-button > span:nth-child(2),
+.endpoint-button > span:nth-child(2),
 .mail-row-main,
 .message-meta > div:nth-child(2),
 .setting-row span {
@@ -176,7 +283,7 @@
 }
 
 .brand-copy strong,
-.profile-button strong {
+.endpoint-button strong {
     display: block;
     overflow: hidden;
     color: var(--text-primary);
@@ -188,7 +295,7 @@
 }
 
 .brand-copy small,
-.profile-button small,
+.endpoint-button small,
 .muted-line,
 .modal-note,
 .setting-row small {
@@ -206,8 +313,8 @@
 .sidebar-collapsed .account-chip span,
 .sidebar-collapsed .account-chip small,
 .sidebar-collapsed .endpoint-card,
-.sidebar-collapsed .profile-button > span:nth-child(2),
-.sidebar-collapsed .profile-button > svg,
+.sidebar-collapsed .endpoint-button > span:nth-child(2),
+.sidebar-collapsed .endpoint-button > svg,
 .sidebar-collapsed .muted-line,
 .sidebar-collapsed .section-row .icon-button {
     display: none;
@@ -292,10 +399,10 @@
 .domain-item,
 .account-chip,
 .endpoint-card,
-.profile-button,
+.endpoint-button,
 .mail-row,
 .context-menu button,
-.profile-menu button {
+.endpoint-menu button {
     border: 0;
     border-radius: var(--radius-md);
     background: transparent;
@@ -317,7 +424,7 @@
 .domain-item:hover,
 .account-chip:hover,
 .endpoint-card:hover,
-.profile-button:hover,
+.endpoint-button:hover,
 .mail-row:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
@@ -393,7 +500,7 @@
     padding-top: var(--space-2);
 }
 
-.profile-button {
+.endpoint-button {
     display: grid;
     grid-template-columns: 32px minmax(0, 1fr) 18px;
     gap: var(--space-2);
@@ -402,7 +509,7 @@
     padding: var(--space-1);
 }
 
-.avatar,
+.endpoint-avatar,
 .sender-avatar {
     display: grid;
     flex: 0 0 auto;
@@ -412,12 +519,12 @@
     color: var(--text-secondary);
 }
 
-.avatar {
+.endpoint-avatar {
     width: 32px;
     height: 32px;
 }
 
-.profile-menu,
+.endpoint-menu,
 .context-menu,
 .modal-card,
 .toast {
@@ -427,7 +534,7 @@
     backdrop-filter: blur(18px);
 }
 
-.profile-menu {
+.endpoint-menu {
     position: absolute;
     bottom: 52px;
     left: 0;
@@ -439,7 +546,7 @@
     padding: var(--space-2);
 }
 
-.profile-menu button,
+.endpoint-menu button,
 .context-menu button {
     display: flex;
     align-items: center;
@@ -448,13 +555,13 @@
     padding: 0 var(--space-2);
 }
 
-.profile-menu button:hover,
+.endpoint-menu button:hover,
 .context-menu button:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
 }
 
-.profile-menu .danger,
+.endpoint-menu .danger,
 .context-menu .danger {
     color: var(--danger);
 }
@@ -1109,8 +1216,8 @@ button:disabled {
     .account-chip span,
     .account-chip small,
     .endpoint-section,
-    .profile-button > span:nth-child(2),
-    .profile-button > svg {
+    .endpoint-button > span:nth-child(2),
+    .endpoint-button > svg {
         display: none;
     }
 

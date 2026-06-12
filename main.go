@@ -17,9 +17,12 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "OmniMailDesktop",
-		Width:  1280,
-		Height: 820,
+		Title:     "OmniMailDesktop",
+		Width:     1280,
+		Height:    820,
+		MinWidth:  1040,
+		MinHeight: 680,
+		Frameless: true,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

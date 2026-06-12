@@ -2,8 +2,6 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import {
     Archive,
     ArchiveRestore,
-    ChevronLeft,
-    ChevronRight,
     CircleAlert,
     CircleCheck,
     Download,
@@ -12,7 +10,8 @@ import {
     KeyRound,
     Mail,
     MailPlus,
-    Menu,
+    Maximize2,
+    Minus,
     Moon,
     MoreHorizontal,
     PanelLeftClose,
@@ -25,10 +24,16 @@ import {
     ShieldCheck,
     Sun,
     Trash2,
-    UserRound,
     X
 } from 'lucide-react';
 import './App.css';
+import {
+    Quit,
+    WindowMinimise,
+    WindowSetDarkTheme,
+    WindowSetLightTheme,
+    WindowToggleMaximise
+} from '../wailsjs/runtime/runtime';
 import {
     ArchiveMessage,
     AuthorizeProfile,
@@ -150,6 +155,11 @@ function App() {
     useEffect(() => {
         document.documentElement.dataset.theme = theme;
         localStorage.setItem('omnimail_desktop_theme', theme);
+        if (theme === 'dark') {
+            WindowSetDarkTheme();
+        } else {
+            WindowSetLightTheme();
+        }
     }, [theme]);
 
     useEffect(() => {
@@ -353,7 +363,7 @@ function App() {
             setAuthForm(emptyAuthForm);
             setModal(null);
             await loadMailbox({profileId: profile.id});
-            showToast('success', '桌面端已授权', '设备 Token 已安全保存。');
+            showToast('success', '当前接入点已授权', '设备 Token 只保存到这个接入点，不影响其他接入点。');
         } catch (authError) {
             showToast('error', '授权失败', authError.message || '请检查管理员账号密码。');
         } finally {
@@ -379,7 +389,7 @@ function App() {
             setManualToken('');
             setModal(null);
             await loadMailbox({profileId: profile.id});
-            showToast('success', 'Token 已保存');
+            showToast('success', 'Token 已保存', '该 Token 仅用于当前接入点。');
         } catch (tokenError) {
             showToast('error', '保存 Token 失败', tokenError.message || 'Token 不能为空。');
         } finally {
@@ -519,70 +529,71 @@ function App() {
     }
 
     return (
-        <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`} onClick={() => setContextMenu(null)}>
-            <a className="skip-link" href="#reader">跳到邮件内容</a>
+        <div className="window-shell">
+            <TitleBar theme={theme} toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')} />
+            <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`} onClick={() => setContextMenu(null)}>
+                <a className="skip-link" href="#reader">跳到邮件内容</a>
 
-            <Sidebar
-                activeFolder={activeFolder}
-                authForm={authForm}
-                busy={busy}
-                collapsed={sidebarCollapsed}
-                folderCounts={folderCounts}
-                onAccountChange={(accountId) => loadMailbox({
-                    profileId: selectedProfile?.id,
-                    domain: workspace?.selectedDomain || '',
-                    accountId
-                })}
-                onAddProfile={() => {
-                    setProfileForm(emptyProfileForm);
-                    setModal('profile');
-                }}
-                onAuth={() => setModal('auth')}
-                onDeleteProfile={handleDeleteProfile}
-                onDomainChange={(domain) => loadMailbox({profileId: selectedProfile?.id, domain})}
-                onEditProfile={handleEditProfile}
-                onFolderChange={setActiveFolder}
-                onCompose={() => setComposerOpen(true)}
-                onProfileSelect={handleSelectProfile}
-                onToggle={() => setSidebarCollapsed((value) => !value)}
-                profiles={profiles}
-                profileMenuOpen={profileMenuOpen}
-                selectedAccount={selectedAccount}
-                selectedProfile={selectedProfile}
-                selectedProfileId={selectedProfileId}
-                setProfileMenuOpen={setProfileMenuOpen}
-                status={status}
-                theme={theme}
-                toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
-                workspace={workspace}
-            />
-
-            <EmailListPanel
-                activeFolder={activeFolder}
-                busy={busy}
-                messages={visibleMessages}
-                onCompose={() => setComposerOpen(true)}
-                onContextMenu={openContextMenu}
-                onMessageSelect={setSelectedMessageId}
-                onReload={reloadCurrentMailbox}
-                searchInputRef={searchInputRef}
-                searchQuery={searchQuery}
-                selectedMessageId={selectedMessage?.id || ''}
-                selectedProfile={selectedProfile}
-                setSearchQuery={setSearchQuery}
-                workspace={workspace}
-            />
-
-            <main id="reader" className="reader-panel">
-                <ReaderToolbar
+                <Sidebar
+                    activeFolder={activeFolder}
+                    authForm={authForm}
                     busy={busy}
-                    onArchive={() => handleArchiveMessage(selectedMessage)}
-                    onDelete={() => handleDeleteMessage(selectedMessage)}
-                    onOpenSettings={() => setModal('settings')}
-                    onReload={reloadCurrentMailbox}
-                    selectedMessage={selectedMessage}
+                    collapsed={sidebarCollapsed}
+                    folderCounts={folderCounts}
+                    onAccountChange={(accountId) => loadMailbox({
+                        profileId: selectedProfile?.id,
+                        domain: workspace?.selectedDomain || '',
+                        accountId
+                    })}
+                    onAddProfile={() => {
+                        setProfileForm(emptyProfileForm);
+                        setModal('profile');
+                    }}
+                    onAuth={() => setModal('auth')}
+                    onDeleteProfile={handleDeleteProfile}
+                    onDomainChange={(domain) => loadMailbox({profileId: selectedProfile?.id, domain})}
+                    onEditProfile={handleEditProfile}
+                    onFolderChange={setActiveFolder}
+                    onCompose={() => setComposerOpen(true)}
+                    onProfileSelect={handleSelectProfile}
+                    onToggle={() => setSidebarCollapsed((value) => !value)}
+                    profiles={profiles}
+                    profileMenuOpen={profileMenuOpen}
                     selectedProfile={selectedProfile}
+                    selectedProfileId={selectedProfileId}
+                    setProfileMenuOpen={setProfileMenuOpen}
+                    status={status}
+                    theme={theme}
+                    toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
+                    workspace={workspace}
                 />
+
+                <EmailListPanel
+                    activeFolder={activeFolder}
+                    busy={busy}
+                    messages={visibleMessages}
+                    onCompose={() => setComposerOpen(true)}
+                    onContextMenu={openContextMenu}
+                    onMessageSelect={setSelectedMessageId}
+                    onReload={reloadCurrentMailbox}
+                    searchInputRef={searchInputRef}
+                    searchQuery={searchQuery}
+                    selectedMessageId={selectedMessage?.id || ''}
+                    selectedProfile={selectedProfile}
+                    setSearchQuery={setSearchQuery}
+                    workspace={workspace}
+                />
+
+                <main id="reader" className="reader-panel">
+                    <ReaderToolbar
+                        busy={busy}
+                        onArchive={() => handleArchiveMessage(selectedMessage)}
+                        onDelete={() => handleDeleteMessage(selectedMessage)}
+                        onOpenSettings={() => setModal('settings')}
+                        onReload={reloadCurrentMailbox}
+                        selectedMessage={selectedMessage}
+                        selectedProfile={selectedProfile}
+                    />
 
                 {composerOpen ? (
                     <Composer
@@ -603,53 +614,84 @@ function App() {
                     onDownload={handleDownloadAttachment}
                     selectedProfile={selectedProfile}
                 />
-            </main>
+                </main>
 
-            {modal === 'profile' ? (
-                <ProfileModal
-                    busy={busy}
-                    form={profileForm}
-                    onChange={setProfileForm}
-                    onClose={() => setModal(null)}
-                    onSubmit={handleProfileSubmit}
-                />
-            ) : null}
+                {modal === 'profile' ? (
+                    <ProfileModal
+                        busy={busy}
+                        form={profileForm}
+                        onChange={setProfileForm}
+                        onClose={() => setModal(null)}
+                        onSubmit={handleProfileSubmit}
+                    />
+                ) : null}
 
-            {modal === 'auth' && selectedProfile ? (
-                <AuthModal
-                    authForm={authForm}
-                    busy={busy}
-                    manualToken={manualToken}
-                    onAuthFormChange={setAuthForm}
-                    onClose={() => setModal(null)}
-                    onManualToken={handleManualToken}
-                    onManualTokenChange={setManualToken}
-                    onSubmit={handleAuthorize}
-                    profile={selectedProfile}
-                />
-            ) : null}
+                {modal === 'auth' && selectedProfile ? (
+                    <AuthModal
+                        authForm={authForm}
+                        busy={busy}
+                        manualToken={manualToken}
+                        onAuthFormChange={setAuthForm}
+                        onClose={() => setModal(null)}
+                        onManualToken={handleManualToken}
+                        onManualTokenChange={setManualToken}
+                        onSubmit={handleAuthorize}
+                        profile={selectedProfile}
+                    />
+                ) : null}
 
-            {modal === 'settings' ? (
-                <SettingsModal
-                    onClose={() => setModal(null)}
-                    selectedProfile={selectedProfile}
-                    status={status}
-                    theme={theme}
-                    toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
-                />
-            ) : null}
+                {modal === 'settings' ? (
+                    <SettingsModal
+                        onClose={() => setModal(null)}
+                        selectedProfile={selectedProfile}
+                        status={status}
+                        theme={theme}
+                        toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
+                    />
+                ) : null}
 
-            {contextMenu ? (
-                <ContextMenu
-                    contextMenu={contextMenu}
-                    onArchive={handleArchiveMessage}
-                    onClose={() => setContextMenu(null)}
-                    onDelete={handleDeleteMessage}
-                />
-            ) : null}
+                {contextMenu ? (
+                    <ContextMenu
+                        contextMenu={contextMenu}
+                        onArchive={handleArchiveMessage}
+                        onClose={() => setContextMenu(null)}
+                        onDelete={handleDeleteMessage}
+                    />
+                ) : null}
 
-            <Toast toast={toast} onClose={() => setToast(null)} />
+                <Toast toast={toast} onClose={() => setToast(null)} />
+            </div>
         </div>
+    );
+}
+
+function TitleBar({theme, toggleTheme}) {
+    return (
+        <header className="titlebar" aria-label="窗口标题栏">
+            <div className="titlebar-drag-region">
+                <div className="titlebar-brand">
+                    <span className="titlebar-logo">OM</span>
+                    <span>
+                        <strong>OmniMail Desktop</strong>
+                        <small>智能邮箱客户端</small>
+                    </span>
+                </div>
+            </div>
+            <div className="titlebar-actions">
+                <button className="titlebar-tool" type="button" onClick={toggleTheme} aria-label="切换亮色暗色模式" title="切换亮色暗色模式">
+                    {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+                </button>
+                <button className="window-control" type="button" onClick={WindowMinimise} aria-label="最小化" title="最小化">
+                    <Minus size={15} />
+                </button>
+                <button className="window-control" type="button" onClick={WindowToggleMaximise} aria-label="最大化或还原" title="最大化或还原">
+                    <Maximize2 size={14} />
+                </button>
+                <button className="window-control close" type="button" onClick={Quit} aria-label="关闭" title="关闭">
+                    <X size={15} />
+                </button>
+            </div>
+        </header>
     );
 }
 
@@ -670,7 +712,6 @@ function Sidebar({
     onToggle,
     profiles,
     profileMenuOpen,
-    selectedAccount,
     selectedProfile,
     selectedProfileId,
     setProfileMenuOpen,
@@ -768,24 +809,28 @@ function Sidebar({
             </div>
 
             <div className="sidebar-footer">
-                <button className="profile-button" type="button" onClick={() => setProfileMenuOpen(!profileMenuOpen)}>
-                    <span className="avatar"><UserRound size={16} /></span>
+                <button className="endpoint-button" type="button" onClick={() => setProfileMenuOpen(!profileMenuOpen)}>
+                    <span className="endpoint-avatar"><ShieldCheck size={16} /></span>
                     <span>
-                        <strong>{selectedAccount?.address || selectedProfile?.name || '未连接'}</strong>
-                        <small>{status?.health?.storage ? `存储：${status.health.storage}` : '桌面端配置'}</small>
+                        <strong>{selectedProfile?.name || '未选择接入点'}</strong>
+                        <small>
+                            {selectedProfile?.hasToken
+                                ? `当前接入点已授权${status?.health?.storage ? ` · ${status.health.storage}` : ''}`
+                                : '每个接入点独立授权'}
+                        </small>
                     </span>
                     <MoreHorizontal size={17} />
                 </button>
 
                 {profileMenuOpen ? (
-                    <div className="profile-menu">
+                    <div className="endpoint-menu">
                         <button type="button" onClick={toggleTheme}>
                             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
                             {theme === 'dark' ? '切换浅色模式' : '切换深色模式'}
                         </button>
                         <button type="button" onClick={onAuth} disabled={!selectedProfile}>
                             <KeyRound size={16} />
-                            授权或更换 Token
+                            授权当前接入点
                         </button>
                         <button type="button" onClick={() => selectedProfile && onEditProfile(selectedProfile)} disabled={!selectedProfile}>
                             <Settings size={16} />
@@ -1093,6 +1138,7 @@ function AuthModal({
             <div className="auth-modal-grid">
                 <form className="modal-form" onSubmit={onSubmit}>
                     <p className="modal-note">接入点：{profile.baseUrl}</p>
+                    <p className="modal-note">授权只绑定当前接入点，不会作为全局账号使用。</p>
                     <label className="checkbox-row">
                         <input
                             type="checkbox"
@@ -1168,7 +1214,7 @@ function SettingsModal({onClose, selectedProfile, status, theme, toggleTheme}) {
                 <SettingRow
                     icon={KeyRound}
                     title="Token 存储"
-                    body="Windows 下使用 DPAPI 保护本地设备 Token。"
+                    body="Windows 下使用 DPAPI 按接入点分别保护本地设备 Token。"
                     action={<StatusBadge ok label="已启用" />}
                 />
             </div>
