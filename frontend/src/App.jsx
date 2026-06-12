@@ -53,6 +53,14 @@ import {
 const emptyProfileForm = {id: '', name: '', baseUrl: ''};
 const emptyAuthForm = {email: '', password: '', deviceLabel: 'Windows 桌面端', setup: false};
 const emptyComposeForm = {to: '', subject: '', text: ''};
+const layoutDefaults = {
+    sidebar: 292,
+    list: 388
+};
+const layoutLimits = {
+    sidebar: {min: 240, max: 420},
+    list: {min: 300, max: 560}
+};
 
 const folders = [
     {id: 'inbox', label: '收件箱', icon: Inbox},
@@ -66,6 +74,24 @@ function upsertProfile(profiles, profile) {
     return exists
         ? profiles.map((item) => item.id === profile.id ? profile : item)
         : [profile, ...profiles];
+}
+
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+}
+
+function readStoredWidth(key, fallback, limits) {
+    const raw = localStorage.getItem(key);
+    if (raw === null) {
+        return fallback;
+    }
+
+    const stored = Number(raw);
+    if (!Number.isFinite(stored)) {
+        return fallback;
+    }
+
+    return clamp(stored, limits.min, limits.max);
 }
 
 function isTypingTarget(event) {
@@ -111,6 +137,9 @@ function App() {
     const [toast, setToast] = useState(null);
     const [theme, setTheme] = useState(() => localStorage.getItem('omnimail_desktop_theme') || 'light');
     const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('omnimail_sidebar_collapsed') === 'true');
+    const [sidebarWidth, setSidebarWidth] = useState(() => readStoredWidth('omnimail_sidebar_width', layoutDefaults.sidebar, layoutLimits.sidebar));
+    const [listWidth, setListWidth] = useState(() => readStoredWidth('omnimail_list_width', layoutDefaults.list, layoutLimits.list));
+    const [resizingPanel, setResizingPanel] = useState('');
     const [modal, setModal] = useState(null);
     const [composerOpen, setComposerOpen] = useState(false);
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -183,6 +212,18 @@ function App() {
     useEffect(() => {
         localStorage.setItem('omnimail_sidebar_collapsed', String(sidebarCollapsed));
     }, [sidebarCollapsed]);
+
+    useEffect(() => {
+        localStorage.setItem('omnimail_sidebar_width', String(sidebarWidth));
+    }, [sidebarWidth]);
+
+    useEffect(() => {
+        localStorage.setItem('omnimail_list_width', String(listWidth));
+    }, [listWidth]);
+
+    useEffect(() => () => {
+        document.body.classList.remove('is-resizing-panels');
+    }, []);
 
     useEffect(() => {
         loadInitialState();
@@ -259,6 +300,74 @@ function App() {
         const currentIndex = Math.max(0, visibleMessages.findIndex((message) => message.id === selectedMessageId));
         const nextIndex = Math.min(Math.max(currentIndex + delta, 0), visibleMessages.length - 1);
         setSelectedMessageId(visibleMessages[nextIndex].id);
+    }
+
+    function setLayoutWidth(panel, value) {
+        if (panel === 'sidebar') {
+            setSidebarWidth(clamp(value, layoutLimits.sidebar.min, layoutLimits.sidebar.max));
+            return;
+        }
+
+        setListWidth(clamp(value, layoutLimits.list.min, layoutLimits.list.max));
+    }
+
+    function adjustLayoutWidth(panel, delta) {
+        if (panel === 'sidebar') {
+            setSidebarWidth((value) => clamp(value + delta, layoutLimits.sidebar.min, layoutLimits.sidebar.max));
+            return;
+        }
+
+        setListWidth((value) => clamp(value + delta, layoutLimits.list.min, layoutLimits.list.max));
+    }
+
+    function resetLayoutWidth(panel) {
+        setLayoutWidth(panel, layoutDefaults[panel]);
+    }
+
+    function startPanelResize(panel, event) {
+        if (panel === 'sidebar' && sidebarCollapsed) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const startX = event.clientX;
+        const startWidth = panel === 'sidebar' ? sidebarWidth : listWidth;
+        setResizingPanel(panel);
+        document.body.classList.add('is-resizing-panels');
+
+        function handlePointerMove(moveEvent) {
+            setLayoutWidth(panel, startWidth + moveEvent.clientX - startX);
+        }
+
+        function handlePointerUp() {
+            setResizingPanel('');
+            document.body.classList.remove('is-resizing-panels');
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+            window.removeEventListener('pointercancel', handlePointerUp);
+        }
+
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+        window.addEventListener('pointercancel', handlePointerUp);
+    }
+
+    function handleResizeKey(panel, event) {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && event.key !== 'Home') {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (event.key === 'Home') {
+            resetLayoutWidth(panel);
+            return;
+        }
+
+        const direction = event.key === 'ArrowRight' ? 1 : -1;
+        adjustLayoutWidth(panel, direction * (event.shiftKey ? 32 : 12));
     }
 
     async function loadInitialState() {
@@ -583,7 +692,14 @@ function App() {
     return (
         <div className="window-shell">
             <TitleBar theme={theme} toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')} />
-            <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`} onClick={() => setContextMenu(null)}>
+            <div
+                className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${resizingPanel ? 'resizing' : ''}`}
+                style={{
+                    '--sidebar-width': `${sidebarCollapsed ? 68 : sidebarWidth}px`,
+                    '--list-width': `${listWidth}px`
+                }}
+                onClick={() => setContextMenu(null)}
+            >
                 <a className="skip-link" href="#reader">跳到邮件内容</a>
 
                 <Sidebar
@@ -618,6 +734,18 @@ function App() {
                     workspace={workspace}
                 />
 
+                <ResizeHandle
+                    active={resizingPanel === 'sidebar'}
+                    hidden={sidebarCollapsed}
+                    label="调整侧栏宽度"
+                    max={layoutLimits.sidebar.max}
+                    min={layoutLimits.sidebar.min}
+                    onDoubleClick={() => resetLayoutWidth('sidebar')}
+                    onKeyDown={(event) => handleResizeKey('sidebar', event)}
+                    onPointerDown={(event) => startPanelResize('sidebar', event)}
+                    value={sidebarWidth}
+                />
+
                 <EmailListPanel
                     activeFolder={activeFolder}
                     busy={busy}
@@ -632,6 +760,17 @@ function App() {
                     selectedProfile={selectedProfile}
                     setSearchQuery={setSearchQuery}
                     workspace={workspace}
+                />
+
+                <ResizeHandle
+                    active={resizingPanel === 'list'}
+                    label="调整邮件列表宽度"
+                    max={layoutLimits.list.max}
+                    min={layoutLimits.list.min}
+                    onDoubleClick={() => resetLayoutWidth('list')}
+                    onKeyDown={(event) => handleResizeKey('list', event)}
+                    onPointerDown={(event) => startPanelResize('list', event)}
+                    value={listWidth}
                 />
 
                 <main id="reader" className={`reader-panel ${composerOpen ? 'composing' : ''}`}>
@@ -758,6 +897,29 @@ function TitleBar({theme, toggleTheme}) {
                 </button>
             </div>
         </header>
+    );
+}
+
+function ResizeHandle({active = false, hidden = false, label, max, min, onDoubleClick, onKeyDown, onPointerDown, value}) {
+    if (hidden) {
+        return <div className="resize-handle hidden" aria-hidden="true" />;
+    }
+
+    return (
+        <button
+            className={`resize-handle ${active ? 'active' : ''}`}
+            type="button"
+            role="separator"
+            aria-label={label}
+            aria-orientation="vertical"
+            aria-valuemax={max}
+            aria-valuemin={min}
+            aria-valuenow={value}
+            title={`${label}；双击恢复默认宽度`}
+            onDoubleClick={onDoubleClick}
+            onKeyDown={onKeyDown}
+            onPointerDown={onPointerDown}
+        />
     );
 }
 

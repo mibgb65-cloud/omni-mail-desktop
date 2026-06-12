@@ -17,6 +17,8 @@
     --motion: 220ms ease;
     --sidebar-width: 292px;
     --list-width: 388px;
+    --sidebar-resizer-width: 6px;
+    --resize-handle-width: 6px;
     --titlebar-height: 42px;
 
     --bg-canvas: #f7f7f5;
@@ -168,9 +170,15 @@
     color: #ffffff;
 }
 
+body.is-resizing-panels,
+body.is-resizing-panels * {
+    cursor: col-resize !important;
+    user-select: none !important;
+}
+
 .app-shell {
     display: grid;
-    grid-template-columns: var(--sidebar-width) var(--list-width) minmax(0, 1fr);
+    grid-template-columns: var(--sidebar-width) var(--sidebar-resizer-width) var(--list-width) var(--resize-handle-width) minmax(0, 1fr);
     min-height: 0;
     flex: 1 1 auto;
     overflow: hidden;
@@ -181,6 +189,50 @@
 
 .app-shell.sidebar-collapsed {
     --sidebar-width: 68px;
+    --sidebar-resizer-width: 0px;
+}
+
+.resize-handle {
+    position: relative;
+    z-index: 3;
+    min-width: 0;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+    cursor: col-resize;
+    --wails-draggable: no-drag;
+}
+
+.resize-handle.hidden {
+    pointer-events: none;
+}
+
+.resize-handle.hidden::before {
+    display: none;
+}
+
+.resize-handle::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 50%;
+    width: 1px;
+    background: var(--border-subtle);
+    transform: translateX(-50%);
+    transition: background-color var(--motion-fast), width var(--motion-fast);
+}
+
+.resize-handle:hover::before,
+.resize-handle:focus-visible::before,
+.resize-handle.active::before {
+    width: 3px;
+    background: var(--accent);
+}
+
+.resize-handle:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
 }
 
 .skip-link {
@@ -1383,7 +1435,9 @@ button:disabled {
 
 @media (max-width: 920px) {
     .app-shell {
-        grid-template-columns: 72px minmax(300px, 42vw) minmax(0, 1fr);
+        --sidebar-width: 72px;
+        --sidebar-resizer-width: 0px;
+        grid-template-columns: var(--sidebar-width) 0 minmax(300px, 42vw) var(--resize-handle-width) minmax(0, 1fr);
     }
 
     .sidebar {
@@ -1423,6 +1477,10 @@ button:disabled {
         grid-template-columns: 1fr;
         grid-template-rows: auto 42vh minmax(0, 1fr);
         overflow-y: auto;
+    }
+
+    .resize-handle {
+        display: none;
     }
 
     .sidebar {
