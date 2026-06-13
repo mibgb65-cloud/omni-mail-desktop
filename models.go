@@ -52,6 +52,29 @@ type AccountInput struct {
 	Name      string `json:"name"`
 }
 
+type DomainInput struct {
+	ProfileID string `json:"profileId"`
+	Domain    string `json:"domain"`
+}
+
+type DomainRecord struct {
+	Domain  string `json:"domain"`
+	Kind    string `json:"kind"`
+	Enabled bool   `json:"enabled"`
+}
+
+type AccountUpdateInput struct {
+	ProfileID string `json:"profileId"`
+	AccountID string `json:"accountId"`
+	Name      string `json:"name"`
+	Enabled   *bool  `json:"enabled,omitempty"`
+}
+
+type AccountDeleteInput struct {
+	ProfileID string `json:"profileId"`
+	AccountID string `json:"accountId"`
+}
+
 type AuditLogRequest struct {
 	ProfileID string `json:"profileId"`
 	Limit     int    `json:"limit"`
@@ -252,6 +275,8 @@ type Account struct {
 	Time          string `json:"time"`
 	LatestAt      string `json:"latestAt"`
 	Unread        int    `json:"unread"`
+	Enabled       bool   `json:"enabled"`
+	DeletedAt     string `json:"deletedAt"`
 }
 
 type Message struct {

@@ -295,6 +295,108 @@ func (a *App) CreateAccount(input AccountInput) (*Account, error) {
 	return &account, nil
 }
 
+func (a *App) CreateDomain(input DomainInput) (*DomainRecord, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	domain := strings.TrimSpace(input.Domain)
+	if domain == "" {
+		return nil, errors.New("domain is required")
+	}
+
+	var result DomainRecord
+	if err := a.apiRequest(profile.BaseURL, profile.Token, http.MethodPost, "/api/v1/domains", map[string]string{
+		"domain": domain,
+	}, &result); err != nil {
+		return nil, err
+	}
+
+	if result.Domain == "" {
+		result.Domain = domain
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (a *App) UpdateAccount(input AccountUpdateInput) (*Account, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(input.AccountID) == "" {
+		return nil, errors.New("account id is required")
+	}
+
+	payload := map[string]any{}
+	if name := strings.TrimSpace(input.Name); name != "" {
+		payload["name"] = name
+	}
+	if input.Enabled != nil {
+		payload["enabled"] = *input.Enabled
+	}
+	if len(payload) == 0 {
+		return nil, errors.New("at least one account field is required")
+	}
+
+	var account Account
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodPatch,
+		"/api/v1/accounts/"+pathEscape(input.AccountID),
+		payload,
+		&account,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &account, nil
+}
+
+func (a *App) DeleteAccount(input AccountDeleteInput) (*Account, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(input.AccountID) == "" {
+		return nil, errors.New("account id is required")
+	}
+
+	var account Account
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodDelete,
+		"/api/v1/accounts/"+pathEscape(input.AccountID),
+		nil,
+		&account,
+	); err != nil {
+		return nil, err
+	}
+
+	if account.ID == "" {
+		account.ID = input.AccountID
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &account, nil
+}
+
 func (a *App) GetEndpointDiagnostics(profileID string) (*EndpointDiagnostics, error) {
 	profile, err := a.profileForRequest(profileID)
 	if err != nil {

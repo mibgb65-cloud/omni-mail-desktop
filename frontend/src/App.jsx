@@ -7,10 +7,12 @@ import {
     CircleAlert,
     CircleCheck,
     ClipboardList,
+    Copy,
     Database,
     Download,
     Eye,
     FileText,
+    Globe2,
     Inbox,
     KeyRound,
     ListChecks,
@@ -23,7 +25,9 @@ import {
     MoreHorizontal,
     PanelLeftClose,
     PanelLeftOpen,
+    Pencil,
     Plus,
+    Power,
     RefreshCw,
     Search,
     Send,
@@ -46,6 +50,8 @@ import {
     ArchiveMessage,
     AuthorizeProfile,
     CreateAccount,
+    CreateDomain,
+    DeleteAccount,
     DeleteMessage,
     DeleteProfile,
     DownloadAttachment,
@@ -60,11 +66,13 @@ import {
     SendMessage,
     SetMessageStatus,
     TestBaseURL,
-    UnarchiveMessage
+    UnarchiveMessage,
+    UpdateAccount
 } from '../wailsjs/go/main/App';
 
 const emptyProfileForm = {id: '', name: '', baseUrl: ''};
 const emptyAccountForm = {localPart: '', name: ''};
+const emptyDomainForm = {domain: ''};
 const emptyAuthForm = {email: '', password: '', deviceLabel: 'Windows 桌面端', setup: false};
 const emptyComposeForm = {to: '', cc: '', bcc: '', subject: '', text: ''};
 const layoutDefaults = {
@@ -125,6 +133,14 @@ function invalidRecipients(value) {
     return splitRecipients(value).filter((recipient) => !emailPattern.test(recipient));
 }
 
+function normalizeDomainInput(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/\/.*$/, '');
+}
+
 function composeHasContent(form) {
     return Object.values(form || {}).some((value) => String(value || '').trim());
 }
@@ -137,6 +153,10 @@ function isUnreadMessage(message) {
         && !message.archivedAt
         && !message.deletedAt
     );
+}
+
+function isAccountEnabled(account) {
+    return Boolean(account && account.enabled !== false && !account.deletedAt);
 }
 
 function isStarredMessage(message) {
@@ -308,6 +328,7 @@ function App() {
     const [selectedProfileId, setSelectedProfileId] = useState('');
     const [profileForm, setProfileForm] = useState(emptyProfileForm);
     const [accountForm, setAccountForm] = useState(emptyAccountForm);
+    const [domainForm, setDomainForm] = useState(emptyDomainForm);
     const [authForm, setAuthForm] = useState(emptyAuthForm);
     const [composeForm, setComposeForm] = useState(emptyComposeForm);
     const [composeOptionsOpen, setComposeOptionsOpen] = useState(false);
@@ -319,6 +340,7 @@ function App() {
     const [sidebarPage, setSidebarPage] = useState('profiles');
     const [contentPage, setContentPage] = useState('start');
     const [profileReturnPage, setProfileReturnPage] = useState('start');
+    const [authReturnPage, setAuthReturnPage] = useState('start');
     const [endpointDiagnostics, setEndpointDiagnostics] = useState(null);
     const [auditLogs, setAuditLogs] = useState([]);
     const [insightsProfileId, setInsightsProfileId] = useState('');
@@ -332,7 +354,6 @@ function App() {
     const [sidebarWidth, setSidebarWidth] = useState(() => readStoredWidth('omnimail_sidebar_width', layoutDefaults.sidebar, layoutLimits.sidebar));
     const [listWidth, setListWidth] = useState(() => readStoredWidth('omnimail_list_width', layoutDefaults.list, layoutLimits.list));
     const [resizingPanel, setResizingPanel] = useState('');
-    const [modal, setModal] = useState(null);
     const [composerOpen, setComposerOpen] = useState(false);
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     const [contextMenu, setContextMenu] = useState(null);
@@ -704,7 +725,6 @@ function App() {
             setContentPage('mail');
             setProfileForm(emptyProfileForm);
             setWorkspace(null);
-            setModal(null);
             await testConnection(profile.baseUrl, '');
             showToast('success', '接入点已保存', profile.baseUrl);
         } catch (saveError) {
@@ -717,17 +737,18 @@ function App() {
     async function handleSelectProfile(profile) {
         setSelectedProfileId(profile.id);
         setSidebarPage('mailbox');
-        setContentPage('mail');
         setStatus(null);
         setWorkspace(null);
         setContextMenu(null);
         await SelectProfile(profile.id).catch(() => null);
 
         if (profile.hasToken) {
+            setContentPage('mail');
             await loadMailbox({profileId: profile.id});
         } else {
             await testConnection(profile.baseUrl, '');
-            setModal('auth');
+            setAuthReturnPage('start');
+            setContentPage('auth');
         }
     }
 
@@ -735,7 +756,6 @@ function App() {
         setProfileForm(emptyProfileForm);
         setProfileReturnPage(contentPage === 'profile' ? 'start' : contentPage);
         setProfileMenuOpen(false);
-        setModal(null);
         setContentPage('profile');
     }
 
@@ -763,7 +783,6 @@ function App() {
         }
 
         setAccountForm(emptyAccountForm);
-        setModal(null);
         setProfileMenuOpen(false);
         setContextMenu(null);
         setContentPage('account');
@@ -774,9 +793,36 @@ function App() {
         setContentPage('mail');
     }
 
+    async function handleOpenAccountManager() {
+        if (!selectedProfile?.hasToken) {
+            showToast('error', '接入点尚未授权', '授权后才能管理邮箱账号。');
+            return;
+        }
+
+        setProfileMenuOpen(false);
+        setContextMenu(null);
+        setContentPage('accounts');
+        if (!workspace) {
+            await loadMailbox({profileId: selectedProfile.id});
+        }
+    }
+
+    async function handleOpenDomainManager() {
+        if (!selectedProfile?.hasToken) {
+            showToast('error', '接入点尚未授权', '授权后才能管理域名。');
+            return;
+        }
+
+        setProfileMenuOpen(false);
+        setContextMenu(null);
+        setContentPage('domains');
+        if (!workspace) {
+            await loadMailbox({profileId: selectedProfile.id});
+        }
+    }
+
     function handleOpenProfileManager() {
         setProfileMenuOpen(false);
-        setModal(null);
         setContentPage('endpoints');
     }
 
@@ -785,13 +831,23 @@ function App() {
             return;
         }
 
+        if (selectedProfileId !== profile.id) {
+            setWorkspace(null);
+        }
         setSelectedProfileId(profile.id);
-        setWorkspace(null);
         setStatus(null);
         setContextMenu(null);
         setProfileMenuOpen(false);
+        setAuthReturnPage(contentPage === 'auth' ? 'start' : contentPage);
+        setContentPage('auth');
         await SelectProfile(profile.id).catch(() => null);
-        setModal('auth');
+        await testConnection(profile.baseUrl, '').catch(() => null);
+    }
+
+    function handleCloseAuthPage() {
+        setAuthForm(emptyAuthForm);
+        setManualToken('');
+        setContentPage(authReturnPage || (selectedProfile?.hasToken ? 'mail' : 'start'));
     }
 
     async function handleTestProfile(profile) {
@@ -806,7 +862,6 @@ function App() {
         setProfileForm({id: profile.id, name: profile.name, baseUrl: profile.baseUrl});
         setProfileReturnPage(contentPage === 'profile' ? 'endpoints' : contentPage);
         setProfileMenuOpen(false);
-        setModal(null);
         setContentPage('profile');
     }
 
@@ -896,7 +951,6 @@ function App() {
             const profile = await AuthorizeProfile({...authForm, profileId: selectedProfile.id});
             setProfiles((current) => upsertProfile(current, profile));
             setAuthForm(emptyAuthForm);
-            setModal(null);
             setSidebarPage('mailbox');
             setContentPage('mail');
             await loadMailbox({profileId: profile.id});
@@ -924,7 +978,6 @@ function App() {
             });
             setProfiles((current) => upsertProfile(current, profile));
             setManualToken('');
-            setModal(null);
             setSidebarPage('mailbox');
             setContentPage('mail');
             await loadMailbox({profileId: profile.id});
@@ -962,7 +1015,6 @@ function App() {
                 name: accountForm.name.trim()
             });
             setAccountForm(emptyAccountForm);
-            setModal(null);
             setContentPage('mail');
             await loadMailbox({
                 profileId: selectedProfile.id,
@@ -974,6 +1026,118 @@ function App() {
             showToast('error', '添加邮箱账号失败', accountError.message || '请检查邮箱名称和域名。');
         } finally {
             setBusy('');
+        }
+    }
+
+    async function handleDomainSubmit(event) {
+        event.preventDefault();
+        if (!selectedProfile) {
+            return;
+        }
+
+        const domain = normalizeDomainInput(domainForm.domain);
+        if (!domain || !domain.includes('.') || domain.includes('@')) {
+            showToast('error', '域名格式不正确', '请输入类似 mail.example.com 的域名。');
+            return;
+        }
+
+        setBusy('domain');
+
+        try {
+            const result = await CreateDomain({
+                profileId: selectedProfile.id,
+                domain
+            });
+            const nextDomain = result.domain || domain;
+            setDomainForm(emptyDomainForm);
+            await loadMailbox({
+                profileId: selectedProfile.id,
+                domain: nextDomain,
+                accountId: ''
+            });
+            setContentPage('domains');
+            showToast('success', '域名已添加', nextDomain);
+        } catch (domainError) {
+            showToast('error', '添加域名失败', domainError.message || '请检查 Worker 域名配置。');
+        } finally {
+            setBusy('');
+        }
+    }
+
+    async function handleUpdateAccount(account, patch) {
+        if (!selectedProfile || !account?.id) {
+            return null;
+        }
+
+        const nextName = typeof patch.name === 'string' ? patch.name.trim() : account.name || account.label || account.address;
+        if (!nextName && typeof patch.enabled !== 'boolean') {
+            showToast('error', '没有可保存的账号变更');
+            return null;
+        }
+
+        setBusy('account-update');
+
+        try {
+            const updated = await UpdateAccount({
+                profileId: selectedProfile.id,
+                accountId: account.id,
+                name: nextName,
+                enabled: typeof patch.enabled === 'boolean' ? patch.enabled : undefined
+            });
+            await loadMailbox({
+                profileId: selectedProfile.id,
+                domain: workspace?.selectedDomain || updated.domain || account.domain,
+                accountId: workspace?.selectedAccountId || account.id
+            });
+            showToast('success', '邮箱账号已更新', updated.address || account.address);
+            return updated;
+        } catch (updateError) {
+            showToast('error', '更新邮箱账号失败', updateError.message || '请稍后重试。');
+            return null;
+        } finally {
+            setBusy('');
+        }
+    }
+
+    async function handleDeleteAccount(account) {
+        if (!selectedProfile || !account?.id) {
+            return;
+        }
+
+        if (!window.confirm(`删除邮箱账号「${account.address}」？`)) {
+            return;
+        }
+
+        setBusy('account-delete');
+
+        try {
+            await DeleteAccount({
+                profileId: selectedProfile.id,
+                accountId: account.id
+            });
+            await loadMailbox({
+                profileId: selectedProfile.id,
+                domain: workspace?.selectedDomain || account.domain,
+                accountId: workspace?.selectedAccountId === account.id ? '' : workspace?.selectedAccountId || ''
+            });
+            showToast('success', '邮箱账号已删除', account.address);
+        } catch (deleteError) {
+            showToast('error', '删除邮箱账号失败', deleteError.message || '请稍后重试。');
+        } finally {
+            setBusy('');
+        }
+    }
+
+    async function handleCopyText(value, label = '内容') {
+        if (!value) {
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(value);
+            showToast('success', `${label}已复制`, value);
+        } catch (copyError) {
+            showToast('error', '复制失败', copyError.message || '当前系统不允许访问剪贴板。');
         }
     }
 
@@ -1223,7 +1387,10 @@ function App() {
 
     const showEndpointPage = contentPage === 'endpoints';
     const showProfilePage = contentPage === 'profile';
+    const showAuthPage = contentPage === 'auth';
     const showAccountPage = contentPage === 'account';
+    const showAccountManagerPage = contentPage === 'accounts';
+    const showDomainManagerPage = contentPage === 'domains';
     const showStartPage = contentPage === 'start' || (!selectedProfile && !showEndpointPage && !showProfilePage);
     const showSettingsPage = contentPage === 'settings';
 
@@ -1259,6 +1426,8 @@ function App() {
                     onDomainChange={(domain) => loadMailbox({profileId: selectedProfile?.id, domain})}
                     onEditProfile={handleEditProfile}
                     onFolderChange={setActiveFolder}
+                    onManageAccounts={handleOpenAccountManager}
+                    onManageDomains={handleOpenDomainManager}
                     onManageProfiles={handleOpenProfileManager}
                     onCompose={() => setComposerOpen(true)}
                     onProfileSelect={handleSelectProfile}
@@ -1309,6 +1478,19 @@ function App() {
                         selectedProfileId={selectedProfileId}
                         status={status}
                     />
+                ) : showAuthPage && selectedProfile ? (
+                    <AuthPage
+                        authForm={authForm}
+                        busy={busy}
+                        manualToken={manualToken}
+                        onAuthFormChange={setAuthForm}
+                        onBack={handleCloseAuthPage}
+                        onManualToken={handleManualToken}
+                        onManualTokenChange={setManualToken}
+                        onSubmit={handleAuthorize}
+                        profile={selectedProfile}
+                        status={status}
+                    />
                 ) : showStartPage ? (
                     <StartPage
                         busy={busy}
@@ -1325,6 +1507,36 @@ function App() {
                         onChange={setAccountForm}
                         onSubmit={handleAccountSubmit}
                         profile={selectedProfile}
+                    />
+                ) : showAccountManagerPage && selectedProfile ? (
+                    <AccountManagerPage
+                        accounts={workspace?.accounts || []}
+                        busy={busy}
+                        domain={workspace?.selectedDomain || ''}
+                        onAddAccount={handleAddAccount}
+                        onBack={() => setContentPage('mail')}
+                        onCopy={handleCopyText}
+                        onDeleteAccount={handleDeleteAccount}
+                        onSelectAccount={(accountId) => loadMailbox({
+                            profileId: selectedProfile.id,
+                            domain: workspace?.selectedDomain || '',
+                            accountId
+                        })}
+                        onUpdateAccount={handleUpdateAccount}
+                        selectedAccountId={workspace?.selectedAccountId || ''}
+                    />
+                ) : showDomainManagerPage && selectedProfile ? (
+                    <DomainManagerPage
+                        busy={busy}
+                        domains={workspace?.domains || []}
+                        form={domainForm}
+                        onBack={() => setContentPage('mail')}
+                        onChange={setDomainForm}
+                        onCopy={handleCopyText}
+                        onSelectDomain={(domain) => loadMailbox({profileId: selectedProfile.id, domain})}
+                        onSubmit={handleDomainSubmit}
+                        selectedDomain={workspace?.selectedDomain || ''}
+                        selectedProfile={selectedProfile}
                     />
                 ) : showSettingsPage ? (
                     <SettingsPage
@@ -1416,20 +1628,6 @@ function App() {
                     </>
                 )}
 
-                {modal === 'auth' && selectedProfile ? (
-                    <AuthModal
-                        authForm={authForm}
-                        busy={busy}
-                        manualToken={manualToken}
-                        onAuthFormChange={setAuthForm}
-                        onClose={() => setModal(null)}
-                        onManualToken={handleManualToken}
-                        onManualTokenChange={setManualToken}
-                        onSubmit={handleAuthorize}
-                        profile={selectedProfile}
-                    />
-                ) : null}
-
                 {contextMenu ? (
                     <ContextMenu
                         contextMenu={contextMenu}
@@ -1511,6 +1709,8 @@ function Sidebar({
     onDomainChange,
     onEditProfile,
     onFolderChange,
+    onManageAccounts,
+    onManageDomains,
     onManageProfiles,
     onProfileSelect,
     onToggle,
@@ -1709,6 +1909,14 @@ function Sidebar({
                             <ShieldCheck size={16} />
                             管理接入点
                         </button>
+                        <button type="button" onClick={onManageDomains} disabled={!selectedProfile?.hasToken}>
+                            <Globe2 size={16} />
+                            管理域名
+                        </button>
+                        <button type="button" onClick={onManageAccounts} disabled={!selectedProfile?.hasToken}>
+                            <Mail size={16} />
+                            管理邮箱账号
+                        </button>
                         <button type="button" onClick={() => selectedProfile && onEditProfile(selectedProfile)} disabled={!selectedProfile}>
                             <Settings size={16} />
                             编辑接入点
@@ -1839,8 +2047,14 @@ function EmailListPanel({
                 ) : (
                     <EmptyState
                         icon={Inbox}
-                        title={selectedProfile ? '这里还没有邮件' : '先添加一个接入点'}
-                        body={selectedProfile ? '切换文件夹、搜索词或等待新的邮件进入。' : '添加 OmniMail Worker Base URL 后即可加载邮箱。'}
+                        title={selectedProfile ? (workspace?.selectedAccountId ? '这里还没有邮件' : '先选择邮箱账号') : '先添加一个接入点'}
+                        body={selectedProfile ? (workspace?.selectedAccountId ? '切换文件夹、搜索词或等待新的邮件进入。' : '选择邮箱账号后会加载对应邮件。') : '添加 OmniMail Worker Base URL 后即可加载邮箱。'}
+                        action={selectedProfile && workspace?.selectedAccountId ? (
+                            <button className="primary-action compact" type="button" onClick={onCompose}>
+                                <MailPlus size={16} />
+                                写邮件
+                            </button>
+                        ) : null}
                     />
                 )}
             </div>
@@ -2472,76 +2686,337 @@ function AccountEditorPage({busy, domain, form, onBack, onChange, onSubmit, prof
     );
 }
 
-function AuthModal({
+function AccountManagerPage({
+    accounts,
+    busy,
+    domain,
+    onAddAccount,
+    onBack,
+    onCopy,
+    onDeleteAccount,
+    onSelectAccount,
+    onUpdateAccount,
+    selectedAccountId
+}) {
+    const [editingId, setEditingId] = useState('');
+    const [draftName, setDraftName] = useState('');
+    const enabledCount = accounts.filter(isAccountEnabled).length;
+    const unreadCount = accounts.reduce((total, account) => total + Number(account.unread || 0), 0);
+
+    function beginEdit(account) {
+        setEditingId(account.id);
+        setDraftName(account.name || account.label || '');
+    }
+
+    async function saveEdit(account) {
+        const updated = await onUpdateAccount(account, {name: draftName});
+        if (updated) {
+            setEditingId('');
+            setDraftName('');
+        }
+    }
+
+    return (
+        <main id="reader" className="workspace-page resource-manager-page account-manager-page" aria-label="邮箱账号管理">
+            <header className="resource-manager-page-header">
+                <button className="page-back-button" type="button" onClick={onBack}>
+                    <ArrowLeft size={16} />
+                    返回
+                </button>
+                <div>
+                    <p>邮箱账号管理</p>
+                    <h1>邮箱账号</h1>
+                    <small>{domain ? `当前域名：${domain}` : '请先在左侧选择一个域名。'}</small>
+                </div>
+            </header>
+
+            <div className="resource-manager-body">
+                <section className="resource-manager-summary" aria-label="邮箱账号概览">
+                    <span>
+                        <strong>{accounts.length}</strong>
+                        <small>账号</small>
+                    </span>
+                    <span>
+                        <strong>{enabledCount}</strong>
+                        <small>已启用</small>
+                    </span>
+                    <span>
+                        <strong>{unreadCount}</strong>
+                        <small>未读</small>
+                    </span>
+                    <button className="primary-action compact" type="button" onClick={onAddAccount} disabled={!domain}>
+                        <Plus size={16} />
+                        添加邮箱账号
+                    </button>
+                </section>
+
+                {accounts.length ? (
+                    <div className="resource-card-list">
+                        {accounts.map((account) => {
+                            const enabled = isAccountEnabled(account);
+                            const editing = editingId === account.id;
+
+                            return (
+                                <article className={`resource-card ${account.id === selectedAccountId ? 'active' : ''}`} key={account.id}>
+                                    <header>
+                                        <div className="resource-card-title">
+                                            <Mail size={17} />
+                                            <span>
+                                                <strong>{account.address}</strong>
+                                                <small>{account.name || account.label || '未设置显示名称'}{account.unread ? ` · ${account.unread} 未读` : ''}</small>
+                                            </span>
+                                        </div>
+                                        <StatusBadge ok={enabled} label={enabled ? '已启用' : '已停用'} />
+                                    </header>
+
+                                    {editing ? (
+                                        <div className="resource-inline-edit">
+                                            <input
+                                                value={draftName}
+                                                onChange={(event) => setDraftName(event.target.value)}
+                                                placeholder="显示名称"
+                                                autoFocus
+                                            />
+                                            <button type="button" onClick={() => saveEdit(account)} disabled={busy === 'account-update'}>
+                                                保存
+                                            </button>
+                                            <button type="button" onClick={() => setEditingId('')}>
+                                                取消
+                                            </button>
+                                        </div>
+                                    ) : null}
+
+                                    <div className="resource-row-actions">
+                                        <button type="button" onClick={() => onSelectAccount(account.id)} disabled={account.id === selectedAccountId}>
+                                            查看邮件
+                                        </button>
+                                        <button type="button" onClick={() => onCopy(account.address, '邮箱地址')}>
+                                            <Copy size={15} />
+                                            复制
+                                        </button>
+                                        <button type="button" onClick={() => beginEdit(account)}>
+                                            <Pencil size={15} />
+                                            重命名
+                                        </button>
+                                        <button type="button" onClick={() => onUpdateAccount(account, {enabled: !enabled})} disabled={busy === 'account-update'}>
+                                            <Power size={15} />
+                                            {enabled ? '停用' : '启用'}
+                                        </button>
+                                        <button className="danger" type="button" onClick={() => onDeleteAccount(account)} disabled={busy === 'account-delete'}>
+                                            <Trash2 size={15} />
+                                            删除
+                                        </button>
+                                    </div>
+                                </article>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <EmptyState
+                        icon={MailPlus}
+                        title={domain ? '当前域名还没有邮箱账号' : '未选择域名'}
+                        body={domain ? '添加一个邮箱账号后，就可以在桌面端查看收件箱和发送邮件。' : '先选择或添加一个域名，再创建邮箱账号。'}
+                        action={domain ? (
+                            <button className="primary-action compact" type="button" onClick={onAddAccount}>
+                                <Plus size={16} />
+                                添加邮箱账号
+                            </button>
+                        ) : null}
+                    />
+                )}
+            </div>
+        </main>
+    );
+}
+
+function DomainManagerPage({
+    busy,
+    domains,
+    form,
+    onBack,
+    onChange,
+    onCopy,
+    onSelectDomain,
+    onSubmit,
+    selectedDomain,
+    selectedProfile
+}) {
+    return (
+        <main id="reader" className="workspace-page resource-manager-page domain-manager-page" aria-label="域名管理">
+            <header className="resource-manager-page-header">
+                <button className="page-back-button" type="button" onClick={onBack}>
+                    <ArrowLeft size={16} />
+                    返回
+                </button>
+                <div>
+                    <p>域名管理</p>
+                    <h1>域名</h1>
+                    <small>{selectedProfile?.baseUrl || '当前接入点'} 下的域名会影响邮箱账号归属和邮件路由展示。</small>
+                </div>
+            </header>
+
+            <div className="resource-manager-body">
+                <form className="domain-create-form" onSubmit={onSubmit}>
+                    <label>
+                        <span>添加未使用域名</span>
+                        <input
+                            value={form.domain}
+                            onChange={(event) => onChange({...form, domain: event.target.value})}
+                            placeholder="例如 sss.aci.edu.kg"
+                            autoFocus
+                        />
+                        <small>桌面端会调用当前 Worker 的域名接口；Cloudflare Email Routing/DNS 仍需要在对应账号里配置。</small>
+                    </label>
+                    <button className="primary-action compact" type="submit" disabled={busy === 'domain'}>
+                        <Plus size={16} />
+                        添加域名
+                    </button>
+                </form>
+
+                {domains.length ? (
+                    <div className="resource-card-list">
+                        {domains.map((domain) => (
+                            <article className={`resource-card ${domain === selectedDomain ? 'active' : ''}`} key={domain}>
+                                <header>
+                                    <div className="resource-card-title">
+                                        <Globe2 size={17} />
+                                        <span>
+                                            <strong>{domain}</strong>
+                                            <small>{domain === selectedDomain ? '当前选中域名' : '可切换到该域名加载账号'}</small>
+                                        </span>
+                                    </div>
+                                    <StatusBadge ok label={domain === selectedDomain ? '当前' : '可用'} />
+                                </header>
+                                <div className="resource-row-actions">
+                                    <button type="button" onClick={() => onSelectDomain(domain)} disabled={domain === selectedDomain}>
+                                        选择域名
+                                    </button>
+                                    <button type="button" onClick={() => onCopy(domain, '域名')}>
+                                        <Copy size={15} />
+                                        复制
+                                    </button>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+                ) : (
+                    <EmptyState
+                        icon={Globe2}
+                        title="还没有域名"
+                        body="添加一个域名后，再为该域名创建邮箱账号。"
+                    />
+                )}
+            </div>
+        </main>
+    );
+}
+
+function AuthPage({
     authForm,
     busy,
     manualToken,
     onAuthFormChange,
-    onClose,
+    onBack,
     onManualToken,
     onManualTokenChange,
     onSubmit,
-    profile
+    profile,
+    status
 }) {
     return (
-        <Modal title="授权桌面端" onClose={onClose}>
-            <div className="auth-modal-grid">
-                <form className="modal-form" onSubmit={onSubmit}>
-                    <p className="modal-note">接入点：{profile.baseUrl}</p>
-                    <p className="modal-note">授权只绑定当前接入点，不会作为全局账号使用。</p>
-                    <label className="checkbox-row">
-                        <input
-                            type="checkbox"
-                            checked={authForm.setup}
-                            onChange={(event) => onAuthFormChange({...authForm, setup: event.target.checked})}
-                        />
-                        首次部署，创建管理员账号
-                    </label>
-                    <label>
-                        <span>管理员邮箱</span>
-                        <input
-                            type="email"
-                            value={authForm.email}
-                            onChange={(event) => onAuthFormChange({...authForm, email: event.target.value})}
-                            required
-                        />
-                    </label>
-                    <label>
-                        <span>密码</span>
-                        <input
-                            type="password"
-                            value={authForm.password}
-                            onChange={(event) => onAuthFormChange({...authForm, password: event.target.value})}
-                            required
-                        />
-                    </label>
-                    <label>
-                        <span>设备名称</span>
-                        <input
-                            value={authForm.deviceLabel}
-                            onChange={(event) => onAuthFormChange({...authForm, deviceLabel: event.target.value})}
-                        />
-                    </label>
-                    <button className="primary-action" type="submit" disabled={busy === 'auth'}>
-                        登录并注册桌面端
-                    </button>
-                </form>
+        <main id="reader" className="workspace-page auth-page" aria-label="授权接入点">
+            <header className="auth-page-header">
+                <button className="page-back-button" type="button" onClick={onBack}>
+                    <ArrowLeft size={16} />
+                    返回
+                </button>
+                <div>
+                    <p>接入点授权</p>
+                    <h1>授权当前接入点</h1>
+                    <small>授权只保存到当前接入点，多个 Worker Base URL 之间不会共享设备 Token。</small>
+                </div>
+            </header>
 
-                <form className="modal-form" onSubmit={onManualToken}>
-                    <p className="modal-note">也可以粘贴 Web 端生成的 device token。</p>
-                    <label>
-                        <span>Device Token</span>
-                        <textarea
-                            value={manualToken}
-                            onChange={(event) => onManualTokenChange(event.target.value)}
-                            rows={8}
-                            required
-                        />
-                    </label>
-                    <button type="submit" disabled={busy === 'token'}>保存 Token</button>
-                </form>
+            <div className="auth-page-layout">
+                <section className="auth-context-card" aria-label="当前接入点">
+                    <ShieldCheck size={18} />
+                    <div>
+                        <strong>{profile.name || '未命名接入点'}</strong>
+                        <small>{profile.baseUrl}</small>
+                    </div>
+                    <StatusBadge ok={Boolean(profile.hasToken)} label={profile.hasToken ? '已授权' : '待授权'} />
+                </section>
+
+                <div className="auth-page-grid">
+                    <form className="auth-page-form" onSubmit={onSubmit}>
+                        <header>
+                            <KeyRound size={18} />
+                            <div>
+                                <h2>管理员授权</h2>
+                                <p>{status?.authStatus?.requiresSetup ? '当前接入点需要初始化管理员。' : '使用管理员账号登录，并注册这个桌面端设备。'}</p>
+                            </div>
+                        </header>
+                        <label className="checkbox-row">
+                            <input
+                                type="checkbox"
+                                checked={authForm.setup}
+                                onChange={(event) => onAuthFormChange({...authForm, setup: event.target.checked})}
+                            />
+                            首次部署，创建管理员账号
+                        </label>
+                        <label>
+                            <span>管理员邮箱</span>
+                            <input
+                                type="email"
+                                value={authForm.email}
+                                onChange={(event) => onAuthFormChange({...authForm, email: event.target.value})}
+                                required
+                                autoFocus
+                            />
+                        </label>
+                        <label>
+                            <span>密码</span>
+                            <input
+                                type="password"
+                                value={authForm.password}
+                                onChange={(event) => onAuthFormChange({...authForm, password: event.target.value})}
+                                required
+                            />
+                        </label>
+                        <label>
+                            <span>设备名称</span>
+                            <input
+                                value={authForm.deviceLabel}
+                                onChange={(event) => onAuthFormChange({...authForm, deviceLabel: event.target.value})}
+                            />
+                        </label>
+                        <button className="primary-action" type="submit" disabled={busy === 'auth'}>
+                            登录并注册桌面端
+                        </button>
+                    </form>
+
+                    <form className="auth-page-form" onSubmit={onManualToken}>
+                        <header>
+                            <ClipboardList size={18} />
+                            <div>
+                                <h2>手动 Token</h2>
+                                <p>如果已经在 Web 端生成 Device Token，可以直接粘贴保存。</p>
+                            </div>
+                        </header>
+                        <label>
+                            <span>Device Token</span>
+                            <textarea
+                                value={manualToken}
+                                onChange={(event) => onManualTokenChange(event.target.value)}
+                                rows={8}
+                                required
+                            />
+                        </label>
+                        <button type="submit" disabled={busy === 'token'}>保存 Token</button>
+                    </form>
+                </div>
             </div>
-        </Modal>
+        </main>
     );
 }
 
@@ -2998,20 +3473,6 @@ function ContextMenu({contextMenu, onArchive, onClose, onDelete, onSetStatus}) {
     );
 }
 
-function Modal({children, onClose, title, wide = false}) {
-    return (
-        <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-            <section className={`modal-card ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
-                <header>
-                    <h2>{title}</h2>
-                    <IconButton icon={X} label="关闭" onClick={onClose} />
-                </header>
-                {children}
-            </section>
-        </div>
-    );
-}
-
 function Toast({onClose, toast}) {
     if (!toast) {
         return null;
@@ -3031,12 +3492,13 @@ function Toast({onClose, toast}) {
     );
 }
 
-function EmptyState({body, icon: Icon, title}) {
+function EmptyState({action, body, icon: Icon, title}) {
     return (
         <section className="empty-state">
             <Icon size={26} />
             <h3>{title}</h3>
             <p>{body}</p>
+            {action ? <div className="empty-state-action">{action}</div> : null}
         </section>
     );
 }

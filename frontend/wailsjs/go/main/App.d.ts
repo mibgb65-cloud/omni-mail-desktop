@@ -8,6 +8,10 @@ export function AuthorizeProfile(arg1:main.DeviceAuthInput):Promise<main.Profile
 
 export function CreateAccount(arg1:main.AccountInput):Promise<main.Account>;
 
+export function CreateDomain(arg1:main.DomainInput):Promise<main.DomainRecord>;
+
+export function DeleteAccount(arg1:main.AccountDeleteInput):Promise<main.Account>;
+
 export function DeleteMessage(arg1:main.MessageActionInput):Promise<main.Message>;
 
 export function DeleteProfile(arg1:string):Promise<void>;
@@ -37,3 +41,5 @@ export function SetMessageStatus(arg1:main.MessageStatusInput):Promise<main.Mess
 export function TestBaseURL(arg1:string,arg2:string):Promise<main.ConnectionStatus>;
 
 export function UnarchiveMessage(arg1:main.MessageActionInput):Promise<main.Message>;
+
+export function UpdateAccount(arg1:main.AccountUpdateInput):Promise<main.Account>;

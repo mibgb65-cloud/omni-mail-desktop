@@ -14,6 +14,14 @@ export function CreateAccount(arg1) {
   return window['go']['main']['App']['CreateAccount'](arg1);
 }
 
+export function CreateDomain(arg1) {
+  return window['go']['main']['App']['CreateDomain'](arg1);
+}
+
+export function DeleteAccount(arg1) {
+  return window['go']['main']['App']['DeleteAccount'](arg1);
+}
+
 export function DeleteMessage(arg1) {
   return window['go']['main']['App']['DeleteMessage'](arg1);
 }
@@ -72,4 +80,8 @@ export function TestBaseURL(arg1, arg2) {
 
 export function UnarchiveMessage(arg1) {
   return window['go']['main']['App']['UnarchiveMessage'](arg1);
+}
+
+export function UpdateAccount(arg1) {
+  return window['go']['main']['App']['UpdateAccount'](arg1);
 }

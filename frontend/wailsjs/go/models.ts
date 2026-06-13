@@ -37,6 +37,8 @@ export namespace main {
 	    time: string;
 	    latestAt: string;
 	    unread: number;
+	    enabled: boolean;
+	    deletedAt: string;
 
 	    static createFrom(source: any = {}) {
 	        return new Account(source);
@@ -56,6 +58,22 @@ export namespace main {
 	        this.time = source["time"];
 	        this.latestAt = source["latestAt"];
 	        this.unread = source["unread"];
+	        this.enabled = source["enabled"];
+	        this.deletedAt = source["deletedAt"];
+	    }
+	}
+	export class AccountDeleteInput {
+	    profileId: string;
+	    accountId: string;
+
+	    static createFrom(source: any = {}) {
+	        return new AccountDeleteInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.accountId = source["accountId"];
 	    }
 	}
 	export class AccountInput {
@@ -76,6 +94,24 @@ export namespace main {
 	        this.localPart = source["localPart"];
 	        this.address = source["address"];
 	        this.name = source["name"];
+	    }
+	}
+	export class AccountUpdateInput {
+	    profileId: string;
+	    accountId: string;
+	    name: string;
+	    enabled?: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new AccountUpdateInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.accountId = source["accountId"];
+	        this.name = source["name"];
+	        this.enabled = source["enabled"];
 	    }
 	}
 	export class Attachment {
@@ -443,6 +479,36 @@ export namespace main {
 		}
 	}
 
+	export class DomainInput {
+	    profileId: string;
+	    domain: string;
+
+	    static createFrom(source: any = {}) {
+	        return new DomainInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.domain = source["domain"];
+	    }
+	}
+	export class DomainRecord {
+	    domain: string;
+	    kind: string;
+	    enabled: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new DomainRecord(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.domain = source["domain"];
+	        this.kind = source["kind"];
+	        this.enabled = source["enabled"];
+	    }
+	}
 	export class DownloadAttachmentInput {
 	    profileId: string;
 	    attachmentId: string;
