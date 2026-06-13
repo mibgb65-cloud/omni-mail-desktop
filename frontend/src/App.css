@@ -904,7 +904,8 @@ body.is-resizing-panels * {
 .start-page-header p,
 .settings-page-header p,
 .endpoint-manager-page-header p,
-.profile-editor-page-header p {
+.profile-editor-page-header p,
+.account-editor-page-header p {
     margin: 0;
     color: var(--text-tertiary);
     font-size: 12px;
@@ -914,7 +915,8 @@ body.is-resizing-panels * {
 .start-page-header h1,
 .settings-page-header h1,
 .endpoint-manager-page-header h1,
-.profile-editor-page-header h1 {
+.profile-editor-page-header h1,
+.account-editor-page-header h1 {
     margin: 0;
     color: var(--text-primary);
     font-size: 28px;
@@ -925,7 +927,8 @@ body.is-resizing-panels * {
 .start-page-header small,
 .settings-page-header small,
 .endpoint-manager-page-header small,
-.profile-editor-page-header small {
+.profile-editor-page-header small,
+.account-editor-page-header small {
     max-width: 620px;
     color: var(--text-tertiary);
     font-size: 14px;
@@ -1002,13 +1005,15 @@ body.is-resizing-panels * {
 
 .settings-page,
 .endpoint-manager-page,
-.profile-editor-page {
+.profile-editor-page,
+.account-editor-page {
     padding: var(--space-6);
 }
 
 .settings-page-header,
 .endpoint-manager-page-header,
-.profile-editor-page-header {
+.profile-editor-page-header,
+.account-editor-page-header {
     display: grid;
     max-width: 1040px;
     width: 100%;
@@ -1018,7 +1023,8 @@ body.is-resizing-panels * {
 
 .settings-page-header > div,
 .endpoint-manager-page-header > div,
-.profile-editor-page-header > div {
+.profile-editor-page-header > div,
+.account-editor-page-header > div {
     display: grid;
     gap: 3px;
 }
@@ -1038,7 +1044,8 @@ body.is-resizing-panels * {
     margin: 0 auto;
 }
 
-.profile-editor-layout {
+.profile-editor-layout,
+.account-editor-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(260px, 0.42fr);
     width: min(960px, 100%);
@@ -1047,7 +1054,8 @@ body.is-resizing-panels * {
     margin: 0 auto;
 }
 
-.profile-editor-form {
+.profile-editor-form,
+.account-editor-form {
     display: grid;
     gap: var(--space-4);
     border: 1px solid var(--border-subtle);
@@ -1056,33 +1064,40 @@ body.is-resizing-panels * {
     padding: var(--space-5);
 }
 
-.profile-editor-form label {
+.profile-editor-form label,
+.account-editor-form label {
     display: grid;
     gap: var(--space-2);
 }
 
 .profile-editor-form label span,
-.profile-editor-aside strong {
+.account-editor-form label span,
+.profile-editor-aside strong,
+.account-editor-aside strong {
     color: var(--text-secondary);
     font-size: 12px;
     font-weight: 620;
 }
 
 .profile-editor-form label small,
-.profile-editor-aside small {
+.account-editor-form label small,
+.profile-editor-aside small,
+.account-editor-aside small {
     color: var(--text-tertiary);
     font-size: 12px;
     line-height: 1.5;
 }
 
-.profile-editor-form footer {
+.profile-editor-form footer,
+.account-editor-form footer {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: var(--space-3);
 }
 
-.profile-editor-form footer button:not(.primary-action) {
+.profile-editor-form footer button:not(.primary-action),
+.account-editor-form footer button:not(.primary-action) {
     min-height: 38px;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
@@ -1092,12 +1107,14 @@ body.is-resizing-panels * {
     font-weight: 620;
 }
 
-.profile-editor-aside {
+.profile-editor-aside,
+.account-editor-aside {
     display: grid;
     gap: var(--space-2);
 }
 
-.profile-editor-aside section {
+.profile-editor-aside section,
+.account-editor-aside section {
     display: grid;
     grid-template-columns: 24px minmax(0, 1fr);
     gap: var(--space-3);
@@ -1107,17 +1124,43 @@ body.is-resizing-panels * {
     padding: var(--space-4);
 }
 
-.profile-editor-aside svg {
+.profile-editor-aside svg,
+.account-editor-aside svg {
     color: var(--text-tertiary);
 }
 
 .profile-editor-aside strong,
-.profile-editor-aside small {
+.profile-editor-aside small,
+.account-editor-aside strong,
+.account-editor-aside small {
     display: block;
 }
 
-.profile-editor-aside small {
+.profile-editor-aside small,
+.account-editor-aside small {
     margin-top: 4px;
+}
+
+.account-preview-card {
+    display: grid;
+    gap: 4px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-4);
+}
+
+.account-preview-card span {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 620;
+}
+
+.account-preview-card strong {
+    color: var(--text-primary);
+    font-size: 18px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
 }
 
 .list-panel {
@@ -2513,6 +2556,7 @@ button:disabled {
 
     .insight-columns,
     .profile-editor-layout,
+    .account-editor-layout,
     .audit-log-item dl {
         grid-template-columns: 1fr;
     }

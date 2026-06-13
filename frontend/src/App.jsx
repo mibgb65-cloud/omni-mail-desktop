@@ -763,7 +763,15 @@ function App() {
         }
 
         setAccountForm(emptyAccountForm);
-        setModal('account');
+        setModal(null);
+        setProfileMenuOpen(false);
+        setContextMenu(null);
+        setContentPage('account');
+    }
+
+    function handleCloseAccountEditor() {
+        setAccountForm(emptyAccountForm);
+        setContentPage('mail');
     }
 
     function handleOpenProfileManager() {
@@ -955,6 +963,7 @@ function App() {
             });
             setAccountForm(emptyAccountForm);
             setModal(null);
+            setContentPage('mail');
             await loadMailbox({
                 profileId: selectedProfile.id,
                 domain: account.domain || workspace.selectedDomain,
@@ -1214,6 +1223,7 @@ function App() {
 
     const showEndpointPage = contentPage === 'endpoints';
     const showProfilePage = contentPage === 'profile';
+    const showAccountPage = contentPage === 'account';
     const showStartPage = contentPage === 'start' || (!selectedProfile && !showEndpointPage && !showProfilePage);
     const showSettingsPage = contentPage === 'settings';
 
@@ -1306,6 +1316,16 @@ function App() {
                         onManageProfiles={handleOpenProfileManager}
                         profiles={profiles}
                     />
+                ) : showAccountPage && selectedProfile ? (
+                    <AccountEditorPage
+                        busy={busy}
+                        domain={workspace?.selectedDomain || ''}
+                        form={accountForm}
+                        onBack={handleCloseAccountEditor}
+                        onChange={setAccountForm}
+                        onSubmit={handleAccountSubmit}
+                        profile={selectedProfile}
+                    />
                 ) : showSettingsPage ? (
                     <SettingsPage
                         auditLogs={auditLogs}
@@ -1395,17 +1415,6 @@ function App() {
                         </main>
                     </>
                 )}
-
-                {modal === 'account' && selectedProfile ? (
-                    <AccountModal
-                        busy={busy}
-                        domain={workspace?.selectedDomain || ''}
-                        form={accountForm}
-                        onChange={setAccountForm}
-                        onClose={() => setModal(null)}
-                        onSubmit={handleAccountSubmit}
-                    />
-                ) : null}
 
                 {modal === 'auth' && selectedProfile ? (
                     <AuthModal
@@ -2377,44 +2386,89 @@ function ProfileEditorPage({busy, form, onBack, onChange, onSubmit}) {
     );
 }
 
-function AccountModal({busy, domain, form, onChange, onClose, onSubmit}) {
+function AccountEditorPage({busy, domain, form, onBack, onChange, onSubmit, profile}) {
     const localPart = form.localPart.trim();
     const previewAddress = localPart && domain ? `${localPart}@${domain}` : domain ? `name@${domain}` : '';
 
     return (
-        <Modal title="添加邮箱账号" onClose={onClose}>
-            <form className="modal-form" onSubmit={onSubmit}>
-                <p className="modal-note">在当前域名下创建一个还没有收到邮件的邮箱账号。</p>
-                <label>
-                    <span>邮箱名称</span>
-                    <div className="account-address-input">
-                        <input
-                            value={form.localPart}
-                            onChange={(event) => onChange({...form, localPart: event.target.value})}
-                            placeholder="例如 support"
-                            required
-                            autoFocus
-                        />
-                        <strong>@{domain || 'domain'}</strong>
+        <main id="reader" className="workspace-page account-editor-page" aria-label="添加邮箱账号">
+            <header className="account-editor-page-header">
+                <button className="page-back-button" type="button" onClick={onBack}>
+                    <ArrowLeft size={16} />
+                    返回
+                </button>
+                <div>
+                    <p>邮箱账号</p>
+                    <h1>添加邮箱账号</h1>
+                    <small>在当前接入点和域名下创建一个收信账号。账号会绑定到当前 Worker，不会变成全局登录账号。</small>
+                </div>
+            </header>
+
+            <div className="account-editor-layout">
+                <form className="account-editor-form" onSubmit={onSubmit}>
+                    <div className="account-preview-card" aria-live="polite">
+                        <span>将创建</span>
+                        <strong>{previewAddress || '选择域名后显示完整邮箱地址'}</strong>
                     </div>
-                </label>
-                <label>
-                    <span>显示名称</span>
-                    <input
-                        value={form.name}
-                        onChange={(event) => onChange({...form, name: event.target.value})}
-                        placeholder="例如 Support Desk，可留空"
-                    />
-                </label>
-                <p className="modal-note">将创建：{previewAddress || '选择域名后显示完整邮箱地址'}</p>
-                <footer>
-                    <button type="button" onClick={onClose}>取消</button>
-                    <button className="primary-action" type="submit" disabled={busy === 'account' || !domain}>
-                        创建邮箱账号
-                    </button>
-                </footer>
-            </form>
-        </Modal>
+
+                    <label>
+                        <span>邮箱名称</span>
+                        <div className="account-address-input">
+                            <input
+                                value={form.localPart}
+                                onChange={(event) => onChange({...form, localPart: event.target.value})}
+                                placeholder="例如 support"
+                                required
+                                autoFocus
+                                disabled={!domain}
+                            />
+                            <strong>@{domain || 'domain'}</strong>
+                        </div>
+                        <small>只填写 @ 前面的部分，例如 support、hello 或 sales。</small>
+                    </label>
+                    <label>
+                        <span>显示名称</span>
+                        <input
+                            value={form.name}
+                            onChange={(event) => onChange({...form, name: event.target.value})}
+                            placeholder="例如 Support Desk，可留空"
+                            disabled={!domain}
+                        />
+                        <small>用于本机和 Worker 中识别账号，不影响邮箱地址。</small>
+                    </label>
+                    <footer>
+                        <button type="button" onClick={onBack}>取消</button>
+                        <button className="primary-action" type="submit" disabled={busy === 'account' || !domain}>
+                            创建邮箱账号
+                        </button>
+                    </footer>
+                </form>
+
+                <aside className="account-editor-aside" aria-label="账号创建说明">
+                    <section>
+                        <MailPlus size={18} />
+                        <div>
+                            <strong>当前域名</strong>
+                            <small>{domain || '请先在左侧选择一个域名'}</small>
+                        </div>
+                    </section>
+                    <section>
+                        <ShieldCheck size={18} />
+                        <div>
+                            <strong>当前接入点</strong>
+                            <small>{profile?.name || '未选择接入点'} · {profile?.baseUrl || '无 Base URL'}</small>
+                        </div>
+                    </section>
+                    <section>
+                        <Database size={18} />
+                        <div>
+                            <strong>独立保存</strong>
+                            <small>邮箱账号只创建在当前接入点下，切换接入点后会使用另一套账号数据。</small>
+                        </div>
+                    </section>
+                </aside>
+            </div>
+        </main>
     );
 }
 
