@@ -1554,9 +1554,8 @@ function Sidebar({
     return (
         <aside className="sidebar mailbox-sidebar" aria-label="邮箱导航">
             <div className="sidebar-top mailbox-sidebar-top">
-                <button className="sidebar-back-button" type="button" onClick={onBackToProfiles}>
+                <button className="sidebar-back-button" type="button" onClick={onBackToProfiles} aria-label="返回接入点选择" title="返回接入点选择">
                     <ArrowLeft size={17} />
-                    <span>接入点</span>
                 </button>
                 <div className="mailbox-context-heading" title={selectedProfile?.baseUrl || '未选择接入点'}>
                     <strong>{selectedProfile?.name || '未选择接入点'}</strong>

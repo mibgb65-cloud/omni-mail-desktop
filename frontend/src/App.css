@@ -369,7 +369,6 @@ body.is-resizing-panels * {
 .sidebar-collapsed .profile-picker-intro,
 .sidebar-collapsed .profile-picker-actions span,
 .sidebar-collapsed .mailbox-context-heading,
-.sidebar-collapsed .sidebar-back-button span,
 .sidebar-collapsed .compose-primary span,
 .sidebar-collapsed .nav-item span,
 .sidebar-collapsed .nav-item small,
@@ -497,9 +496,10 @@ body.is-resizing-panels * {
 .sidebar-back-button {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    width: 34px;
     min-height: 34px;
-    padding: 0 var(--space-2);
+    padding: 0;
     font-size: 13px;
     font-weight: 650;
 }
