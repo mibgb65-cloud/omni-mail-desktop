@@ -2319,31 +2319,60 @@ function ProfileEditorPage({busy, form, onBack, onChange, onSubmit}) {
                 </div>
             </header>
 
-            <form className="profile-editor-form" onSubmit={onSubmit}>
-                <label>
-                    <span>名称</span>
-                    <input
-                        value={form.name}
-                        onChange={(event) => onChange({...form, name: event.target.value})}
-                        placeholder="例如：主站邮箱"
-                    />
-                </label>
-                <label>
-                    <span>Base URL</span>
-                    <input
-                        value={form.baseUrl}
-                        onChange={(event) => onChange({...form, baseUrl: event.target.value})}
-                        placeholder="https://mail.example.com"
-                        required
-                    />
-                </label>
-                <footer>
-                    <button type="button" onClick={onBack}>取消</button>
-                    <button className="primary-action" type="submit" disabled={busy === 'profile'}>
-                        保存接入点
-                    </button>
-                </footer>
-            </form>
+            <div className="profile-editor-layout">
+                <form className="profile-editor-form" onSubmit={onSubmit}>
+                    <label>
+                        <span>接入点名称</span>
+                        <input
+                            value={form.name}
+                            onChange={(event) => onChange({...form, name: event.target.value})}
+                            placeholder="例如：主站邮箱"
+                            autoFocus
+                        />
+                        <small>用于本机识别，不会同步到 Worker。</small>
+                    </label>
+                    <label>
+                        <span>Worker Base URL</span>
+                        <input
+                            value={form.baseUrl}
+                            onChange={(event) => onChange({...form, baseUrl: event.target.value})}
+                            placeholder="https://mail.example.com"
+                            required
+                        />
+                        <small>填写部署后的 OmniMail Worker 访问地址，建议使用 HTTPS。</small>
+                    </label>
+                    <footer>
+                        <button type="button" onClick={onBack}>取消</button>
+                        <button className="primary-action" type="submit" disabled={busy === 'profile'}>
+                            保存接入点
+                        </button>
+                    </footer>
+                </form>
+
+                <aside className="profile-editor-aside" aria-label="接入点说明">
+                    <section>
+                        <ShieldCheck size={18} />
+                        <div>
+                            <strong>独立授权</strong>
+                            <small>每个接入点单独保存 Device Token，不作为全局登录态使用。</small>
+                        </div>
+                    </section>
+                    <section>
+                        <Database size={18} />
+                        <div>
+                            <strong>数据隔离</strong>
+                            <small>域名、邮箱账号和邮件只从当前接入点加载。</small>
+                        </div>
+                    </section>
+                    <section>
+                        <Activity size={18} />
+                        <div>
+                            <strong>保存后测试</strong>
+                            <small>保存接入点后会自动测试连接，再根据授权状态进入下一步。</small>
+                        </div>
+                    </section>
+                </aside>
+            </div>
         </main>
     );
 }
