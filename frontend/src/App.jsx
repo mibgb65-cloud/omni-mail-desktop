@@ -760,7 +760,8 @@ function App() {
 
     function handleOpenProfileManager() {
         setProfileMenuOpen(false);
-        setModal('profiles');
+        setModal(null);
+        setContentPage('endpoints');
     }
 
     async function handleOpenAuth(profile = selectedProfile) {
@@ -1201,7 +1202,8 @@ function App() {
         });
     }
 
-    const showStartPage = contentPage === 'start' || !selectedProfile;
+    const showEndpointPage = contentPage === 'endpoints';
+    const showStartPage = contentPage === 'start' || (!selectedProfile && !showEndpointPage);
     const showSettingsPage = contentPage === 'settings';
 
     return (
@@ -1264,7 +1266,21 @@ function App() {
                     value={sidebarWidth}
                 />
 
-                {showStartPage ? (
+                {showEndpointPage ? (
+                    <EndpointManagerPage
+                        busy={busy}
+                        onAddProfile={handleAddProfile}
+                        onAuth={handleOpenAuth}
+                        onBack={() => setContentPage(selectedProfile ? 'mail' : 'start')}
+                        onDeleteProfile={handleDeleteProfile}
+                        onEditProfile={handleEditProfile}
+                        onProfileSelect={handleSelectProfile}
+                        onTestProfile={handleTestProfile}
+                        profiles={profiles}
+                        selectedProfileId={selectedProfileId}
+                        status={status}
+                    />
+                ) : showStartPage ? (
                     <StartPage
                         busy={busy}
                         onAddProfile={handleAddProfile}
@@ -1393,22 +1409,6 @@ function App() {
                         onManualTokenChange={setManualToken}
                         onSubmit={handleAuthorize}
                         profile={selectedProfile}
-                    />
-                ) : null}
-
-                {modal === 'profiles' ? (
-                    <EndpointManagerModal
-                        busy={busy}
-                        onAddProfile={handleAddProfile}
-                        onAuth={handleOpenAuth}
-                        onClose={() => setModal(null)}
-                        onDeleteProfile={handleDeleteProfile}
-                        onEditProfile={handleEditProfile}
-                        onProfileSelect={handleSelectProfile}
-                        onTestProfile={handleTestProfile}
-                        profiles={profiles}
-                        selectedProfileId={selectedProfileId}
-                        status={status}
                     />
                 ) : null}
 
@@ -2441,11 +2441,11 @@ function AuthModal({
     );
 }
 
-function EndpointManagerModal({
+function EndpointManagerPage({
     busy,
     onAddProfile,
     onAuth,
-    onClose,
+    onBack,
     onDeleteProfile,
     onEditProfile,
     onProfileSelect,
@@ -2457,7 +2457,18 @@ function EndpointManagerModal({
     const authorizedCount = profiles.filter((profile) => profile.hasToken).length;
 
     return (
-        <Modal title="接入点管理" onClose={onClose} wide>
+        <main id="reader" className="workspace-page endpoint-manager-page" aria-label="接入点管理">
+            <header className="endpoint-manager-page-header">
+                <button className="page-back-button" type="button" onClick={onBack}>
+                    <ArrowLeft size={16} />
+                    返回
+                </button>
+                <div>
+                    <p>接入点管理</p>
+                    <h1>接入点</h1>
+                    <small>集中管理 Worker Base URL、授权状态、设备 Token 和连接测试。</small>
+                </div>
+            </header>
             <div className="endpoint-manager">
                 <div className="endpoint-manager-summary">
                     <div className="endpoint-manager-counts">
@@ -2554,7 +2565,7 @@ function EndpointManagerModal({
                     />
                 )}
             </div>
-        </Modal>
+        </main>
     );
 }
 

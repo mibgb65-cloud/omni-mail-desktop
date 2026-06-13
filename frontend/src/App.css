@@ -898,7 +898,8 @@ body.is-resizing-panels * {
 }
 
 .start-page-header p,
-.settings-page-header p {
+.settings-page-header p,
+.endpoint-manager-page-header p {
     margin: 0;
     color: var(--text-tertiary);
     font-size: 12px;
@@ -906,7 +907,8 @@ body.is-resizing-panels * {
 }
 
 .start-page-header h1,
-.settings-page-header h1 {
+.settings-page-header h1,
+.endpoint-manager-page-header h1 {
     margin: 0;
     color: var(--text-primary);
     font-size: 28px;
@@ -915,7 +917,8 @@ body.is-resizing-panels * {
 }
 
 .start-page-header small,
-.settings-page-header small {
+.settings-page-header small,
+.endpoint-manager-page-header small {
     max-width: 620px;
     color: var(--text-tertiary);
     font-size: 14px;
@@ -990,11 +993,13 @@ body.is-resizing-panels * {
     line-height: 1.5;
 }
 
-.settings-page {
+.settings-page,
+.endpoint-manager-page {
     padding: var(--space-6);
 }
 
-.settings-page-header {
+.settings-page-header,
+.endpoint-manager-page-header {
     display: grid;
     max-width: 1040px;
     width: 100%;
@@ -1002,7 +1007,8 @@ body.is-resizing-panels * {
     margin: 0 auto var(--space-5);
 }
 
-.settings-page-header > div {
+.settings-page-header > div,
+.endpoint-manager-page-header > div {
     display: grid;
     gap: 3px;
 }
@@ -1013,6 +1019,11 @@ body.is-resizing-panels * {
 }
 
 .settings-page-body {
+    width: min(1040px, 100%);
+    margin: 0 auto;
+}
+
+.endpoint-manager-page .endpoint-manager {
     width: min(1040px, 100%);
     margin: 0 auto;
 }
