@@ -24,6 +24,7 @@ type storedProfile struct {
 	Name        string
 	BaseURL     string
 	DeviceLabel string
+	DeviceID    string
 	Token       string
 	AdminToken  string
 	AdminEmail  string
@@ -42,6 +43,7 @@ type profileRecord struct {
 	Name           string `json:"name"`
 	BaseURL        string `json:"baseUrl"`
 	DeviceLabel    string `json:"deviceLabel"`
+	DeviceID       string `json:"deviceId"`
 	Token          string `json:"token"`
 	TokenProtected bool   `json:"tokenProtected"`
 	AdminToken     string `json:"adminToken"`
@@ -112,6 +114,7 @@ func (s *profileStore) load() error {
 			Name:        record.Name,
 			BaseURL:     record.BaseURL,
 			DeviceLabel: record.DeviceLabel,
+			DeviceID:    record.DeviceID,
 			Token:       unprotectSecret(record.Token, record.TokenProtected),
 			AdminToken:  unprotectSecret(record.AdminToken, record.AdminProtected),
 			AdminEmail:  record.AdminEmail,
@@ -142,6 +145,7 @@ func (s *profileStore) saveLocked() error {
 			Name:           profile.Name,
 			BaseURL:        profile.BaseURL,
 			DeviceLabel:    profile.DeviceLabel,
+			DeviceID:       profile.DeviceID,
 			Token:          token,
 			TokenProtected: protected,
 			AdminToken:     adminToken,
@@ -217,6 +221,7 @@ func (s *profileStore) upsert(input ProfileInput) (storedProfile, error) {
 		if profile.BaseURL != baseURL {
 			profile.Token = ""
 			profile.DeviceLabel = ""
+			profile.DeviceID = ""
 			profile.AdminToken = ""
 			profile.AdminEmail = ""
 		}
@@ -243,7 +248,7 @@ func (s *profileStore) upsert(input ProfileInput) (storedProfile, error) {
 	return profile, s.saveLocked()
 }
 
-func (s *profileStore) updateToken(id string, token string, label string) (storedProfile, error) {
+func (s *profileStore) updateToken(id string, token string, label string, deviceID string) (storedProfile, error) {
 	token = strings.TrimSpace(token)
 	if token == "" {
 		return storedProfile{}, errors.New("device token is required")
@@ -261,6 +266,7 @@ func (s *profileStore) updateToken(id string, token string, label string) (store
 
 		profile.Token = token
 		profile.DeviceLabel = strings.TrimSpace(label)
+		profile.DeviceID = strings.TrimSpace(deviceID)
 		profile.UpdatedAt = now
 		profile.LastUsedAt = now
 		s.profiles[index] = profile
@@ -399,6 +405,7 @@ func (p storedProfile) public() Profile {
 		Name:              p.Name,
 		BaseURL:           p.BaseURL,
 		DeviceLabel:       p.DeviceLabel,
+		DeviceID:          p.DeviceID,
 		HasToken:          p.Token != "",
 		TokenPreview:      tokenPreview(p.Token),
 		HasAdminSession:   p.AdminToken != "",

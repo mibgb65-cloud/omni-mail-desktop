@@ -141,3 +141,7 @@ export function UpdateDevice(arg1) {
 export function UpdateUser(arg1) {
   return window['go']['main']['App']['UpdateUser'](arg1);
 }
+
+export function ValidateAdminSession(arg1) {
+  return window['go']['main']['App']['ValidateAdminSession'](arg1);
+}

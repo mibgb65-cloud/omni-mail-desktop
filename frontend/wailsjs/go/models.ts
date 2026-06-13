@@ -981,6 +981,7 @@ export namespace main {
 	    name: string;
 	    baseUrl: string;
 	    deviceLabel: string;
+	    deviceId: string;
 	    hasToken: boolean;
 	    tokenPreview: string;
 	    hasAdminSession: boolean;
@@ -1000,6 +1001,7 @@ export namespace main {
 	        this.name = source["name"];
 	        this.baseUrl = source["baseUrl"];
 	        this.deviceLabel = source["deviceLabel"];
+	        this.deviceId = source["deviceId"];
 	        this.hasToken = source["hasToken"];
 	        this.tokenPreview = source["tokenPreview"];
 	        this.hasAdminSession = source["hasAdminSession"];

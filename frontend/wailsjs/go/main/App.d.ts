@@ -71,3 +71,5 @@ export function UpdateAccount(arg1:main.AccountUpdateInput):Promise<main.Account
 export function UpdateDevice(arg1:main.DeviceUpdateInput):Promise<main.DeviceResult>;
 
 export function UpdateUser(arg1:main.UserInput):Promise<main.APIUser>;
+
+export function ValidateAdminSession(arg1:main.ProfileActionInput):Promise<main.AuthStatus>;

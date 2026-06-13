@@ -81,7 +81,8 @@ import {
     UnarchiveMessage,
     UpdateAccount,
     UpdateDevice,
-    UpdateUser
+    UpdateUser,
+    ValidateAdminSession
 } from '../wailsjs/go/main/App';
 
 const emptyProfileForm = {id: '', name: '', baseUrl: ''};
@@ -3741,6 +3742,11 @@ function DeviceManagerPanel({onNotify, selectedProfile}) {
     const [loading, setLoading] = useState(false);
     const [workingDevice, setWorkingDevice] = useState('');
     const [error, setError] = useState('');
+    const visibleDevices = useMemo(() => [...devices].sort((a, b) => {
+        const aCurrent = isCurrentDevice(a) ? 1 : 0;
+        const bCurrent = isCurrentDevice(b) ? 1 : 0;
+        return bCurrent - aCurrent;
+    }), [devices, selectedProfile?.deviceId, selectedProfile?.tokenPreview]);
 
     useEffect(() => {
         if (!selectedProfile?.id) {
@@ -3750,6 +3756,16 @@ function DeviceManagerPanel({onNotify, selectedProfile}) {
 
         loadDevices({silent: true});
     }, [selectedProfile?.id]);
+
+    function isCurrentDevice(device) {
+        return Boolean(
+            device
+            && (
+                (selectedProfile?.deviceId && device.id === selectedProfile.deviceId)
+                || (!selectedProfile?.deviceId && selectedProfile?.tokenPreview && device.tokenPreview === selectedProfile.tokenPreview)
+            )
+        );
+    }
 
     async function loadDevices(options = {}) {
         if (!selectedProfile?.id) {
@@ -3780,6 +3796,10 @@ function DeviceManagerPanel({onNotify, selectedProfile}) {
         if (!selectedProfile?.id || !device?.id) {
             return;
         }
+        if (isCurrentDevice(device)) {
+            setError('当前桌面端正在使用这个 Token，不能在本机停用。');
+            return;
+        }
 
         const enabled = device.enabled !== false && !device.revokedAt;
         setWorkingDevice(device.id);
@@ -3806,6 +3826,10 @@ function DeviceManagerPanel({onNotify, selectedProfile}) {
     }
 
     async function handleRevokeDevice(device) {
+        if (isCurrentDevice(device)) {
+            setError('当前桌面端正在使用这个 Token，不能在本机撤销。');
+            return;
+        }
         if (!selectedProfile?.id || !device?.id || !window.confirm(`撤销设备「${device.label || device.tokenPreview || device.id}」？`)) {
             return;
         }
@@ -3846,22 +3870,24 @@ function DeviceManagerPanel({onNotify, selectedProfile}) {
             {error ? <p className="settings-error">{error}</p> : null}
             {devices.length ? (
                 <div className="settings-card-list">
-                    {devices.map((device) => {
+                    {visibleDevices.map((device) => {
                         const enabled = device.enabled !== false && !device.revokedAt;
+                        const current = isCurrentDevice(device);
 
                         return (
-                            <article className="settings-item-card" key={device.id}>
+                            <article className={`settings-item-card ${current ? 'current' : ''}`} key={device.id}>
                                 <div>
                                     <strong>{device.label || '未命名设备'}</strong>
                                     <small>{device.clientType || 'unknown'} · {device.scope || 'read_write'} · {device.tokenPreview || device.id}</small>
                                     <small>创建：{formatDateTime(device.createdAt)} · 最近使用：{formatDateTime(device.lastSeenAt)}</small>
                                 </div>
                                 <div className="settings-item-actions">
+                                    {current ? <StatusBadge ok label="当前桌面端" /> : null}
                                     <StatusBadge ok={enabled} label={enabled ? '启用' : '已停用'} />
-                                    <button type="button" onClick={() => handleToggleDevice(device)} disabled={workingDevice === device.id}>
+                                    <button type="button" onClick={() => handleToggleDevice(device)} disabled={current || workingDevice === device.id}>
                                         {enabled ? '停用' : '启用'}
                                     </button>
-                                    <button className="danger" type="button" onClick={() => handleRevokeDevice(device)} disabled={workingDevice === device.id || !enabled}>
+                                    <button className="danger" type="button" onClick={() => handleRevokeDevice(device)} disabled={current || workingDevice === device.id || !enabled}>
                                         <Trash2 size={15} />
                                         撤销
                                     </button>
@@ -4032,6 +4058,41 @@ function SecurityPanel({onNotify, onProfileUpdate, selectedProfile}) {
             const message = clearError.message || '无法清除当前接入点管理员会话。';
             setError(message);
             onNotify?.('error', '退出管理员会话失败', message);
+        } finally {
+            setLoading('');
+        }
+    }
+
+    async function handleValidateAdmin() {
+        if (!selectedProfile?.id) {
+            return;
+        }
+        if (!hasAdminSession) {
+            setError('请先授权当前接入点管理员会话。');
+            return;
+        }
+
+        setLoading('admin-validate');
+        setError('');
+
+        try {
+            const status = await ValidateAdminSession({profileId: selectedProfile.id});
+            if (!status?.authenticated) {
+                throw new Error('管理员会话未通过服务端验证。');
+            }
+            const userLabel = status.user?.email || selectedProfile.adminEmail || selectedProfile.baseUrl;
+            onNotify?.('success', '管理员会话有效', userLabel);
+        } catch (validateError) {
+            const message = validateError.message || '管理员会话可能已过期，请重新授权。';
+            setError(message);
+            onNotify?.('error', '管理员会话无效', message);
+            try {
+                const profile = await ClearAdminSession({profileId: selectedProfile.id});
+                onProfileUpdate?.(profile);
+                setUsers([]);
+            } catch {
+                // Keep the visible validation error; a failed local cleanup should not hide it.
+            }
         } finally {
             setLoading('');
         }
@@ -4240,6 +4301,10 @@ function SecurityPanel({onNotify, onProfileUpdate, selectedProfile}) {
                     <button className="primary-action compact" type="submit" disabled={loading === 'admin-login'}>
                         <KeyRound size={16} />
                         {loading === 'admin-login' ? '授权中' : hasAdminSession ? '重新授权' : '授权当前接入点'}
+                    </button>
+                    <button type="button" onClick={handleValidateAdmin} disabled={!hasAdminSession || loading === 'admin-validate'}>
+                        <CircleCheck size={16} />
+                        {loading === 'admin-validate' ? '验证中' : '验证会话'}
                     </button>
                     <button type="button" onClick={handleClearAdmin} disabled={!hasAdminSession || loading === 'admin-clear'}>
                         <Power size={16} />

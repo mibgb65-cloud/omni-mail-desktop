@@ -101,7 +101,7 @@ func (a *App) SaveProfileToken(input TokenInput) (*Profile, error) {
 		return nil, err
 	}
 
-	profile, err := a.store.updateToken(input.ProfileID, input.DeviceToken, input.DeviceLabel)
+	profile, err := a.store.updateToken(input.ProfileID, input.DeviceToken, input.DeviceLabel, "")
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func (a *App) AuthorizeProfile(input DeviceAuthInput) (*Profile, error) {
 		return nil, errors.New("device registration response did not include a device token")
 	}
 
-	updated, err := a.store.updateToken(profile.ID, device.DeviceToken, label)
+	updated, err := a.store.updateToken(profile.ID, device.DeviceToken, label, device.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -249,6 +249,24 @@ func (a *App) ClearAdminSession(input ProfileActionInput) (*Profile, error) {
 
 	public := updated.public()
 	return &public, nil
+}
+
+func (a *App) ValidateAdminSession(input ProfileActionInput) (*AuthStatus, error) {
+	profile, err := a.adminProfileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	var status AuthStatus
+	if err := a.apiRequest(profile.BaseURL, profile.AdminToken, http.MethodGet, "/api/v1/auth/status", nil, &status); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &status, nil
 }
 
 func (a *App) LoadMailbox(input MailboxRequest) (*MailboxPayload, error) {

@@ -2623,6 +2623,10 @@ button:disabled {
     padding: var(--space-3);
 }
 
+.settings-item-card.current {
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+
 .dns-check-list article {
     grid-template-columns: 20px minmax(0, 1fr);
     color: var(--warning);

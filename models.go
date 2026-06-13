@@ -11,6 +11,7 @@ type Profile struct {
 	Name              string `json:"name"`
 	BaseURL           string `json:"baseUrl"`
 	DeviceLabel       string `json:"deviceLabel"`
+	DeviceID          string `json:"deviceId"`
 	HasToken          bool   `json:"hasToken"`
 	TokenPreview      string `json:"tokenPreview"`
 	HasAdminSession   bool   `json:"hasAdminSession"`
