@@ -1614,6 +1614,20 @@ function Sidebar({
                 />
             ) : (
                 <div className="resource-scope" aria-label="当前接入点资源">
+                    <nav className="nav-section mailbox-folder-section" aria-label="当前邮箱文件夹">
+                        <SectionLabel>文件夹</SectionLabel>
+                        {folders.map((folder) => (
+                            <NavItem
+                                key={folder.id}
+                                active={folder.id === activeFolder}
+                                count={folderCounts[folder.id] || 0}
+                                icon={folder.icon}
+                                label={folder.label}
+                                onClick={() => onFolderChange(folder.id)}
+                            />
+                        ))}
+                    </nav>
+
                     <div className="nav-section resource-section">
                         <SectionLabel>域名</SectionLabel>
                         {domains.map((domain) => (
@@ -1655,20 +1669,6 @@ function Sidebar({
                         {mailboxLoading ? <MutedLine>正在加载邮箱账号</MutedLine> : null}
                         {!mailboxLoading && !accounts.length ? <MutedLine>暂无邮箱账号</MutedLine> : null}
                     </div>
-
-                    <nav className="nav-section mailbox-folder-section" aria-label="当前邮箱文件夹">
-                        <SectionLabel>文件夹</SectionLabel>
-                        {folders.map((folder) => (
-                            <NavItem
-                                key={folder.id}
-                                active={folder.id === activeFolder}
-                                count={folderCounts[folder.id] || 0}
-                                icon={folder.icon}
-                                label={folder.label}
-                                onClick={() => onFolderChange(folder.id)}
-                            />
-                        ))}
-                    </nav>
                 </div>
             )}
 

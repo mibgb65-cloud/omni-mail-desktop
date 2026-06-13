@@ -619,6 +619,10 @@ body.is-resizing-panels * {
     margin-top: var(--space-2);
 }
 
+.resource-scope .mailbox-folder-section {
+    margin-top: 0;
+}
+
 .accounts-section {
     overflow: hidden;
 }
