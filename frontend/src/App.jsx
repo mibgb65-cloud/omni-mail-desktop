@@ -318,6 +318,7 @@ function App() {
     const [workspace, setWorkspace] = useState(null);
     const [sidebarPage, setSidebarPage] = useState('profiles');
     const [contentPage, setContentPage] = useState('start');
+    const [profileReturnPage, setProfileReturnPage] = useState('start');
     const [endpointDiagnostics, setEndpointDiagnostics] = useState(null);
     const [auditLogs, setAuditLogs] = useState([]);
     const [insightsProfileId, setInsightsProfileId] = useState('');
@@ -732,8 +733,15 @@ function App() {
 
     function handleAddProfile() {
         setProfileForm(emptyProfileForm);
+        setProfileReturnPage(contentPage === 'profile' ? 'start' : contentPage);
         setProfileMenuOpen(false);
-        setModal('profile');
+        setModal(null);
+        setContentPage('profile');
+    }
+
+    function handleCloseProfileEditor() {
+        setProfileForm(emptyProfileForm);
+        setContentPage(profileReturnPage || (selectedProfile ? 'mail' : 'start'));
     }
 
     function handleBackToProfiles() {
@@ -788,8 +796,10 @@ function App() {
 
     function handleEditProfile(profile) {
         setProfileForm({id: profile.id, name: profile.name, baseUrl: profile.baseUrl});
+        setProfileReturnPage(contentPage === 'profile' ? 'endpoints' : contentPage);
         setProfileMenuOpen(false);
-        setModal('profile');
+        setModal(null);
+        setContentPage('profile');
     }
 
     async function handleDeleteProfile(profile) {
@@ -1203,7 +1213,8 @@ function App() {
     }
 
     const showEndpointPage = contentPage === 'endpoints';
-    const showStartPage = contentPage === 'start' || (!selectedProfile && !showEndpointPage);
+    const showProfilePage = contentPage === 'profile';
+    const showStartPage = contentPage === 'start' || (!selectedProfile && !showEndpointPage && !showProfilePage);
     const showSettingsPage = contentPage === 'settings';
 
     return (
@@ -1266,7 +1277,15 @@ function App() {
                     value={sidebarWidth}
                 />
 
-                {showEndpointPage ? (
+                {showProfilePage ? (
+                    <ProfileEditorPage
+                        busy={busy}
+                        form={profileForm}
+                        onBack={handleCloseProfileEditor}
+                        onChange={setProfileForm}
+                        onSubmit={handleProfileSubmit}
+                    />
+                ) : showEndpointPage ? (
                     <EndpointManagerPage
                         busy={busy}
                         onAddProfile={handleAddProfile}
@@ -1376,16 +1395,6 @@ function App() {
                         </main>
                     </>
                 )}
-
-                {modal === 'profile' ? (
-                    <ProfileModal
-                        busy={busy}
-                        form={profileForm}
-                        onChange={setProfileForm}
-                        onClose={() => setModal(null)}
-                        onSubmit={handleProfileSubmit}
-                    />
-                ) : null}
 
                 {modal === 'account' && selectedProfile ? (
                     <AccountModal
@@ -2295,10 +2304,22 @@ function Composer({
     );
 }
 
-function ProfileModal({busy, form, onChange, onClose, onSubmit}) {
+function ProfileEditorPage({busy, form, onBack, onChange, onSubmit}) {
     return (
-        <Modal title={form.id ? '编辑接入点' : '添加接入点'} onClose={onClose}>
-            <form className="modal-form" onSubmit={onSubmit}>
+        <main id="reader" className="workspace-page profile-editor-page" aria-label={form.id ? '编辑接入点' : '添加接入点'}>
+            <header className="profile-editor-page-header">
+                <button className="page-back-button" type="button" onClick={onBack}>
+                    <ArrowLeft size={16} />
+                    返回
+                </button>
+                <div>
+                    <p>{form.id ? '编辑接入点' : '添加接入点'}</p>
+                    <h1>{form.id ? '编辑邮箱服务接入点' : '添加邮箱服务接入点'}</h1>
+                    <small>接入点是一个独立部署的 OmniMail Worker Base URL，授权和邮箱数据会按接入点隔离。</small>
+                </div>
+            </header>
+
+            <form className="profile-editor-form" onSubmit={onSubmit}>
                 <label>
                     <span>名称</span>
                     <input
@@ -2317,13 +2338,13 @@ function ProfileModal({busy, form, onChange, onClose, onSubmit}) {
                     />
                 </label>
                 <footer>
-                    <button type="button" onClick={onClose}>取消</button>
+                    <button type="button" onClick={onBack}>取消</button>
                     <button className="primary-action" type="submit" disabled={busy === 'profile'}>
                         保存接入点
                     </button>
                 </footer>
             </form>
-        </Modal>
+        </main>
     );
 }
 
