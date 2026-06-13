@@ -192,6 +192,61 @@ func (a *App) AuthorizeProfile(input DeviceAuthInput) (*Profile, error) {
 		return nil, err
 	}
 
+	updated, err = a.store.updateAdminSession(profile.ID, auth.Token, auth.User)
+	if err != nil {
+		return nil, err
+	}
+
+	public := updated.public()
+	return &public, nil
+}
+
+func (a *App) AuthorizeAdminSession(input DeviceAuthInput) (*Profile, error) {
+	if err := a.ensureReady(); err != nil {
+		return nil, err
+	}
+
+	profile, ok := a.store.get(input.ProfileID)
+	if !ok {
+		return nil, errors.New("profile not found")
+	}
+
+	authPath := "/api/v1/auth/login"
+	if input.Setup {
+		authPath = "/api/v1/auth/setup"
+	}
+
+	var auth AuthResult
+	if err := a.apiRequest(profile.BaseURL, "", http.MethodPost, authPath, map[string]string{
+		"email":    input.Email,
+		"password": input.Password,
+	}, &auth); err != nil {
+		return nil, err
+	}
+
+	if auth.Token == "" {
+		return nil, errors.New("authentication response did not include a token")
+	}
+
+	updated, err := a.store.updateAdminSession(profile.ID, auth.Token, auth.User)
+	if err != nil {
+		return nil, err
+	}
+
+	public := updated.public()
+	return &public, nil
+}
+
+func (a *App) ClearAdminSession(input ProfileActionInput) (*Profile, error) {
+	if err := a.ensureReady(); err != nil {
+		return nil, err
+	}
+
+	updated, err := a.store.clearAdminSession(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
 	public := updated.public()
 	return &public, nil
 }
@@ -486,7 +541,7 @@ func (a *App) GetDomainDNSHealth(input DNSHealthRequest) (*DNSHealth, error) {
 }
 
 func (a *App) RunSystemCleanup(input CleanupInput) (*CleanupResult, error) {
-	profile, err := a.profileForRequest(input.ProfileID)
+	profile, err := a.adminProfileForRequest(input.ProfileID)
 	if err != nil {
 		return nil, err
 	}
@@ -499,7 +554,7 @@ func (a *App) RunSystemCleanup(input CleanupInput) (*CleanupResult, error) {
 	var result CleanupResult
 	if err := a.apiRequest(
 		profile.BaseURL,
-		profile.Token,
+		profile.AdminToken,
 		http.MethodPost,
 		"/api/v1/system/cleanup",
 		map[string]any{
@@ -612,13 +667,13 @@ func (a *App) RevokeDevice(input DeviceDeleteInput) (*DeviceResult, error) {
 }
 
 func (a *App) ListUsers(input ProfileActionInput) ([]APIUser, error) {
-	profile, err := a.profileForRequest(input.ProfileID)
+	profile, err := a.adminProfileForRequest(input.ProfileID)
 	if err != nil {
 		return nil, err
 	}
 
 	var users []APIUser
-	if err := a.apiRequest(profile.BaseURL, profile.Token, http.MethodGet, "/api/v1/users", nil, &users); err != nil {
+	if err := a.apiRequest(profile.BaseURL, profile.AdminToken, http.MethodGet, "/api/v1/users", nil, &users); err != nil {
 		return nil, err
 	}
 
@@ -630,7 +685,7 @@ func (a *App) ListUsers(input ProfileActionInput) ([]APIUser, error) {
 }
 
 func (a *App) CreateUser(input UserInput) (*APIUser, error) {
-	profile, err := a.profileForRequest(input.ProfileID)
+	profile, err := a.adminProfileForRequest(input.ProfileID)
 	if err != nil {
 		return nil, err
 	}
@@ -638,7 +693,7 @@ func (a *App) CreateUser(input UserInput) (*APIUser, error) {
 	var user APIUser
 	if err := a.apiRequest(
 		profile.BaseURL,
-		profile.Token,
+		profile.AdminToken,
 		http.MethodPost,
 		"/api/v1/users",
 		map[string]string{
@@ -660,7 +715,7 @@ func (a *App) CreateUser(input UserInput) (*APIUser, error) {
 }
 
 func (a *App) UpdateUser(input UserInput) (*APIUser, error) {
-	profile, err := a.profileForRequest(input.ProfileID)
+	profile, err := a.adminProfileForRequest(input.ProfileID)
 	if err != nil {
 		return nil, err
 	}
@@ -686,7 +741,7 @@ func (a *App) UpdateUser(input UserInput) (*APIUser, error) {
 	var user APIUser
 	if err := a.apiRequest(
 		profile.BaseURL,
-		profile.Token,
+		profile.AdminToken,
 		http.MethodPatch,
 		"/api/v1/users/"+pathEscape(input.UserID),
 		payload,
@@ -703,7 +758,7 @@ func (a *App) UpdateUser(input UserInput) (*APIUser, error) {
 }
 
 func (a *App) ChangePassword(input ChangePasswordInput) (*AuthResult, error) {
-	profile, err := a.profileForRequest(input.ProfileID)
+	profile, err := a.adminProfileForRequest(input.ProfileID)
 	if err != nil {
 		return nil, err
 	}
@@ -711,7 +766,7 @@ func (a *App) ChangePassword(input ChangePasswordInput) (*AuthResult, error) {
 	var result AuthResult
 	if err := a.apiRequest(
 		profile.BaseURL,
-		profile.Token,
+		profile.AdminToken,
 		http.MethodPost,
 		"/api/v1/auth/change-password",
 		map[string]string{
@@ -726,12 +781,17 @@ func (a *App) ChangePassword(input ChangePasswordInput) (*AuthResult, error) {
 	if err := a.store.markUsed(profile.ID); err != nil {
 		return nil, err
 	}
+	if result.Token != "" {
+		if _, err := a.store.updateAdminSession(profile.ID, result.Token, result.User); err != nil {
+			return nil, err
+		}
+	}
 
 	return &result, nil
 }
 
 func (a *App) RevokeSessions(input ProfileActionInput) (*AuthResult, error) {
-	profile, err := a.profileForRequest(input.ProfileID)
+	profile, err := a.adminProfileForRequest(input.ProfileID)
 	if err != nil {
 		return nil, err
 	}
@@ -739,7 +799,7 @@ func (a *App) RevokeSessions(input ProfileActionInput) (*AuthResult, error) {
 	var result AuthResult
 	if err := a.apiRequest(
 		profile.BaseURL,
-		profile.Token,
+		profile.AdminToken,
 		http.MethodPost,
 		"/api/v1/auth/revoke-sessions",
 		nil,
@@ -750,6 +810,11 @@ func (a *App) RevokeSessions(input ProfileActionInput) (*AuthResult, error) {
 
 	if err := a.store.markUsed(profile.ID); err != nil {
 		return nil, err
+	}
+	if result.Token != "" {
+		if _, err := a.store.updateAdminSession(profile.ID, result.Token, result.User); err != nil {
+			return nil, err
+		}
 	}
 
 	return &result, nil
@@ -988,6 +1053,23 @@ func (a *App) profileForRequest(profileID string) (storedProfile, error) {
 
 	if profile.Token == "" {
 		return storedProfile{}, errors.New("profile has no device token")
+	}
+
+	return profile, nil
+}
+
+func (a *App) adminProfileForRequest(profileID string) (storedProfile, error) {
+	if err := a.ensureReady(); err != nil {
+		return storedProfile{}, err
+	}
+
+	profile, ok := a.store.get(profileID)
+	if !ok {
+		return storedProfile{}, errors.New("profile not found")
+	}
+
+	if profile.AdminToken == "" {
+		return storedProfile{}, errors.New("profile has no admin session")
 	}
 
 	return profile, nil

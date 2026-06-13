@@ -7,15 +7,18 @@ type InitialState struct {
 }
 
 type Profile struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	BaseURL      string `json:"baseUrl"`
-	DeviceLabel  string `json:"deviceLabel"`
-	HasToken     bool   `json:"hasToken"`
-	TokenPreview string `json:"tokenPreview"`
-	CreatedAt    string `json:"createdAt"`
-	UpdatedAt    string `json:"updatedAt"`
-	LastUsedAt   string `json:"lastUsedAt"`
+	ID                string `json:"id"`
+	Name              string `json:"name"`
+	BaseURL           string `json:"baseUrl"`
+	DeviceLabel       string `json:"deviceLabel"`
+	HasToken          bool   `json:"hasToken"`
+	TokenPreview      string `json:"tokenPreview"`
+	HasAdminSession   bool   `json:"hasAdminSession"`
+	AdminEmail        string `json:"adminEmail"`
+	AdminTokenPreview string `json:"adminTokenPreview"`
+	CreatedAt         string `json:"createdAt"`
+	UpdatedAt         string `json:"updatedAt"`
+	LastUsedAt        string `json:"lastUsedAt"`
 }
 
 type ProfileInput struct {

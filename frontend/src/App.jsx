@@ -48,8 +48,10 @@ import {
 } from '../wailsjs/runtime/runtime';
 import {
     ArchiveMessage,
+    AuthorizeAdminSession,
     AuthorizeProfile,
     ChangePassword,
+    ClearAdminSession,
     CreateAccount,
     CreateDomain,
     CreateUser,
@@ -87,6 +89,7 @@ const emptyAccountForm = {localPart: '', name: ''};
 const emptyDomainForm = {domain: ''};
 const emptyAuthForm = {email: '', password: '', deviceLabel: 'Windows 桌面端', setup: false};
 const emptyComposeForm = {to: '', cc: '', bcc: '', subject: '', text: ''};
+const emptyAdminSessionForm = {email: '', password: '', setup: false};
 const emptyUserForm = {email: '', password: '', displayName: '', avatarColor: '#dbe7ff'};
 const emptyPasswordForm = {currentPassword: '', newPassword: ''};
 const defaultMailboxSettings = {
@@ -118,6 +121,15 @@ const folders = [
     {id: 'sent', label: '已发送', icon: Send},
     {id: 'archive', label: '归档', icon: Archive},
     {id: 'all', label: '全部邮件', icon: Mail}
+];
+
+const settingsTabs = [
+    {id: 'general', label: '常规', icon: Settings},
+    {id: 'mailbox', label: '邮箱设置', icon: Mail},
+    {id: 'dns', label: 'DNS', icon: Globe2},
+    {id: 'devices', label: '设备 Token', icon: ShieldCheck},
+    {id: 'maintenance', label: '维护', icon: Database},
+    {id: 'security', label: '安全', icon: KeyRound}
 ];
 
 function upsertProfile(profiles, profile) {
@@ -1597,6 +1609,7 @@ function App() {
                         onLoadInsights={loadEndpointInsights}
                         onNotify={showToast}
                         onOpenProfiles={handleOpenProfileManager}
+                        onProfileUpdate={(profile) => setProfiles((current) => upsertProfile(current, profile))}
                         onReloadMailbox={reloadCurrentMailbox}
                         onResetLayout={resetLayoutPreferences}
                         selectedAccount={selectedAccount}
@@ -3210,6 +3223,7 @@ function SettingsPage({
     onLoadInsights,
     onNotify,
     onOpenProfiles,
+    onProfileUpdate,
     onReloadMailbox,
     onResetLayout,
     selectedAccount,
@@ -3220,10 +3234,20 @@ function SettingsPage({
     toggleTheme,
     workspace
 }) {
+    const [activeTab, setActiveTab] = useState('general');
     const insightsLoaded = Boolean(selectedProfile && insightsProfileId === selectedProfile.id && diagnostics);
     const setup = insightsLoaded ? diagnostics.setup : null;
     const auditCount = insightsLoaded ? diagnostics.counts?.auditLogs || auditLogs.length : 0;
     const canLoadInsights = Boolean(selectedProfile?.hasToken);
+    const visibleTabs = selectedProfile?.hasToken
+        ? settingsTabs
+        : settingsTabs.filter((tab) => tab.id === 'general');
+
+    useEffect(() => {
+        if (!visibleTabs.some((tab) => tab.id === activeTab)) {
+            setActiveTab('general');
+        }
+    }, [activeTab, visibleTabs]);
 
     return (
         <main id="reader" className="workspace-page settings-page" aria-label="设置">
@@ -3240,120 +3264,156 @@ function SettingsPage({
             </header>
 
             <div className="settings-page-body">
-                <div className="settings-grid">
-                    <SettingRow
-                        icon={theme === 'dark' ? Moon : Sun}
-                        title="外观"
-                        body={theme === 'dark' ? '当前为深色模式' : '当前为浅色模式'}
-                        action={<button type="button" onClick={toggleTheme}>切换主题</button>}
-                    />
-                    <SettingRow
-                        icon={ShieldCheck}
-                        title="接入点状态"
-                        body={selectedProfile ? selectedProfile.baseUrl : '尚未选择接入点'}
-                        action={<StatusBadge ok={Boolean(status?.ok)} label={status?.ok ? '正常' : '未验证'} />}
-                    />
-                    <SettingRow
-                        icon={ShieldCheck}
-                        title="接入点管理"
-                        body="集中管理 Base URL、授权状态、Token 和连接测试。"
-                        action={<button type="button" onClick={onOpenProfiles}>打开管理</button>}
-                    />
-                    <SettingRow
-                        icon={Activity}
-                        title="系统诊断"
-                        body={insightsLoaded
-                            ? `必需项 ${setup?.completedRequired || 0}/${setup?.totalRequired || 0}，总进度 ${setup?.completed || 0}/${setup?.total || 0}`
-                            : canLoadInsights
-                                ? '读取当前接入点的 Worker 绑定、数据量和部署进度。'
-                                : '当前接入点尚未授权，无法读取诊断。'}
-                        action={(
-                            <button type="button" onClick={() => onLoadInsights(selectedProfile)} disabled={!canLoadInsights || busy === 'insights'}>
-                                {busy === 'insights' ? '读取中' : insightsLoaded ? '刷新' : '读取'}
+                <nav className="settings-tabbar" aria-label="设置分组">
+                    {visibleTabs.map((tab) => {
+                        const Icon = tab.icon;
+                        return (
+                            <button
+                                className={activeTab === tab.id ? 'active' : ''}
+                                key={tab.id}
+                                type="button"
+                                onClick={() => setActiveTab(tab.id)}
+                            >
+                                <Icon size={16} />
+                                {tab.label}
                             </button>
-                        )}
-                    />
-                    <SettingRow
-                        icon={ClipboardList}
-                        title="审计日志"
-                        body={insightsLoaded
-                            ? `已加载最近 ${auditLogs.length} 条，接入点累计 ${formatCount(auditCount)} 条。`
-                            : '读取当前接入点最近的授权、邮件和配置变更记录。'}
-                        action={<StatusBadge ok={insightsLoaded} label={insightsLoaded ? '已加载' : '未读取'} />}
-                    />
-                    <SettingRow
-                        icon={Mail}
-                        title="本机草稿"
-                        body="写信草稿按当前接入点和发件账号分别保存在本机。"
-                        action={<button type="button" onClick={onClearCurrentDraft} disabled={!canClearCurrentDraft}>清除当前草稿</button>}
-                    />
-                    <SettingRow
-                        icon={PanelLeftOpen}
-                        title="布局偏好"
-                        body="恢复侧栏、邮件列表宽度和侧栏收起状态。"
-                        action={<button type="button" onClick={onResetLayout}>恢复默认</button>}
-                    />
-                    <SettingRow
-                        icon={KeyRound}
-                        title="快捷键"
-                        body="Ctrl K 搜索，J/K 切换邮件，R 刷新，N 写邮件。"
-                        action={<StatusBadge ok label="已启用" />}
-                    />
-                    <SettingRow
-                        icon={ShieldCheck}
-                        title="本地存储"
-                        body={storagePath || '正在读取本地配置路径'}
-                        action={<StatusBadge ok label="本机" />}
-                    />
-                    <SettingRow
-                        icon={KeyRound}
-                        title="Token 存储"
-                        body="Windows 下使用 DPAPI 按接入点分别保护本地设备 Token。"
-                        action={<StatusBadge ok label="已启用" />}
-                    />
-                </div>
+                        );
+                    })}
+                </nav>
+
+                {activeTab === 'general' ? (
+                    <>
+                        <div className="settings-grid">
+                            <SettingRow
+                                icon={theme === 'dark' ? Moon : Sun}
+                                title="外观"
+                                body={theme === 'dark' ? '当前为深色模式' : '当前为浅色模式'}
+                                action={<button type="button" onClick={toggleTheme}>切换主题</button>}
+                            />
+                            <SettingRow
+                                icon={ShieldCheck}
+                                title="接入点状态"
+                                body={selectedProfile ? selectedProfile.baseUrl : '尚未选择接入点'}
+                                action={<StatusBadge ok={Boolean(status?.ok)} label={status?.ok ? '正常' : '未验证'} />}
+                            />
+                            <SettingRow
+                                icon={ShieldCheck}
+                                title="接入点管理"
+                                body="集中管理 Base URL、授权状态、Token 和连接测试。"
+                                action={<button type="button" onClick={onOpenProfiles}>打开管理</button>}
+                            />
+                            <SettingRow
+                                icon={Activity}
+                                title="系统诊断"
+                                body={insightsLoaded
+                                    ? `必需项 ${setup?.completedRequired || 0}/${setup?.totalRequired || 0}，总进度 ${setup?.completed || 0}/${setup?.total || 0}`
+                                    : canLoadInsights
+                                        ? '读取当前接入点的 Worker 绑定、数据量和部署进度。'
+                                        : '当前接入点尚未授权，无法读取诊断。'}
+                                action={(
+                                    <button type="button" onClick={() => onLoadInsights(selectedProfile)} disabled={!canLoadInsights || busy === 'insights'}>
+                                        {busy === 'insights' ? '读取中' : insightsLoaded ? '刷新' : '读取'}
+                                    </button>
+                                )}
+                            />
+                            <SettingRow
+                                icon={ClipboardList}
+                                title="审计日志"
+                                body={insightsLoaded
+                                    ? `已加载最近 ${auditLogs.length} 条，接入点累计 ${formatCount(auditCount)} 条。`
+                                    : '读取当前接入点最近的授权、邮件和配置变更记录。'}
+                                action={<StatusBadge ok={insightsLoaded} label={insightsLoaded ? '已加载' : '未读取'} />}
+                            />
+                            <SettingRow
+                                icon={Mail}
+                                title="本机草稿"
+                                body="写信草稿按当前接入点和发件账号分别保存在本机。"
+                                action={<button type="button" onClick={onClearCurrentDraft} disabled={!canClearCurrentDraft}>清除当前草稿</button>}
+                            />
+                            <SettingRow
+                                icon={PanelLeftOpen}
+                                title="布局偏好"
+                                body="恢复侧栏、邮件列表宽度和侧栏收起状态。"
+                                action={<button type="button" onClick={onResetLayout}>恢复默认</button>}
+                            />
+                            <SettingRow
+                                icon={KeyRound}
+                                title="快捷键"
+                                body="Ctrl K 搜索，J/K 切换邮件，R 刷新，N 写邮件。"
+                                action={<StatusBadge ok label="已启用" />}
+                            />
+                            <SettingRow
+                                icon={ShieldCheck}
+                                title="本地存储"
+                                body={storagePath || '正在读取本地配置路径'}
+                                action={<StatusBadge ok label="本机" />}
+                            />
+                            <SettingRow
+                                icon={KeyRound}
+                                title="Token 存储"
+                                body={selectedProfile?.hasAdminSession
+                                    ? `Device Token 和管理员会话都按当前接入点隔离保存。管理员：${selectedProfile.adminEmail || selectedProfile.adminTokenPreview}`
+                                    : 'Windows 下使用 DPAPI 按接入点分别保护本地 Device Token。'}
+                                action={<StatusBadge ok={Boolean(selectedProfile?.hasAdminSession)} label={selectedProfile?.hasAdminSession ? '管理员已授权' : '仅设备 Token'} />}
+                            />
+                        </div>
+                        {!selectedProfile?.hasToken ? (
+                            <section className="insight-panel">
+                                <header>
+                                    <div>
+                                        <p>接入点运维</p>
+                                        <h3>授权后显示高级管理工具</h3>
+                                        <small>邮箱设置、DNS 健康、设备 Token 和维护工具都按接入点隔离，不使用全局用户态。</small>
+                                    </div>
+                                    <StatusBadge ok={false} label="未授权" />
+                                </header>
+                            </section>
+                        ) : null}
+                        {insightsLoaded ? (
+                            <>
+                                <DiagnosticsPanel diagnostics={diagnostics} />
+                                <AuditLogPanel logs={auditLogs} />
+                            </>
+                        ) : null}
+                    </>
+                ) : null}
+
                 {selectedProfile?.hasToken ? (
-                    <div className="advanced-settings-grid">
+                    <>
+                        {activeTab === 'mailbox' ? (
                         <MailboxSettingsPanel
                             onNotify={onNotify}
                             onReloadMailbox={onReloadMailbox}
                             selectedAccount={selectedAccount}
                             selectedProfile={selectedProfile}
                         />
+                        ) : null}
+                        {activeTab === 'dns' ? (
                         <DNSHealthPanel
                             domain={workspace?.selectedDomain || ''}
                             onNotify={onNotify}
                             selectedProfile={selectedProfile}
                         />
+                        ) : null}
+                        {activeTab === 'devices' ? (
                         <DeviceManagerPanel
                             onNotify={onNotify}
                             selectedProfile={selectedProfile}
                         />
+                        ) : null}
+                        {activeTab === 'maintenance' ? (
                         <MaintenancePanel
                             onNotify={onNotify}
                             selectedProfile={selectedProfile}
                         />
+                        ) : null}
+                        {activeTab === 'security' ? (
                         <SecurityPanel
                             onNotify={onNotify}
+                            onProfileUpdate={onProfileUpdate}
                             selectedProfile={selectedProfile}
                         />
-                    </div>
-                ) : (
-                    <section className="insight-panel">
-                        <header>
-                            <div>
-                                <p>接入点运维</p>
-                                <h3>授权后显示高级管理工具</h3>
-                                <small>邮箱设置、DNS 健康、设备 Token 和维护工具都按接入点隔离，不使用全局用户态。</small>
-                            </div>
-                            <StatusBadge ok={false} label="未授权" />
-                        </header>
-                    </section>
-                )}
-                {insightsLoaded ? (
-                    <>
-                        <DiagnosticsPanel diagnostics={diagnostics} />
-                        <AuditLogPanel logs={auditLogs} />
+                        ) : null}
                     </>
                 ) : null}
             </div>
@@ -3822,9 +3882,14 @@ function MaintenancePanel({onNotify, selectedProfile}) {
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState('');
     const [error, setError] = useState('');
+    const hasAdminSession = Boolean(selectedProfile?.hasAdminSession);
 
     async function handleCleanup(dryRun) {
         if (!selectedProfile?.id) {
+            return;
+        }
+        if (!hasAdminSession) {
+            setError('请先到“安全”分组授权当前接入点管理员会话。');
             return;
         }
 
@@ -3845,7 +3910,7 @@ function MaintenancePanel({onNotify, selectedProfile}) {
             setResult(cleanup);
             onNotify?.('success', dryRun ? '清理预览完成' : '系统清理完成', `邮件 ${formatCount(cleanup.messages)}，附件 ${formatCount(cleanup.attachments)}`);
         } catch (cleanupError) {
-            const message = cleanupError.message || '当前 Token 可能没有管理员权限。';
+            const message = cleanupError.message || '当前接入点管理员会话可能已失效。';
             setError(message);
             onNotify?.('error', '系统清理失败', message);
         } finally {
@@ -3856,7 +3921,8 @@ function MaintenancePanel({onNotify, selectedProfile}) {
     return (
         <section className="settings-panel">
             <SettingsPanelHeader
-                body="清理接口要求 Worker 管理员用户权限；设备 Token 被拒绝时会在这里显示服务端错误。"
+                action={<StatusBadge ok={hasAdminSession} label={hasAdminSession ? '管理员已授权' : '需要授权'} />}
+                body="清理接口要求当前接入点管理员会话；设备 Token 只负责邮箱接入。"
                 icon={Database}
                 kicker="维护"
                 title="系统清理"
@@ -3865,6 +3931,7 @@ function MaintenancePanel({onNotify, selectedProfile}) {
                 <label>
                     <span>保留天数</span>
                     <input
+                        disabled={!hasAdminSession}
                         max="3650"
                         min="1"
                         type="number"
@@ -3872,11 +3939,11 @@ function MaintenancePanel({onNotify, selectedProfile}) {
                         onChange={(event) => setRetentionDays(event.target.value)}
                     />
                 </label>
-                <button type="button" onClick={() => handleCleanup(true)} disabled={Boolean(loading)}>
+                <button type="button" onClick={() => handleCleanup(true)} disabled={!hasAdminSession || Boolean(loading)}>
                     <Eye size={16} />
                     {loading === 'preview' ? '预览中' : '预览'}
                 </button>
-                <button className="danger" type="button" onClick={() => handleCleanup(false)} disabled={Boolean(loading)}>
+                <button className="danger" type="button" onClick={() => handleCleanup(false)} disabled={!hasAdminSession || Boolean(loading)}>
                     <Trash2 size={16} />
                     {loading === 'cleanup' ? '清理中' : '执行清理'}
                 </button>
@@ -3906,15 +3973,76 @@ function MaintenancePanel({onNotify, selectedProfile}) {
     );
 }
 
-function SecurityPanel({onNotify, selectedProfile}) {
+function SecurityPanel({onNotify, onProfileUpdate, selectedProfile}) {
+    const [adminForm, setAdminForm] = useState(emptyAdminSessionForm);
     const [users, setUsers] = useState([]);
     const [userForm, setUserForm] = useState(emptyUserForm);
     const [passwordForm, setPasswordForm] = useState(emptyPasswordForm);
     const [loading, setLoading] = useState('');
     const [error, setError] = useState('');
+    const hasAdminSession = Boolean(selectedProfile?.hasAdminSession);
+
+    async function handleAdminLogin(event) {
+        event.preventDefault();
+        if (!selectedProfile?.id) {
+            return;
+        }
+
+        if (!adminForm.email.includes('@') || !adminForm.password) {
+            setError('请输入当前接入点的管理员邮箱和密码。');
+            return;
+        }
+
+        setLoading('admin-login');
+        setError('');
+
+        try {
+            const profile = await AuthorizeAdminSession({
+                profileId: selectedProfile.id,
+                email: adminForm.email,
+                password: adminForm.password,
+                setup: adminForm.setup
+            });
+            onProfileUpdate?.(profile);
+            setAdminForm(emptyAdminSessionForm);
+            onNotify?.('success', '当前接入点管理员已授权', profile.adminEmail || profile.baseUrl);
+        } catch (loginError) {
+            const message = loginError.message || '请检查当前接入点管理员账号密码。';
+            setError(message);
+            onNotify?.('error', '管理员授权失败', message);
+        } finally {
+            setLoading('');
+        }
+    }
+
+    async function handleClearAdmin() {
+        if (!selectedProfile?.id || !window.confirm('退出当前接入点的管理员会话？')) {
+            return;
+        }
+
+        setLoading('admin-clear');
+        setError('');
+
+        try {
+            const profile = await ClearAdminSession({profileId: selectedProfile.id});
+            onProfileUpdate?.(profile);
+            setUsers([]);
+            onNotify?.('success', '管理员会话已退出', profile.baseUrl);
+        } catch (clearError) {
+            const message = clearError.message || '无法清除当前接入点管理员会话。';
+            setError(message);
+            onNotify?.('error', '退出管理员会话失败', message);
+        } finally {
+            setLoading('');
+        }
+    }
 
     async function loadUsers() {
         if (!selectedProfile?.id) {
+            return;
+        }
+        if (!hasAdminSession) {
+            setError('请先授权当前接入点管理员会话。');
             return;
         }
 
@@ -3926,7 +4054,7 @@ function SecurityPanel({onNotify, selectedProfile}) {
             setUsers(result || []);
             onNotify?.('success', '管理员用户已刷新', `${(result || []).length} 个用户`);
         } catch (usersError) {
-            const message = usersError.message || '当前设备 Token 无法读取管理员用户。';
+            const message = usersError.message || '当前接入点管理员会话无法读取用户。';
             setError(message);
             onNotify?.('error', '读取管理员用户失败', message);
         } finally {
@@ -3937,6 +4065,10 @@ function SecurityPanel({onNotify, selectedProfile}) {
     async function handleCreateUser(event) {
         event.preventDefault();
         if (!selectedProfile?.id) {
+            return;
+        }
+        if (!hasAdminSession) {
+            setError('请先授权当前接入点管理员会话。');
             return;
         }
 
@@ -3960,7 +4092,7 @@ function SecurityPanel({onNotify, selectedProfile}) {
             setUserForm(emptyUserForm);
             onNotify?.('success', '管理员用户已创建', created.email);
         } catch (createError) {
-            const message = createError.message || '当前 Token 没有管理员用户权限。';
+            const message = createError.message || '当前接入点管理员会话没有创建用户权限。';
             setError(message);
             onNotify?.('error', '创建用户失败', message);
         } finally {
@@ -3970,6 +4102,10 @@ function SecurityPanel({onNotify, selectedProfile}) {
 
     async function handleToggleUser(user) {
         if (!selectedProfile?.id || !user?.id) {
+            return;
+        }
+        if (!hasAdminSession) {
+            setError('请先授权当前接入点管理员会话。');
             return;
         }
 
@@ -4000,6 +4136,10 @@ function SecurityPanel({onNotify, selectedProfile}) {
         if (!selectedProfile?.id) {
             return;
         }
+        if (!hasAdminSession) {
+            setError('请先授权当前接入点管理员会话。');
+            return;
+        }
 
         setLoading('password');
         setError('');
@@ -4013,7 +4153,7 @@ function SecurityPanel({onNotify, selectedProfile}) {
             setPasswordForm(emptyPasswordForm);
             onNotify?.('success', '密码已修改');
         } catch (passwordError) {
-            const message = passwordError.message || '设备 Token 不能修改管理员密码。';
+            const message = passwordError.message || '当前接入点管理员会话无法修改密码。';
             setError(message);
             onNotify?.('error', '修改密码失败', message);
         } finally {
@@ -4025,6 +4165,10 @@ function SecurityPanel({onNotify, selectedProfile}) {
         if (!selectedProfile?.id || !window.confirm('撤销当前管理员用户的其他会话？')) {
             return;
         }
+        if (!hasAdminSession) {
+            setError('请先授权当前接入点管理员会话。');
+            return;
+        }
 
         setLoading('sessions');
         setError('');
@@ -4033,7 +4177,7 @@ function SecurityPanel({onNotify, selectedProfile}) {
             await RevokeSessions({profileId: selectedProfile.id});
             onNotify?.('success', '其他会话已撤销');
         } catch (sessionsError) {
-            const message = sessionsError.message || '设备 Token 不能撤销管理员会话。';
+            const message = sessionsError.message || '当前接入点管理员会话无法撤销会话。';
             setError(message);
             onNotify?.('error', '撤销会话失败', message);
         } finally {
@@ -4045,17 +4189,64 @@ function SecurityPanel({onNotify, selectedProfile}) {
         <section className="settings-panel settings-panel-wide">
             <SettingsPanelHeader
                 action={(
-                    <button type="button" onClick={loadUsers} disabled={loading === 'users'}>
+                    <button type="button" onClick={loadUsers} disabled={!hasAdminSession || loading === 'users'}>
                         <RefreshCw className={loading === 'users' ? 'spin-inline' : ''} size={16} />
                         读取用户
                     </button>
                 )}
-                body="这些接口属于 Worker 管理员用户体系，不作为桌面端全局登录。设备 Token 访问失败属于正常权限边界。"
+                body="管理员会话只保存到当前接入点，不作为桌面端全局登录，也不会共享到其他 Base URL。"
                 icon={KeyRound}
                 kicker="安全"
                 title="管理员用户与会话"
             />
             {error ? <p className="settings-error">{error}</p> : null}
+            <form className="admin-session-card" onSubmit={handleAdminLogin}>
+                <div>
+                    <strong>当前接入点管理员会话</strong>
+                    <small>
+                        {hasAdminSession
+                            ? `${selectedProfile.adminEmail || selectedProfile.adminTokenPreview || '已授权'} · 仅用于 ${selectedProfile.baseUrl}`
+                            : '授权后可执行系统清理、用户管理、改密和撤销会话。'}
+                    </small>
+                </div>
+                <StatusBadge ok={hasAdminSession} label={hasAdminSession ? '已授权' : '未授权'} />
+                <label>
+                    <span>管理员邮箱</span>
+                    <input
+                        disabled={loading === 'admin-login'}
+                        placeholder="admin@example.com"
+                        value={adminForm.email}
+                        onChange={(event) => setAdminForm((current) => ({...current, email: event.target.value}))}
+                    />
+                </label>
+                <label>
+                    <span>管理员密码</span>
+                    <input
+                        disabled={loading === 'admin-login'}
+                        type="password"
+                        value={adminForm.password}
+                        onChange={(event) => setAdminForm((current) => ({...current, password: event.target.value}))}
+                    />
+                </label>
+                <label className="checkbox-row">
+                    <input
+                        checked={adminForm.setup}
+                        type="checkbox"
+                        onChange={(event) => setAdminForm((current) => ({...current, setup: event.target.checked}))}
+                    />
+                    初始化管理员
+                </label>
+                <div className="settings-inline-actions">
+                    <button className="primary-action compact" type="submit" disabled={loading === 'admin-login'}>
+                        <KeyRound size={16} />
+                        {loading === 'admin-login' ? '授权中' : hasAdminSession ? '重新授权' : '授权当前接入点'}
+                    </button>
+                    <button type="button" onClick={handleClearAdmin} disabled={!hasAdminSession || loading === 'admin-clear'}>
+                        <Power size={16} />
+                        退出会话
+                    </button>
+                </div>
+            </form>
             <div className="security-grid">
                 <form className="settings-form" onSubmit={handleCreateUser}>
                     <h4>创建管理员</h4>
@@ -4063,6 +4254,7 @@ function SecurityPanel({onNotify, selectedProfile}) {
                         <span>邮箱</span>
                         <input
                             placeholder="admin@example.com"
+                            disabled={!hasAdminSession}
                             value={userForm.email}
                             onChange={(event) => setUserForm((current) => ({...current, email: event.target.value}))}
                         />
@@ -4070,6 +4262,7 @@ function SecurityPanel({onNotify, selectedProfile}) {
                     <label>
                         <span>密码</span>
                         <input
+                            disabled={!hasAdminSession}
                             minLength={8}
                             type="password"
                             value={userForm.password}
@@ -4079,11 +4272,12 @@ function SecurityPanel({onNotify, selectedProfile}) {
                     <label>
                         <span>显示名称</span>
                         <input
+                            disabled={!hasAdminSession}
                             value={userForm.displayName}
                             onChange={(event) => setUserForm((current) => ({...current, displayName: event.target.value}))}
                         />
                     </label>
-                    <button type="submit" disabled={loading === 'create-user'}>
+                    <button type="submit" disabled={!hasAdminSession || loading === 'create-user'}>
                         <Plus size={16} />
                         {loading === 'create-user' ? '创建中' : '创建用户'}
                     </button>
@@ -4094,6 +4288,7 @@ function SecurityPanel({onNotify, selectedProfile}) {
                     <label>
                         <span>当前密码</span>
                         <input
+                            disabled={!hasAdminSession}
                             type="password"
                             value={passwordForm.currentPassword}
                             onChange={(event) => setPasswordForm((current) => ({...current, currentPassword: event.target.value}))}
@@ -4102,6 +4297,7 @@ function SecurityPanel({onNotify, selectedProfile}) {
                     <label>
                         <span>新密码</span>
                         <input
+                            disabled={!hasAdminSession}
                             minLength={8}
                             type="password"
                             value={passwordForm.newPassword}
@@ -4109,11 +4305,11 @@ function SecurityPanel({onNotify, selectedProfile}) {
                         />
                     </label>
                     <div className="settings-inline-actions">
-                        <button type="submit" disabled={loading === 'password'}>
+                        <button type="submit" disabled={!hasAdminSession || loading === 'password'}>
                             <KeyRound size={16} />
                             修改密码
                         </button>
-                        <button type="button" onClick={handleRevokeSessions} disabled={loading === 'sessions'}>
+                        <button type="button" onClick={handleRevokeSessions} disabled={!hasAdminSession || loading === 'sessions'}>
                             <Power size={16} />
                             撤销会话
                         </button>
@@ -4131,7 +4327,7 @@ function SecurityPanel({onNotify, selectedProfile}) {
                             </div>
                             <div className="settings-item-actions">
                                 <StatusBadge ok={user.enabled !== false} label={user.enabled !== false ? '启用' : '停用'} />
-                                <button type="button" onClick={() => handleToggleUser(user)} disabled={loading === `user-${user.id}`}>
+                                <button type="button" onClick={() => handleToggleUser(user)} disabled={!hasAdminSession || loading === `user-${user.id}`}>
                                     {user.enabled !== false ? '停用' : '启用'}
                                 </button>
                             </div>
@@ -4139,7 +4335,7 @@ function SecurityPanel({onNotify, selectedProfile}) {
                     ))}
                 </div>
             ) : (
-                <p className="insight-empty">点击“读取用户”后显示当前接入点的管理员用户；如果返回 403，说明当前保存的是设备 Token。</p>
+                <p className="insight-empty">{hasAdminSession ? '点击“读取用户”后显示当前接入点的管理员用户。' : '先授权当前接入点管理员会话，再管理用户、密码和会话。'}</p>
             )}
         </section>
     );

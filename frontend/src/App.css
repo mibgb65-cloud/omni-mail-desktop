@@ -2120,6 +2120,41 @@ button:disabled {
     gap: var(--space-3);
 }
 
+.settings-tabbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-2);
+}
+
+.settings-tabbar button {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    gap: var(--space-1);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 0 var(--space-3);
+    font-weight: 620;
+    transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+}
+
+.settings-tabbar button:hover,
+.settings-tabbar button.active {
+    border-color: var(--border-subtle);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+}
+
+.settings-tabbar button.active {
+    box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+
 .endpoint-manager {
     display: grid;
     gap: var(--space-4);
@@ -2493,6 +2528,50 @@ button:disabled {
     color: var(--text-tertiary);
     padding: var(--space-4);
     font-size: 13px;
+}
+
+.admin-session-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) auto minmax(180px, 0.8fr) minmax(160px, 0.7fr) auto;
+    align-items: end;
+    gap: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-3);
+}
+
+.admin-session-card > div:first-child {
+    align-self: center;
+    min-width: 0;
+}
+
+.admin-session-card strong,
+.admin-session-card small {
+    display: block;
+}
+
+.admin-session-card strong {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.admin-session-card small {
+    margin-top: 4px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.admin-session-card label {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.admin-session-card label span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 620;
 }
 
 .settings-mini-metrics {
@@ -3053,6 +3132,7 @@ button:disabled {
     .insight-columns,
     .profile-editor-layout,
     .account-editor-layout,
+    .admin-session-card,
     .security-grid,
     .audit-log-item dl {
         grid-template-columns: 1fr;

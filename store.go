@@ -25,6 +25,8 @@ type storedProfile struct {
 	BaseURL     string
 	DeviceLabel string
 	Token       string
+	AdminToken  string
+	AdminEmail  string
 	CreatedAt   string
 	UpdatedAt   string
 	LastUsedAt  string
@@ -42,6 +44,9 @@ type profileRecord struct {
 	DeviceLabel    string `json:"deviceLabel"`
 	Token          string `json:"token"`
 	TokenProtected bool   `json:"tokenProtected"`
+	AdminToken     string `json:"adminToken"`
+	AdminProtected bool   `json:"adminProtected"`
+	AdminEmail     string `json:"adminEmail"`
 	CreatedAt      string `json:"createdAt"`
 	UpdatedAt      string `json:"updatedAt"`
 	LastUsedAt     string `json:"lastUsedAt"`
@@ -108,6 +113,8 @@ func (s *profileStore) load() error {
 			BaseURL:     record.BaseURL,
 			DeviceLabel: record.DeviceLabel,
 			Token:       unprotectSecret(record.Token, record.TokenProtected),
+			AdminToken:  unprotectSecret(record.AdminToken, record.AdminProtected),
+			AdminEmail:  record.AdminEmail,
 			CreatedAt:   record.CreatedAt,
 			UpdatedAt:   record.UpdatedAt,
 			LastUsedAt:  record.LastUsedAt,
@@ -129,6 +136,7 @@ func (s *profileStore) saveLocked() error {
 
 	for _, profile := range s.profiles {
 		token, protected := protectSecret(profile.Token)
+		adminToken, adminProtected := protectSecret(profile.AdminToken)
 		file.Profiles = append(file.Profiles, profileRecord{
 			ID:             profile.ID,
 			Name:           profile.Name,
@@ -136,6 +144,9 @@ func (s *profileStore) saveLocked() error {
 			DeviceLabel:    profile.DeviceLabel,
 			Token:          token,
 			TokenProtected: protected,
+			AdminToken:     adminToken,
+			AdminProtected: adminProtected,
+			AdminEmail:     profile.AdminEmail,
 			CreatedAt:      profile.CreatedAt,
 			UpdatedAt:      profile.UpdatedAt,
 			LastUsedAt:     profile.LastUsedAt,
@@ -206,6 +217,8 @@ func (s *profileStore) upsert(input ProfileInput) (storedProfile, error) {
 		if profile.BaseURL != baseURL {
 			profile.Token = ""
 			profile.DeviceLabel = ""
+			profile.AdminToken = ""
+			profile.AdminEmail = ""
 		}
 
 		profile.Name = name
@@ -250,6 +263,60 @@ func (s *profileStore) updateToken(id string, token string, label string) (store
 		profile.DeviceLabel = strings.TrimSpace(label)
 		profile.UpdatedAt = now
 		profile.LastUsedAt = now
+		s.profiles[index] = profile
+		s.selectedProfileID = profile.ID
+		return profile, s.saveLocked()
+	}
+
+	return storedProfile{}, errors.New("profile not found")
+}
+
+func (s *profileStore) updateAdminSession(id string, token string, user *APIUser) (storedProfile, error) {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return storedProfile{}, errors.New("admin token is required")
+	}
+
+	adminEmail := ""
+	if user != nil {
+		adminEmail = strings.TrimSpace(user.Email)
+	}
+	now := time.Now().Format(time.RFC3339)
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for index, profile := range s.profiles {
+		if profile.ID != id {
+			continue
+		}
+
+		profile.AdminToken = token
+		profile.AdminEmail = adminEmail
+		profile.UpdatedAt = now
+		profile.LastUsedAt = now
+		s.profiles[index] = profile
+		s.selectedProfileID = profile.ID
+		return profile, s.saveLocked()
+	}
+
+	return storedProfile{}, errors.New("profile not found")
+}
+
+func (s *profileStore) clearAdminSession(id string) (storedProfile, error) {
+	now := time.Now().Format(time.RFC3339)
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for index, profile := range s.profiles {
+		if profile.ID != id {
+			continue
+		}
+
+		profile.AdminToken = ""
+		profile.AdminEmail = ""
+		profile.UpdatedAt = now
 		s.profiles[index] = profile
 		s.selectedProfileID = profile.ID
 		return profile, s.saveLocked()
@@ -328,15 +395,18 @@ func (s *profileStore) delete(id string) error {
 
 func (p storedProfile) public() Profile {
 	return Profile{
-		ID:           p.ID,
-		Name:         p.Name,
-		BaseURL:      p.BaseURL,
-		DeviceLabel:  p.DeviceLabel,
-		HasToken:     p.Token != "",
-		TokenPreview: tokenPreview(p.Token),
-		CreatedAt:    p.CreatedAt,
-		UpdatedAt:    p.UpdatedAt,
-		LastUsedAt:   p.LastUsedAt,
+		ID:                p.ID,
+		Name:              p.Name,
+		BaseURL:           p.BaseURL,
+		DeviceLabel:       p.DeviceLabel,
+		HasToken:          p.Token != "",
+		TokenPreview:      tokenPreview(p.Token),
+		HasAdminSession:   p.AdminToken != "",
+		AdminEmail:        p.AdminEmail,
+		AdminTokenPreview: tokenPreview(p.AdminToken),
+		CreatedAt:         p.CreatedAt,
+		UpdatedAt:         p.UpdatedAt,
+		LastUsedAt:        p.LastUsedAt,
 	}
 }
 

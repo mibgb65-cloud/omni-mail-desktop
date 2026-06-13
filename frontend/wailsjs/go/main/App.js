@@ -6,12 +6,20 @@ export function ArchiveMessage(arg1) {
   return window['go']['main']['App']['ArchiveMessage'](arg1);
 }
 
+export function AuthorizeAdminSession(arg1) {
+  return window['go']['main']['App']['AuthorizeAdminSession'](arg1);
+}
+
 export function AuthorizeProfile(arg1) {
   return window['go']['main']['App']['AuthorizeProfile'](arg1);
 }
 
 export function ChangePassword(arg1) {
   return window['go']['main']['App']['ChangePassword'](arg1);
+}
+
+export function ClearAdminSession(arg1) {
+  return window['go']['main']['App']['ClearAdminSession'](arg1);
 }
 
 export function CreateAccount(arg1) {

@@ -983,6 +983,9 @@ export namespace main {
 	    deviceLabel: string;
 	    hasToken: boolean;
 	    tokenPreview: string;
+	    hasAdminSession: boolean;
+	    adminEmail: string;
+	    adminTokenPreview: string;
 	    createdAt: string;
 	    updatedAt: string;
 	    lastUsedAt: string;
@@ -999,6 +1002,9 @@ export namespace main {
 	        this.deviceLabel = source["deviceLabel"];
 	        this.hasToken = source["hasToken"];
 	        this.tokenPreview = source["tokenPreview"];
+	        this.hasAdminSession = source["hasAdminSession"];
+	        this.adminEmail = source["adminEmail"];
+	        this.adminTokenPreview = source["adminTokenPreview"];
 	        this.createdAt = source["createdAt"];
 	        this.updatedAt = source["updatedAt"];
 	        this.lastUsedAt = source["lastUsedAt"];
