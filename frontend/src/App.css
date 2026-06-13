@@ -368,7 +368,9 @@ body.is-resizing-panels * {
 .sidebar-collapsed .nav-item span,
 .sidebar-collapsed .nav-item small,
 .sidebar-collapsed .section-label,
-.sidebar-collapsed .nav-section:not(:first-of-type),
+.sidebar-collapsed .endpoint-section,
+.sidebar-collapsed .resource-scope,
+.sidebar-collapsed .sidebar-notice,
 .sidebar-collapsed .domain-item,
 .sidebar-collapsed .account-chip,
 .sidebar-collapsed .endpoint-card,
@@ -472,6 +474,23 @@ body.is-resizing-panels * {
     margin-top: var(--space-3);
 }
 
+.resource-scope {
+    display: grid;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: var(--space-2) 0 var(--space-3);
+}
+
+.resource-scope .nav-section {
+    margin-top: 0;
+}
+
+.mailbox-folder-section {
+    margin-top: var(--space-2);
+}
+
 .accounts-section {
     overflow: hidden;
 }
@@ -557,6 +576,7 @@ body.is-resizing-panels * {
 
 .endpoint-section {
     min-height: 0;
+    max-height: clamp(132px, 24vh, 224px);
     overflow-y: auto;
     padding-bottom: var(--space-2);
 }
@@ -566,6 +586,10 @@ body.is-resizing-panels * {
     gap: 2px;
     width: 100%;
     padding: var(--space-2);
+}
+
+.endpoint-card.active {
+    box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .endpoint-card small,
@@ -580,6 +604,47 @@ body.is-resizing-panels * {
 
 .muted-line {
     margin: var(--space-2);
+}
+
+.sidebar-notice {
+    display: grid;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-3);
+}
+
+.sidebar-notice strong {
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.sidebar-notice small {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.sidebar-notice button {
+    justify-self: start;
+    min-height: 28px;
+    margin-top: var(--space-1);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--bg-active);
+    color: var(--text-primary);
+    padding: 0 var(--space-3);
+    font-size: 12px;
+    font-weight: 650;
+    transition: background-color var(--motion-fast), color var(--motion-fast);
+}
+
+.sidebar-notice button:hover {
+    background: var(--text-primary);
+    color: var(--text-inverse);
 }
 
 .sidebar-footer {
@@ -2044,6 +2109,8 @@ button:disabled {
     .account-chip span,
     .account-chip small,
     .endpoint-section,
+    .resource-scope,
+    .sidebar-notice,
     .endpoint-button > span:nth-child(2),
     .endpoint-button > svg {
         display: none;

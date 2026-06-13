@@ -1475,6 +1475,11 @@ function Sidebar({
     toggleTheme,
     workspace
 }) {
+    const domains = workspace?.domains || [];
+    const accounts = workspace?.accounts || [];
+    const showMailboxResources = Boolean(selectedProfile?.hasToken);
+    const mailboxLoading = showMailboxResources && busy === 'mailbox' && !workspace;
+
     return (
         <aside className="sidebar" aria-label="邮箱导航">
             <div className="sidebar-top">
@@ -1494,61 +1499,7 @@ function Sidebar({
                 <span>写邮件</span>
             </button>
 
-            <nav className="nav-section" aria-label="文件夹">
-                <SectionLabel>文件夹</SectionLabel>
-                {folders.map((folder) => (
-                    <NavItem
-                        key={folder.id}
-                        active={folder.id === activeFolder}
-                        count={folderCounts[folder.id] || 0}
-                        icon={folder.icon}
-                        label={folder.label}
-                        onClick={() => onFolderChange(folder.id)}
-                    />
-                ))}
-            </nav>
-
-            <div className="nav-section">
-                <SectionLabel>域名</SectionLabel>
-                {(workspace?.domains || []).map((domain) => (
-                    <button
-                        className={`domain-item ${domain === workspace?.selectedDomain ? 'active' : ''}`}
-                        key={domain}
-                        type="button"
-                        onClick={() => onDomainChange(domain)}
-                    >
-                        <span>{domain}</span>
-                    </button>
-                ))}
-                {!workspace?.domains?.length ? <MutedLine>暂无域名</MutedLine> : null}
-            </div>
-
-            <div className="nav-section accounts-section">
-                <div className="section-row">
-                    <SectionLabel>邮箱账号</SectionLabel>
-                    <IconButton
-                        icon={Plus}
-                        label="添加邮箱账号"
-                        onClick={onAddAccount}
-                        disabled={!workspace?.selectedDomain}
-                    />
-                </div>
-                {(workspace?.accounts || []).map((account) => (
-                    <button
-                        className={`account-chip ${account.id === workspace?.selectedAccountId ? 'active' : ''}`}
-                        key={account.id}
-                        type="button"
-                        onClick={() => onAccountChange(account.id)}
-                        title={account.address}
-                    >
-                        <span>{account.address}</span>
-                        {account.unread ? <small>{account.unread}</small> : null}
-                    </button>
-                ))}
-                {!workspace?.accounts?.length ? <MutedLine>暂无邮箱账号</MutedLine> : null}
-            </div>
-
-            <div className="nav-section endpoint-section">
+            <div className="nav-section endpoint-section" aria-label="接入点">
                 <div className="section-row">
                     <SectionLabel>接入点</SectionLabel>
                     <IconButton icon={Plus} label="添加接入点" onClick={onAddProfile} />
@@ -1567,6 +1518,82 @@ function Sidebar({
                 ))}
                 {!profiles.length ? <MutedLine>添加第一个 Worker Base URL</MutedLine> : null}
             </div>
+
+            {!selectedProfile ? (
+                <SidebarNotice
+                    title="先选择接入点"
+                    detail="域名和邮箱账号会跟随接入点独立加载。"
+                    actionLabel="添加接入点"
+                    onAction={onAddProfile}
+                />
+            ) : !selectedProfile.hasToken ? (
+                <SidebarNotice
+                    title="接入点未授权"
+                    detail="授权后显示该接入点下的域名和邮箱账号。"
+                    actionLabel="授权"
+                    onAction={() => onAuth(selectedProfile)}
+                />
+            ) : (
+                <div className="resource-scope" aria-label="当前接入点资源">
+                    <div className="nav-section resource-section">
+                        <SectionLabel>域名</SectionLabel>
+                        {domains.map((domain) => (
+                            <button
+                                className={`domain-item ${domain === workspace?.selectedDomain ? 'active' : ''}`}
+                                key={domain}
+                                type="button"
+                                onClick={() => onDomainChange(domain)}
+                            >
+                                <span>{domain}</span>
+                            </button>
+                        ))}
+                        {mailboxLoading ? <MutedLine>正在加载域名</MutedLine> : null}
+                        {!mailboxLoading && !domains.length ? <MutedLine>暂无域名</MutedLine> : null}
+                    </div>
+
+                    <div className="nav-section accounts-section resource-section">
+                        <div className="section-row">
+                            <SectionLabel>邮箱账号</SectionLabel>
+                            <IconButton
+                                icon={Plus}
+                                label="添加邮箱账号"
+                                onClick={onAddAccount}
+                                disabled={!workspace?.selectedDomain}
+                            />
+                        </div>
+                        {accounts.map((account) => (
+                            <button
+                                className={`account-chip ${account.id === workspace?.selectedAccountId ? 'active' : ''}`}
+                                key={account.id}
+                                type="button"
+                                onClick={() => onAccountChange(account.id)}
+                                title={account.address}
+                            >
+                                <span>{account.address}</span>
+                                {account.unread ? <small>{account.unread}</small> : null}
+                            </button>
+                        ))}
+                        {mailboxLoading ? <MutedLine>正在加载邮箱账号</MutedLine> : null}
+                        {!mailboxLoading && !accounts.length ? <MutedLine>暂无邮箱账号</MutedLine> : null}
+                    </div>
+                </div>
+            )}
+
+            {showMailboxResources ? (
+                <nav className="nav-section mailbox-folder-section" aria-label="当前邮箱文件夹">
+                    <SectionLabel>文件夹</SectionLabel>
+                    {folders.map((folder) => (
+                        <NavItem
+                            key={folder.id}
+                            active={folder.id === activeFolder}
+                            count={folderCounts[folder.id] || 0}
+                            icon={folder.icon}
+                            label={folder.label}
+                            onClick={() => onFolderChange(folder.id)}
+                        />
+                    ))}
+                </nav>
+            ) : null}
 
             <div className="sidebar-footer">
                 <button className="endpoint-button" type="button" onClick={() => setProfileMenuOpen(!profileMenuOpen)}>
@@ -1588,7 +1615,7 @@ function Sidebar({
                             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
                             {theme === 'dark' ? '切换浅色模式' : '切换深色模式'}
                         </button>
-                        <button type="button" onClick={onAuth} disabled={!selectedProfile}>
+                        <button type="button" onClick={() => selectedProfile && onAuth(selectedProfile)} disabled={!selectedProfile}>
                             <KeyRound size={16} />
                             授权当前接入点
                         </button>
@@ -2800,6 +2827,20 @@ function NavItem({active, count, icon: Icon, label, onClick}) {
 
 function SectionLabel({children}) {
     return <p className="section-label">{children}</p>;
+}
+
+function SidebarNotice({actionLabel, detail, onAction, title}) {
+    return (
+        <div className="sidebar-notice">
+            <strong>{title}</strong>
+            <small>{detail}</small>
+            {actionLabel && onAction ? (
+                <button type="button" onClick={onAction}>
+                    {actionLabel}
+                </button>
+            ) : null}
+        </div>
+    );
 }
 
 function MutedLine({children}) {
