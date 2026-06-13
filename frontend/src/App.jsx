@@ -3,6 +3,7 @@ import {
     Activity,
     Archive,
     ArchiveRestore,
+    ArrowLeft,
     CircleAlert,
     CircleCheck,
     ClipboardList,
@@ -315,6 +316,7 @@ function App() {
     const [status, setStatus] = useState(null);
     const [storagePath, setStoragePath] = useState('');
     const [workspace, setWorkspace] = useState(null);
+    const [sidebarPage, setSidebarPage] = useState('profiles');
     const [endpointDiagnostics, setEndpointDiagnostics] = useState(null);
     const [auditLogs, setAuditLogs] = useState([]);
     const [insightsProfileId, setInsightsProfileId] = useState('');
@@ -714,6 +716,7 @@ function App() {
 
     async function handleSelectProfile(profile) {
         setSelectedProfileId(profile.id);
+        setSidebarPage('mailbox');
         setStatus(null);
         setWorkspace(null);
         setContextMenu(null);
@@ -731,6 +734,12 @@ function App() {
         setProfileForm(emptyProfileForm);
         setProfileMenuOpen(false);
         setModal('profile');
+    }
+
+    function handleBackToProfiles() {
+        setSidebarPage('profiles');
+        setProfileMenuOpen(false);
+        setContextMenu(null);
     }
 
     function handleAddAccount() {
@@ -795,6 +804,7 @@ function App() {
                 setSelectedProfileId('');
                 setWorkspace(null);
                 setStatus(null);
+                setSidebarPage('profiles');
             }
             showToast('success', '接入点已删除');
         } catch (deleteError) {
@@ -866,6 +876,7 @@ function App() {
             setProfiles((current) => upsertProfile(current, profile));
             setAuthForm(emptyAuthForm);
             setModal(null);
+            setSidebarPage('mailbox');
             await loadMailbox({profileId: profile.id});
             showToast('success', '当前接入点已授权', '设备 Token 只保存到这个接入点，不影响其他接入点。');
         } catch (authError) {
@@ -892,6 +903,7 @@ function App() {
             setProfiles((current) => upsertProfile(current, profile));
             setManualToken('');
             setModal(null);
+            setSidebarPage('mailbox');
             await loadMailbox({profileId: profile.id});
             showToast('success', 'Token 已保存', '该 Token 仅用于当前接入点。');
         } catch (tokenError) {
@@ -1212,6 +1224,7 @@ function App() {
                     onAddAccount={handleAddAccount}
                     onAddProfile={handleAddProfile}
                     onAuth={() => handleOpenAuth(selectedProfile)}
+                    onBackToProfiles={handleBackToProfiles}
                     onDeleteProfile={handleDeleteProfile}
                     onDomainChange={(domain) => loadMailbox({profileId: selectedProfile?.id, domain})}
                     onEditProfile={handleEditProfile}
@@ -1222,6 +1235,7 @@ function App() {
                     onToggle={() => setSidebarCollapsed((value) => !value)}
                     profiles={profiles}
                     profileMenuOpen={profileMenuOpen}
+                    sidebarPage={sidebarPage}
                     selectedProfile={selectedProfile}
                     selectedProfileId={selectedProfileId}
                     setProfileMenuOpen={setProfileMenuOpen}
@@ -1457,6 +1471,7 @@ function Sidebar({
     onAddAccount,
     onAddProfile,
     onAuth,
+    onBackToProfiles,
     onCompose,
     onDeleteProfile,
     onDomainChange,
@@ -1467,6 +1482,7 @@ function Sidebar({
     onToggle,
     profiles,
     profileMenuOpen,
+    sidebarPage,
     selectedProfile,
     selectedProfileId,
     setProfileMenuOpen,
@@ -1477,15 +1493,74 @@ function Sidebar({
 }) {
     const domains = workspace?.domains || [];
     const accounts = workspace?.accounts || [];
-    const showMailboxResources = Boolean(selectedProfile?.hasToken);
-    const mailboxLoading = showMailboxResources && busy === 'mailbox' && !workspace;
+    const mailboxLoading = Boolean(selectedProfile?.hasToken) && busy === 'mailbox' && !workspace;
+    const isProfilePage = sidebarPage === 'profiles';
+
+    if (isProfilePage) {
+        return (
+            <aside className="sidebar profile-picker-sidebar" aria-label="接入点选择">
+                <div className="sidebar-top">
+                    <div className="workspace-heading" title="OmniMail Desktop">
+                        <strong>OmniMail</strong>
+                        <small>选择一个接入点开始</small>
+                    </div>
+                    <IconButton
+                        icon={collapsed ? PanelLeftOpen : PanelLeftClose}
+                        label={collapsed ? '展开侧栏' : '收起侧栏'}
+                        onClick={onToggle}
+                    />
+                </div>
+
+                <div className="profile-picker-intro">
+                    <p>接入点</p>
+                    <h2>选择邮箱服务</h2>
+                    <span>每个接入点独立保存授权、域名和邮箱账号。</span>
+                </div>
+
+                <div className="nav-section endpoint-section profile-picker-list" aria-label="接入点">
+                    <div className="section-row">
+                        <SectionLabel>可用接入点</SectionLabel>
+                        <IconButton icon={Plus} label="添加接入点" onClick={onAddProfile} />
+                    </div>
+                    {profiles.map((profile) => (
+                        <button
+                            className={`endpoint-card ${profile.id === selectedProfileId ? 'active' : ''}`}
+                            key={profile.id}
+                            type="button"
+                            onClick={() => onProfileSelect(profile)}
+                        >
+                            <span>{profile.name}</span>
+                            <small>{profile.baseUrl}</small>
+                            <em>{profile.hasToken ? profile.tokenPreview : '未授权'}</em>
+                        </button>
+                    ))}
+                    {!profiles.length ? <MutedLine>添加第一个 Worker Base URL</MutedLine> : null}
+                </div>
+
+                <div className="profile-picker-actions">
+                    <button type="button" onClick={toggleTheme}>
+                        {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                        <span>{theme === 'dark' ? '浅色模式' : '深色模式'}</span>
+                    </button>
+                    <button type="button" onClick={onManageProfiles}>
+                        <ShieldCheck size={16} />
+                        <span>管理接入点</span>
+                    </button>
+                </div>
+            </aside>
+        );
+    }
 
     return (
-        <aside className="sidebar" aria-label="邮箱导航">
-            <div className="sidebar-top">
-                <div className="workspace-heading" title="OmniMail Desktop">
-                    <strong>OmniMail</strong>
-                    <small>AI-native 邮箱工作台</small>
+        <aside className="sidebar mailbox-sidebar" aria-label="邮箱导航">
+            <div className="sidebar-top mailbox-sidebar-top">
+                <button className="sidebar-back-button" type="button" onClick={onBackToProfiles}>
+                    <ArrowLeft size={17} />
+                    <span>接入点</span>
+                </button>
+                <div className="mailbox-context-heading" title={selectedProfile?.baseUrl || '未选择接入点'}>
+                    <strong>{selectedProfile?.name || '未选择接入点'}</strong>
+                    <small>{selectedProfile?.baseUrl || '返回选择接入点'}</small>
                 </div>
                 <IconButton
                     icon={collapsed ? PanelLeftOpen : PanelLeftClose}
@@ -1494,44 +1569,24 @@ function Sidebar({
                 />
             </div>
 
-            <button className="compose-primary" type="button" onClick={onCompose}>
+            <button className="compose-primary" type="button" onClick={onCompose} disabled={!workspace?.selectedAccountId}>
                 <MailPlus size={17} />
                 <span>写邮件</span>
             </button>
 
-            <div className="nav-section endpoint-section" aria-label="接入点">
-                <div className="section-row">
-                    <SectionLabel>接入点</SectionLabel>
-                    <IconButton icon={Plus} label="添加接入点" onClick={onAddProfile} />
-                </div>
-                {profiles.map((profile) => (
-                    <button
-                        className={`endpoint-card ${profile.id === selectedProfileId ? 'active' : ''}`}
-                        key={profile.id}
-                        type="button"
-                        onClick={() => onProfileSelect(profile)}
-                    >
-                        <span>{profile.name}</span>
-                        <small>{profile.baseUrl}</small>
-                        <em>{profile.hasToken ? profile.tokenPreview : '未授权'}</em>
-                    </button>
-                ))}
-                {!profiles.length ? <MutedLine>添加第一个 Worker Base URL</MutedLine> : null}
-            </div>
-
             {!selectedProfile ? (
                 <SidebarNotice
-                    title="先选择接入点"
-                    detail="域名和邮箱账号会跟随接入点独立加载。"
-                    actionLabel="添加接入点"
-                    onAction={onAddProfile}
+                    title="未选择接入点"
+                    detail="返回上一层选择接入点后再进入邮箱。"
+                    actionLabel="返回选择"
+                    onAction={onBackToProfiles}
                 />
             ) : !selectedProfile.hasToken ? (
                 <SidebarNotice
                     title="接入点未授权"
                     detail="授权后显示该接入点下的域名和邮箱账号。"
                     actionLabel="授权"
-                    onAction={() => onAuth(selectedProfile)}
+                    onAction={onAuth}
                 />
             ) : (
                 <div className="resource-scope" aria-label="当前接入点资源">
@@ -1576,24 +1631,22 @@ function Sidebar({
                         {mailboxLoading ? <MutedLine>正在加载邮箱账号</MutedLine> : null}
                         {!mailboxLoading && !accounts.length ? <MutedLine>暂无邮箱账号</MutedLine> : null}
                     </div>
+
+                    <nav className="nav-section mailbox-folder-section" aria-label="当前邮箱文件夹">
+                        <SectionLabel>文件夹</SectionLabel>
+                        {folders.map((folder) => (
+                            <NavItem
+                                key={folder.id}
+                                active={folder.id === activeFolder}
+                                count={folderCounts[folder.id] || 0}
+                                icon={folder.icon}
+                                label={folder.label}
+                                onClick={() => onFolderChange(folder.id)}
+                            />
+                        ))}
+                    </nav>
                 </div>
             )}
-
-            {showMailboxResources ? (
-                <nav className="nav-section mailbox-folder-section" aria-label="当前邮箱文件夹">
-                    <SectionLabel>文件夹</SectionLabel>
-                    {folders.map((folder) => (
-                        <NavItem
-                            key={folder.id}
-                            active={folder.id === activeFolder}
-                            count={folderCounts[folder.id] || 0}
-                            icon={folder.icon}
-                            label={folder.label}
-                            onClick={() => onFolderChange(folder.id)}
-                        />
-                    ))}
-                </nav>
-            ) : null}
 
             <div className="sidebar-footer">
                 <button className="endpoint-button" type="button" onClick={() => setProfileMenuOpen(!profileMenuOpen)}>
@@ -1615,7 +1668,7 @@ function Sidebar({
                             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
                             {theme === 'dark' ? '切换浅色模式' : '切换深色模式'}
                         </button>
-                        <button type="button" onClick={() => selectedProfile && onAuth(selectedProfile)} disabled={!selectedProfile}>
+                        <button type="button" onClick={onAuth} disabled={!selectedProfile}>
                             <KeyRound size={16} />
                             授权当前接入点
                         </button>
