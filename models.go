@@ -75,6 +75,122 @@ type AccountDeleteInput struct {
 	AccountID string `json:"accountId"`
 }
 
+type AccountSettingsRequest struct {
+	ProfileID string `json:"profileId"`
+	AccountID string `json:"accountId"`
+}
+
+type AccountSettingsInput struct {
+	ProfileID string          `json:"profileId"`
+	AccountID string          `json:"accountId"`
+	Settings  AccountSettings `json:"settings"`
+}
+
+type AccountSettings struct {
+	Enabled           bool              `json:"enabled"`
+	CreatedAt         string            `json:"createdAt"`
+	LastActivity      string            `json:"lastActivity"`
+	ForwardingEnabled bool              `json:"forwardingEnabled"`
+	ForwardTo         string            `json:"forwardTo"`
+	KeepLocalCopy     bool              `json:"keepLocalCopy"`
+	Retention         string            `json:"retention"`
+	SaveAttachments   bool              `json:"saveAttachments"`
+	DefaultView       string            `json:"defaultView"`
+	ShowPreview       bool              `json:"showPreview"`
+	Signature         string            `json:"signature"`
+	Rules             []AccountRule     `json:"rules"`
+	APITokens         []AccountAPIToken `json:"apiTokens"`
+}
+
+type AccountRule struct {
+	ID       string `json:"id"`
+	Field    string `json:"field"`
+	Operator string `json:"operator"`
+	Value    string `json:"value"`
+	Action   string `json:"action"`
+	Enabled  bool   `json:"enabled"`
+}
+
+type AccountAPIToken struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Scope     string `json:"scope"`
+	CreatedAt string `json:"createdAt"`
+	LastUsed  string `json:"lastUsed"`
+	Enabled   bool   `json:"enabled"`
+}
+
+type DNSHealthRequest struct {
+	ProfileID string `json:"profileId"`
+	Domain    string `json:"domain"`
+}
+
+type DNSHealth struct {
+	Domain      string     `json:"domain"`
+	GeneratedAt string     `json:"generatedAt"`
+	Ready       bool       `json:"ready"`
+	Checks      []DNSCheck `json:"checks"`
+}
+
+type DNSCheck struct {
+	ID       string   `json:"id"`
+	Label    string   `json:"label"`
+	OK       bool     `json:"ok"`
+	Required bool     `json:"required"`
+	Records  []string `json:"records"`
+	Hint     string   `json:"hint"`
+	Status   string   `json:"status"`
+}
+
+type CleanupInput struct {
+	ProfileID     string `json:"profileId"`
+	RetentionDays int    `json:"retentionDays"`
+	DryRun        bool   `json:"dryRun"`
+}
+
+type CleanupResult struct {
+	DryRun        bool   `json:"dryRun"`
+	RetentionDays int    `json:"retentionDays"`
+	Cutoff        string `json:"cutoff"`
+	Messages      int    `json:"messages"`
+	Attachments   int    `json:"attachments"`
+	Accounts      int    `json:"accounts"`
+}
+
+type DeviceUpdateInput struct {
+	ProfileID  string `json:"profileId"`
+	DeviceID   string `json:"deviceId"`
+	ClientType string `json:"clientType"`
+	Label      string `json:"label"`
+	Scope      string `json:"scope"`
+	Enabled    *bool  `json:"enabled,omitempty"`
+}
+
+type DeviceDeleteInput struct {
+	ProfileID string `json:"profileId"`
+	DeviceID  string `json:"deviceId"`
+}
+
+type UserInput struct {
+	ProfileID   string `json:"profileId"`
+	UserID      string `json:"userId"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	DisplayName string `json:"displayName"`
+	AvatarColor string `json:"avatarColor"`
+	Enabled     *bool  `json:"enabled,omitempty"`
+}
+
+type ChangePasswordInput struct {
+	ProfileID       string `json:"profileId"`
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword     string `json:"newPassword"`
+}
+
+type ProfileActionInput struct {
+	ProfileID string `json:"profileId"`
+}
+
 type AuditLogRequest struct {
 	ProfileID string `json:"profileId"`
 	Limit     int    `json:"limit"`
@@ -238,13 +354,21 @@ type AuthStatus struct {
 }
 
 type APIUser struct {
-	ID         string `json:"id"`
-	Email      string `json:"email"`
-	Role       string `json:"role"`
-	AuthType   string `json:"authType"`
-	ClientType string `json:"clientType"`
-	Label      string `json:"label"`
-	Scope      string `json:"scope"`
+	ID             string `json:"id"`
+	Email          string `json:"email"`
+	Role           string `json:"role"`
+	AuthType       string `json:"authType"`
+	ClientType     string `json:"clientType"`
+	Label          string `json:"label"`
+	Scope          string `json:"scope"`
+	DisplayName    string `json:"displayName"`
+	AvatarColor    string `json:"avatarColor"`
+	Enabled        bool   `json:"enabled"`
+	SessionVersion int    `json:"sessionVersion"`
+	LastLoginAt    string `json:"lastLoginAt"`
+	LastLoginIP    string `json:"lastLoginIp"`
+	CreatedAt      string `json:"createdAt"`
+	UpdatedAt      string `json:"updatedAt"`
 }
 
 type AuthResult struct {
@@ -257,6 +381,10 @@ type DeviceResult struct {
 	ClientType   string `json:"clientType"`
 	Label        string `json:"label"`
 	Scope        string `json:"scope"`
+	CreatedAt    string `json:"createdAt"`
+	UpdatedAt    string `json:"updatedAt"`
+	LastSeenAt   string `json:"lastSeenAt"`
+	RevokedAt    string `json:"revokedAt"`
 	DeviceToken  string `json:"deviceToken"`
 	TokenPreview string `json:"tokenPreview"`
 	Enabled      bool   `json:"enabled"`

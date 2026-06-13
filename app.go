@@ -397,6 +397,364 @@ func (a *App) DeleteAccount(input AccountDeleteInput) (*Account, error) {
 	return &account, nil
 }
 
+func (a *App) GetAccountSettings(input AccountSettingsRequest) (*AccountSettings, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(input.AccountID) == "" {
+		return nil, errors.New("account id is required")
+	}
+
+	var settings AccountSettings
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodGet,
+		"/api/v1/accounts/"+pathEscape(input.AccountID)+"/settings",
+		nil,
+		&settings,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &settings, nil
+}
+
+func (a *App) SaveAccountSettings(input AccountSettingsInput) (*AccountSettings, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(input.AccountID) == "" {
+		return nil, errors.New("account id is required")
+	}
+
+	var settings AccountSettings
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodPut,
+		"/api/v1/accounts/"+pathEscape(input.AccountID)+"/settings",
+		input.Settings,
+		&settings,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &settings, nil
+}
+
+func (a *App) GetDomainDNSHealth(input DNSHealthRequest) (*DNSHealth, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	domain := strings.TrimSpace(input.Domain)
+	if domain == "" {
+		return nil, errors.New("domain is required")
+	}
+
+	var health DNSHealth
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodGet,
+		"/api/v1/system/dns-health?domain="+queryEscape(domain),
+		nil,
+		&health,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &health, nil
+}
+
+func (a *App) RunSystemCleanup(input CleanupInput) (*CleanupResult, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	retentionDays := input.RetentionDays
+	if retentionDays <= 0 {
+		retentionDays = 90
+	}
+
+	var result CleanupResult
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodPost,
+		"/api/v1/system/cleanup",
+		map[string]any{
+			"retentionDays": retentionDays,
+			"dryRun":        input.DryRun,
+		},
+		&result,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (a *App) ListDevices(input ProfileActionInput) ([]DeviceResult, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	var devices []DeviceResult
+	if err := a.apiRequest(profile.BaseURL, profile.Token, http.MethodGet, "/api/v1/devices", nil, &devices); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return devices, nil
+}
+
+func (a *App) UpdateDevice(input DeviceUpdateInput) (*DeviceResult, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(input.DeviceID) == "" {
+		return nil, errors.New("device id is required")
+	}
+
+	payload := map[string]any{}
+	if label := strings.TrimSpace(input.Label); label != "" {
+		payload["label"] = label
+	}
+	if clientType := strings.TrimSpace(input.ClientType); clientType != "" {
+		payload["clientType"] = clientType
+	}
+	if scope := strings.TrimSpace(input.Scope); scope != "" {
+		payload["scope"] = scope
+	}
+	if input.Enabled != nil {
+		payload["enabled"] = *input.Enabled
+	}
+	if len(payload) == 0 {
+		return nil, errors.New("at least one device field is required")
+	}
+
+	var device DeviceResult
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodPatch,
+		"/api/v1/devices/"+pathEscape(input.DeviceID),
+		payload,
+		&device,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &device, nil
+}
+
+func (a *App) RevokeDevice(input DeviceDeleteInput) (*DeviceResult, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(input.DeviceID) == "" {
+		return nil, errors.New("device id is required")
+	}
+
+	var device DeviceResult
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodDelete,
+		"/api/v1/devices/"+pathEscape(input.DeviceID),
+		nil,
+		&device,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &device, nil
+}
+
+func (a *App) ListUsers(input ProfileActionInput) ([]APIUser, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	var users []APIUser
+	if err := a.apiRequest(profile.BaseURL, profile.Token, http.MethodGet, "/api/v1/users", nil, &users); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (a *App) CreateUser(input UserInput) (*APIUser, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	var user APIUser
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodPost,
+		"/api/v1/users",
+		map[string]string{
+			"email":       strings.TrimSpace(input.Email),
+			"password":    input.Password,
+			"displayName": strings.TrimSpace(input.DisplayName),
+			"avatarColor": strings.TrimSpace(input.AvatarColor),
+		},
+		&user,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (a *App) UpdateUser(input UserInput) (*APIUser, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(input.UserID) == "" {
+		return nil, errors.New("user id is required")
+	}
+
+	payload := map[string]any{}
+	if displayName := strings.TrimSpace(input.DisplayName); displayName != "" {
+		payload["displayName"] = displayName
+	}
+	if avatarColor := strings.TrimSpace(input.AvatarColor); avatarColor != "" {
+		payload["avatarColor"] = avatarColor
+	}
+	if input.Enabled != nil {
+		payload["enabled"] = *input.Enabled
+	}
+	if len(payload) == 0 {
+		return nil, errors.New("at least one user field is required")
+	}
+
+	var user APIUser
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodPatch,
+		"/api/v1/users/"+pathEscape(input.UserID),
+		payload,
+		&user,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (a *App) ChangePassword(input ChangePasswordInput) (*AuthResult, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result AuthResult
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodPost,
+		"/api/v1/auth/change-password",
+		map[string]string{
+			"currentPassword": input.CurrentPassword,
+			"newPassword":     input.NewPassword,
+		},
+		&result,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (a *App) RevokeSessions(input ProfileActionInput) (*AuthResult, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result AuthResult
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodPost,
+		"/api/v1/auth/revoke-sessions",
+		nil,
+		&result,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
 func (a *App) GetEndpointDiagnostics(profileID string) (*EndpointDiagnostics, error) {
 	profile, err := a.profileForRequest(profileID)
 	if err != nil {

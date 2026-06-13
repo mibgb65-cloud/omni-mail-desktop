@@ -8,6 +8,14 @@ export namespace main {
 	    clientType: string;
 	    label: string;
 	    scope: string;
+	    displayName: string;
+	    avatarColor: string;
+	    enabled: boolean;
+	    sessionVersion: number;
+	    lastLoginAt: string;
+	    lastLoginIp: string;
+	    createdAt: string;
+	    updatedAt: string;
 
 	    static createFrom(source: any = {}) {
 	        return new APIUser(source);
@@ -22,6 +30,14 @@ export namespace main {
 	        this.clientType = source["clientType"];
 	        this.label = source["label"];
 	        this.scope = source["scope"];
+	        this.displayName = source["displayName"];
+	        this.avatarColor = source["avatarColor"];
+	        this.enabled = source["enabled"];
+	        this.sessionVersion = source["sessionVersion"];
+	        this.lastLoginAt = source["lastLoginAt"];
+	        this.lastLoginIp = source["lastLoginIp"];
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
 	    }
 	}
 	export class Account {
@@ -62,6 +78,28 @@ export namespace main {
 	        this.deletedAt = source["deletedAt"];
 	    }
 	}
+	export class AccountAPIToken {
+	    id: string;
+	    name: string;
+	    scope: string;
+	    createdAt: string;
+	    lastUsed: string;
+	    enabled: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new AccountAPIToken(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.scope = source["scope"];
+	        this.createdAt = source["createdAt"];
+	        this.lastUsed = source["lastUsed"];
+	        this.enabled = source["enabled"];
+	    }
+	}
 	export class AccountDeleteInput {
 	    profileId: string;
 	    accountId: string;
@@ -94,6 +132,130 @@ export namespace main {
 	        this.localPart = source["localPart"];
 	        this.address = source["address"];
 	        this.name = source["name"];
+	    }
+	}
+	export class AccountRule {
+	    id: string;
+	    field: string;
+	    operator: string;
+	    value: string;
+	    action: string;
+	    enabled: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new AccountRule(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.field = source["field"];
+	        this.operator = source["operator"];
+	        this.value = source["value"];
+	        this.action = source["action"];
+	        this.enabled = source["enabled"];
+	    }
+	}
+	export class AccountSettings {
+	    enabled: boolean;
+	    createdAt: string;
+	    lastActivity: string;
+	    forwardingEnabled: boolean;
+	    forwardTo: string;
+	    keepLocalCopy: boolean;
+	    retention: string;
+	    saveAttachments: boolean;
+	    defaultView: string;
+	    showPreview: boolean;
+	    signature: string;
+	    rules: AccountRule[];
+	    apiTokens: AccountAPIToken[];
+
+	    static createFrom(source: any = {}) {
+	        return new AccountSettings(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.createdAt = source["createdAt"];
+	        this.lastActivity = source["lastActivity"];
+	        this.forwardingEnabled = source["forwardingEnabled"];
+	        this.forwardTo = source["forwardTo"];
+	        this.keepLocalCopy = source["keepLocalCopy"];
+	        this.retention = source["retention"];
+	        this.saveAttachments = source["saveAttachments"];
+	        this.defaultView = source["defaultView"];
+	        this.showPreview = source["showPreview"];
+	        this.signature = source["signature"];
+	        this.rules = this.convertValues(source["rules"], AccountRule);
+	        this.apiTokens = this.convertValues(source["apiTokens"], AccountAPIToken);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class AccountSettingsInput {
+	    profileId: string;
+	    accountId: string;
+	    settings: AccountSettings;
+
+	    static createFrom(source: any = {}) {
+	        return new AccountSettingsInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.accountId = source["accountId"];
+	        this.settings = this.convertValues(source["settings"], AccountSettings);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class AccountSettingsRequest {
+	    profileId: string;
+	    accountId: string;
+
+	    static createFrom(source: any = {}) {
+	        return new AccountSettingsRequest(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.accountId = source["accountId"];
 	    }
 	}
 	export class AccountUpdateInput {
@@ -200,6 +362,38 @@ export namespace main {
 	        this.limit = source["limit"];
 	    }
 	}
+	export class AuthResult {
+	    token: string;
+	    user?: APIUser;
+
+	    static createFrom(source: any = {}) {
+	        return new AuthResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.token = source["token"];
+	        this.user = this.convertValues(source["user"], APIUser);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class AuthStatus {
 	    storage: string;
 	    requiresSetup: boolean;
@@ -235,6 +429,60 @@ export namespace main {
 		    }
 		    return a;
 		}
+	}
+	export class ChangePasswordInput {
+	    profileId: string;
+	    currentPassword: string;
+	    newPassword: string;
+
+	    static createFrom(source: any = {}) {
+	        return new ChangePasswordInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.currentPassword = source["currentPassword"];
+	        this.newPassword = source["newPassword"];
+	    }
+	}
+	export class CleanupInput {
+	    profileId: string;
+	    retentionDays: number;
+	    dryRun: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new CleanupInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.retentionDays = source["retentionDays"];
+	        this.dryRun = source["dryRun"];
+	    }
+	}
+	export class CleanupResult {
+	    dryRun: boolean;
+	    retentionDays: number;
+	    cutoff: string;
+	    messages: number;
+	    attachments: number;
+	    accounts: number;
+
+	    static createFrom(source: any = {}) {
+	        return new CleanupResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.dryRun = source["dryRun"];
+	        this.retentionDays = source["retentionDays"];
+	        this.cutoff = source["cutoff"];
+	        this.messages = source["messages"];
+	        this.attachments = source["attachments"];
+	        this.accounts = source["accounts"];
+	    }
 	}
 	export class HealthData {
 	    service: string;
@@ -292,6 +540,80 @@ export namespace main {
 		    return a;
 		}
 	}
+	export class DNSCheck {
+	    id: string;
+	    label: string;
+	    ok: boolean;
+	    required: boolean;
+	    records: string[];
+	    hint: string;
+	    status: string;
+
+	    static createFrom(source: any = {}) {
+	        return new DNSCheck(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.ok = source["ok"];
+	        this.required = source["required"];
+	        this.records = source["records"];
+	        this.hint = source["hint"];
+	        this.status = source["status"];
+	    }
+	}
+	export class DNSHealth {
+	    domain: string;
+	    generatedAt: string;
+	    ready: boolean;
+	    checks: DNSCheck[];
+
+	    static createFrom(source: any = {}) {
+	        return new DNSHealth(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.domain = source["domain"];
+	        this.generatedAt = source["generatedAt"];
+	        this.ready = source["ready"];
+	        this.checks = this.convertValues(source["checks"], DNSCheck);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class DNSHealthRequest {
+	    profileId: string;
+	    domain: string;
+
+	    static createFrom(source: any = {}) {
+	        return new DNSHealthRequest(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.domain = source["domain"];
+	    }
+	}
 	export class DeviceAuthInput {
 	    profileId: string;
 	    email: string;
@@ -310,6 +632,74 @@ export namespace main {
 	        this.password = source["password"];
 	        this.deviceLabel = source["deviceLabel"];
 	        this.setup = source["setup"];
+	    }
+	}
+	export class DeviceDeleteInput {
+	    profileId: string;
+	    deviceId: string;
+
+	    static createFrom(source: any = {}) {
+	        return new DeviceDeleteInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.deviceId = source["deviceId"];
+	    }
+	}
+	export class DeviceResult {
+	    id: string;
+	    clientType: string;
+	    label: string;
+	    scope: string;
+	    createdAt: string;
+	    updatedAt: string;
+	    lastSeenAt: string;
+	    revokedAt: string;
+	    deviceToken: string;
+	    tokenPreview: string;
+	    enabled: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new DeviceResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.clientType = source["clientType"];
+	        this.label = source["label"];
+	        this.scope = source["scope"];
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
+	        this.lastSeenAt = source["lastSeenAt"];
+	        this.revokedAt = source["revokedAt"];
+	        this.deviceToken = source["deviceToken"];
+	        this.tokenPreview = source["tokenPreview"];
+	        this.enabled = source["enabled"];
+	    }
+	}
+	export class DeviceUpdateInput {
+	    profileId: string;
+	    deviceId: string;
+	    clientType: string;
+	    label: string;
+	    scope: string;
+	    enabled?: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new DeviceUpdateInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.deviceId = source["deviceId"];
+	        this.clientType = source["clientType"];
+	        this.label = source["label"];
+	        this.scope = source["scope"];
+	        this.enabled = source["enabled"];
 	    }
 	}
 	export class DiagnosticBindings {
@@ -795,6 +1185,18 @@ export namespace main {
 	    }
 	}
 
+	export class ProfileActionInput {
+	    profileId: string;
+
+	    static createFrom(source: any = {}) {
+	        return new ProfileActionInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	    }
+	}
 	export class ProfileInput {
 	    id: string;
 	    name: string;
@@ -865,6 +1267,30 @@ export namespace main {
 	        this.profileId = source["profileId"];
 	        this.deviceToken = source["deviceToken"];
 	        this.deviceLabel = source["deviceLabel"];
+	    }
+	}
+	export class UserInput {
+	    profileId: string;
+	    userId: string;
+	    email: string;
+	    password: string;
+	    displayName: string;
+	    avatarColor: string;
+	    enabled?: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new UserInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.userId = source["userId"];
+	        this.email = source["email"];
+	        this.password = source["password"];
+	        this.displayName = source["displayName"];
+	        this.avatarColor = source["avatarColor"];
+	        this.enabled = source["enabled"];
 	    }
 	}
 

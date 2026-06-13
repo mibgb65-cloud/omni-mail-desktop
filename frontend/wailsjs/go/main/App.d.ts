@@ -6,9 +6,13 @@ export function ArchiveMessage(arg1:main.MessageActionInput):Promise<main.Messag
 
 export function AuthorizeProfile(arg1:main.DeviceAuthInput):Promise<main.Profile>;
 
+export function ChangePassword(arg1:main.ChangePasswordInput):Promise<main.AuthResult>;
+
 export function CreateAccount(arg1:main.AccountInput):Promise<main.Account>;
 
 export function CreateDomain(arg1:main.DomainInput):Promise<main.DomainRecord>;
+
+export function CreateUser(arg1:main.UserInput):Promise<main.APIUser>;
 
 export function DeleteAccount(arg1:main.AccountDeleteInput):Promise<main.Account>;
 
@@ -18,15 +22,31 @@ export function DeleteProfile(arg1:string):Promise<void>;
 
 export function DownloadAttachment(arg1:main.DownloadAttachmentInput):Promise<main.DownloadResult>;
 
+export function GetAccountSettings(arg1:main.AccountSettingsRequest):Promise<main.AccountSettings>;
+
+export function GetDomainDNSHealth(arg1:main.DNSHealthRequest):Promise<main.DNSHealth>;
+
 export function GetEndpointDiagnostics(arg1:string):Promise<main.EndpointDiagnostics>;
 
 export function GetInitialState():Promise<main.InitialState>;
 
 export function ListAuditLogs(arg1:main.AuditLogRequest):Promise<Array<main.AuditLog>>;
 
+export function ListDevices(arg1:main.ProfileActionInput):Promise<Array<main.DeviceResult>>;
+
+export function ListUsers(arg1:main.ProfileActionInput):Promise<Array<main.APIUser>>;
+
 export function LoadMailbox(arg1:main.MailboxRequest):Promise<main.MailboxPayload>;
 
 export function PreviewAttachment(arg1:main.DownloadAttachmentInput):Promise<main.AttachmentPreview>;
+
+export function RevokeDevice(arg1:main.DeviceDeleteInput):Promise<main.DeviceResult>;
+
+export function RevokeSessions(arg1:main.ProfileActionInput):Promise<main.AuthResult>;
+
+export function RunSystemCleanup(arg1:main.CleanupInput):Promise<main.CleanupResult>;
+
+export function SaveAccountSettings(arg1:main.AccountSettingsInput):Promise<main.AccountSettings>;
 
 export function SaveProfile(arg1:main.ProfileInput):Promise<main.Profile>;
 
@@ -43,3 +63,7 @@ export function TestBaseURL(arg1:string,arg2:string):Promise<main.ConnectionStat
 export function UnarchiveMessage(arg1:main.MessageActionInput):Promise<main.Message>;
 
 export function UpdateAccount(arg1:main.AccountUpdateInput):Promise<main.Account>;
+
+export function UpdateDevice(arg1:main.DeviceUpdateInput):Promise<main.DeviceResult>;
+
+export function UpdateUser(arg1:main.UserInput):Promise<main.APIUser>;

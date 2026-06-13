@@ -10,12 +10,20 @@ export function AuthorizeProfile(arg1) {
   return window['go']['main']['App']['AuthorizeProfile'](arg1);
 }
 
+export function ChangePassword(arg1) {
+  return window['go']['main']['App']['ChangePassword'](arg1);
+}
+
 export function CreateAccount(arg1) {
   return window['go']['main']['App']['CreateAccount'](arg1);
 }
 
 export function CreateDomain(arg1) {
   return window['go']['main']['App']['CreateDomain'](arg1);
+}
+
+export function CreateUser(arg1) {
+  return window['go']['main']['App']['CreateUser'](arg1);
 }
 
 export function DeleteAccount(arg1) {
@@ -34,6 +42,14 @@ export function DownloadAttachment(arg1) {
   return window['go']['main']['App']['DownloadAttachment'](arg1);
 }
 
+export function GetAccountSettings(arg1) {
+  return window['go']['main']['App']['GetAccountSettings'](arg1);
+}
+
+export function GetDomainDNSHealth(arg1) {
+  return window['go']['main']['App']['GetDomainDNSHealth'](arg1);
+}
+
 export function GetEndpointDiagnostics(arg1) {
   return window['go']['main']['App']['GetEndpointDiagnostics'](arg1);
 }
@@ -46,12 +62,36 @@ export function ListAuditLogs(arg1) {
   return window['go']['main']['App']['ListAuditLogs'](arg1);
 }
 
+export function ListDevices(arg1) {
+  return window['go']['main']['App']['ListDevices'](arg1);
+}
+
+export function ListUsers(arg1) {
+  return window['go']['main']['App']['ListUsers'](arg1);
+}
+
 export function LoadMailbox(arg1) {
   return window['go']['main']['App']['LoadMailbox'](arg1);
 }
 
 export function PreviewAttachment(arg1) {
   return window['go']['main']['App']['PreviewAttachment'](arg1);
+}
+
+export function RevokeDevice(arg1) {
+  return window['go']['main']['App']['RevokeDevice'](arg1);
+}
+
+export function RevokeSessions(arg1) {
+  return window['go']['main']['App']['RevokeSessions'](arg1);
+}
+
+export function RunSystemCleanup(arg1) {
+  return window['go']['main']['App']['RunSystemCleanup'](arg1);
+}
+
+export function SaveAccountSettings(arg1) {
+  return window['go']['main']['App']['SaveAccountSettings'](arg1);
 }
 
 export function SaveProfile(arg1) {
@@ -84,4 +124,12 @@ export function UnarchiveMessage(arg1) {
 
 export function UpdateAccount(arg1) {
   return window['go']['main']['App']['UpdateAccount'](arg1);
+}
+
+export function UpdateDevice(arg1) {
+  return window['go']['main']['App']['UpdateDevice'](arg1);
+}
+
+export function UpdateUser(arg1) {
+  return window['go']['main']['App']['UpdateUser'](arg1);
 }

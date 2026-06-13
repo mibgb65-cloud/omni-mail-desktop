@@ -49,17 +49,27 @@ import {
 import {
     ArchiveMessage,
     AuthorizeProfile,
+    ChangePassword,
     CreateAccount,
     CreateDomain,
+    CreateUser,
     DeleteAccount,
     DeleteMessage,
     DeleteProfile,
     DownloadAttachment,
+    GetAccountSettings,
+    GetDomainDNSHealth,
     GetEndpointDiagnostics,
     GetInitialState,
     ListAuditLogs,
+    ListDevices,
+    ListUsers,
     LoadMailbox,
     PreviewAttachment,
+    RevokeDevice,
+    RevokeSessions,
+    RunSystemCleanup,
+    SaveAccountSettings,
     SaveProfile,
     SaveProfileToken,
     SelectProfile,
@@ -67,7 +77,9 @@ import {
     SetMessageStatus,
     TestBaseURL,
     UnarchiveMessage,
-    UpdateAccount
+    UpdateAccount,
+    UpdateDevice,
+    UpdateUser
 } from '../wailsjs/go/main/App';
 
 const emptyProfileForm = {id: '', name: '', baseUrl: ''};
@@ -75,6 +87,23 @@ const emptyAccountForm = {localPart: '', name: ''};
 const emptyDomainForm = {domain: ''};
 const emptyAuthForm = {email: '', password: '', deviceLabel: 'Windows 桌面端', setup: false};
 const emptyComposeForm = {to: '', cc: '', bcc: '', subject: '', text: ''};
+const emptyUserForm = {email: '', password: '', displayName: '', avatarColor: '#dbe7ff'};
+const emptyPasswordForm = {currentPassword: '', newPassword: ''};
+const defaultMailboxSettings = {
+    enabled: true,
+    createdAt: '',
+    lastActivity: '',
+    forwardingEnabled: false,
+    forwardTo: '',
+    keepLocalCopy: true,
+    retention: 'forever',
+    saveAttachments: true,
+    defaultView: 'inbox',
+    showPreview: true,
+    signature: '',
+    rules: [],
+    apiTokens: []
+};
 const layoutDefaults = {
     sidebar: 292,
     list: 388
@@ -268,6 +297,24 @@ function formatFileSize(value) {
     }
 
     return `${size >= 10 || unitIndex === 0 ? Math.round(size) : size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+function normalizeMailboxSettings(settings = {}) {
+    return {
+        ...defaultMailboxSettings,
+        ...settings,
+        enabled: settings.enabled !== false,
+        forwardingEnabled: Boolean(settings.forwardingEnabled),
+        forwardTo: settings.forwardTo || '',
+        keepLocalCopy: settings.keepLocalCopy !== false,
+        retention: settings.retention || defaultMailboxSettings.retention,
+        saveAttachments: settings.saveAttachments !== false,
+        defaultView: settings.defaultView || defaultMailboxSettings.defaultView,
+        showPreview: settings.showPreview !== false,
+        signature: settings.signature || '',
+        rules: Array.isArray(settings.rules) ? settings.rules : [],
+        apiTokens: Array.isArray(settings.apiTokens) ? settings.apiTokens : []
+    };
 }
 
 function attachmentKind(attachment) {
@@ -1548,13 +1595,17 @@ function App() {
                         onBack={() => setContentPage('mail')}
                         onClearCurrentDraft={clearCurrentDraft}
                         onLoadInsights={loadEndpointInsights}
+                        onNotify={showToast}
                         onOpenProfiles={handleOpenProfileManager}
+                        onReloadMailbox={reloadCurrentMailbox}
                         onResetLayout={resetLayoutPreferences}
+                        selectedAccount={selectedAccount}
                         selectedProfile={selectedProfile}
                         status={status}
                         storagePath={storagePath}
                         theme={theme}
                         toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
+                        workspace={workspace}
                     />
                 ) : (
                     <>
@@ -3157,13 +3208,17 @@ function SettingsPage({
     onBack,
     onClearCurrentDraft,
     onLoadInsights,
+    onNotify,
     onOpenProfiles,
+    onReloadMailbox,
     onResetLayout,
+    selectedAccount,
     selectedProfile,
     status,
     storagePath,
     theme,
-    toggleTheme
+    toggleTheme,
+    workspace
 }) {
     const insightsLoaded = Boolean(selectedProfile && insightsProfileId === selectedProfile.id && diagnostics);
     const setup = insightsLoaded ? diagnostics.setup : null;
@@ -3257,6 +3312,44 @@ function SettingsPage({
                         action={<StatusBadge ok label="已启用" />}
                     />
                 </div>
+                {selectedProfile?.hasToken ? (
+                    <div className="advanced-settings-grid">
+                        <MailboxSettingsPanel
+                            onNotify={onNotify}
+                            onReloadMailbox={onReloadMailbox}
+                            selectedAccount={selectedAccount}
+                            selectedProfile={selectedProfile}
+                        />
+                        <DNSHealthPanel
+                            domain={workspace?.selectedDomain || ''}
+                            onNotify={onNotify}
+                            selectedProfile={selectedProfile}
+                        />
+                        <DeviceManagerPanel
+                            onNotify={onNotify}
+                            selectedProfile={selectedProfile}
+                        />
+                        <MaintenancePanel
+                            onNotify={onNotify}
+                            selectedProfile={selectedProfile}
+                        />
+                        <SecurityPanel
+                            onNotify={onNotify}
+                            selectedProfile={selectedProfile}
+                        />
+                    </div>
+                ) : (
+                    <section className="insight-panel">
+                        <header>
+                            <div>
+                                <p>接入点运维</p>
+                                <h3>授权后显示高级管理工具</h3>
+                                <small>邮箱设置、DNS 健康、设备 Token 和维护工具都按接入点隔离，不使用全局用户态。</small>
+                            </div>
+                            <StatusBadge ok={false} label="未授权" />
+                        </header>
+                    </section>
+                )}
                 {insightsLoaded ? (
                     <>
                         <DiagnosticsPanel diagnostics={diagnostics} />
@@ -3265,6 +3358,790 @@ function SettingsPage({
                 ) : null}
             </div>
         </main>
+    );
+}
+
+function SettingsPanelHeader({action, body, icon: Icon, kicker, title}) {
+    return (
+        <header>
+            <div className="settings-panel-title">
+                <Icon size={17} />
+                <span>
+                    <p>{kicker}</p>
+                    <h3>{title}</h3>
+                    {body ? <small>{body}</small> : null}
+                </span>
+            </div>
+            {action}
+        </header>
+    );
+}
+
+function MailboxSettingsPanel({onNotify, onReloadMailbox, selectedAccount, selectedProfile}) {
+    const [settings, setSettings] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (!selectedProfile?.id || !selectedAccount?.id) {
+            setSettings(null);
+            setError('');
+            return undefined;
+        }
+
+        let cancelled = false;
+        setLoading(true);
+        setError('');
+
+        GetAccountSettings({
+            profileId: selectedProfile.id,
+            accountId: selectedAccount.id
+        }).then((result) => {
+            if (!cancelled) {
+                setSettings(normalizeMailboxSettings(result));
+            }
+        }).catch((loadError) => {
+            if (!cancelled) {
+                setError(loadError.message || '无法读取邮箱设置。');
+            }
+        }).finally(() => {
+            if (!cancelled) {
+                setLoading(false);
+            }
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedProfile?.id, selectedAccount?.id]);
+
+    function updateField(field, value) {
+        setSettings((current) => normalizeMailboxSettings({
+            ...(current || defaultMailboxSettings),
+            [field]: value
+        }));
+    }
+
+    async function handleSave(event) {
+        event.preventDefault();
+        if (!selectedProfile?.id || !selectedAccount?.id || !settings) {
+            return;
+        }
+
+        const payload = normalizeMailboxSettings(settings);
+        if (payload.forwardingEnabled && invalidRecipients(payload.forwardTo).length) {
+            setError('转发邮箱格式不正确。');
+            return;
+        }
+
+        setSaving(true);
+        setError('');
+
+        try {
+            const saved = await SaveAccountSettings({
+                profileId: selectedProfile.id,
+                accountId: selectedAccount.id,
+                settings: {
+                    ...payload,
+                    forwardTo: payload.forwardingEnabled ? payload.forwardTo : ''
+                }
+            });
+            setSettings(normalizeMailboxSettings(saved));
+            await onReloadMailbox?.();
+            onNotify?.('success', '邮箱设置已保存', selectedAccount.address);
+        } catch (saveError) {
+            const message = saveError.message || '请检查当前接入点权限。';
+            setError(message);
+            onNotify?.('error', '保存邮箱设置失败', message);
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    return (
+        <section className="settings-panel">
+            <SettingsPanelHeader
+                action={<StatusBadge ok={Boolean(selectedAccount)} label={selectedAccount ? '当前邮箱' : '未选择'} />}
+                body={selectedAccount ? selectedAccount.address : '进入接入点后选择邮箱账号，才能编辑转发、保留副本和签名。'}
+                icon={Mail}
+                kicker="邮箱账号"
+                title="收发与显示设置"
+            />
+
+            {!selectedAccount ? (
+                <p className="insight-empty">当前没有选中的邮箱账号。</p>
+            ) : loading ? (
+                <div className="settings-panel-loading">
+                    <RefreshCw className="spin-inline" size={16} />
+                    正在读取邮箱设置
+                </div>
+            ) : (
+                <form className="settings-form" onSubmit={handleSave}>
+                    {error ? <p className="settings-error">{error}</p> : null}
+                    <div className="settings-form-grid">
+                        <label className="checkbox-row">
+                            <input
+                                checked={settings?.enabled !== false}
+                                type="checkbox"
+                                onChange={(event) => updateField('enabled', event.target.checked)}
+                            />
+                            启用这个邮箱账号
+                        </label>
+                        <label className="checkbox-row">
+                            <input
+                                checked={Boolean(settings?.forwardingEnabled)}
+                                type="checkbox"
+                                onChange={(event) => updateField('forwardingEnabled', event.target.checked)}
+                            />
+                            启用转发
+                        </label>
+                        <label>
+                            <span>转发到</span>
+                            <input
+                                disabled={!settings?.forwardingEnabled}
+                                placeholder="name@example.com"
+                                value={settings?.forwardTo || ''}
+                                onChange={(event) => updateField('forwardTo', event.target.value)}
+                            />
+                        </label>
+                        <label>
+                            <span>保留策略</span>
+                            <select
+                                value={settings?.retention || 'forever'}
+                                onChange={(event) => updateField('retention', event.target.value)}
+                            >
+                                <option value="forever">永久保留</option>
+                                <option value="365d">保留 365 天</option>
+                                <option value="90d">保留 90 天</option>
+                                <option value="30d">保留 30 天</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>默认视图</span>
+                            <select
+                                value={settings?.defaultView || 'inbox'}
+                                onChange={(event) => updateField('defaultView', event.target.value)}
+                            >
+                                <option value="inbox">收件箱</option>
+                                <option value="starred">星标邮件</option>
+                                <option value="sent">已发送</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div className="settings-check-grid">
+                        <label className="checkbox-row">
+                            <input
+                                checked={settings?.keepLocalCopy !== false}
+                                type="checkbox"
+                                onChange={(event) => updateField('keepLocalCopy', event.target.checked)}
+                            />
+                            转发后保留本地副本
+                        </label>
+                        <label className="checkbox-row">
+                            <input
+                                checked={settings?.saveAttachments !== false}
+                                type="checkbox"
+                                onChange={(event) => updateField('saveAttachments', event.target.checked)}
+                            />
+                            保存附件
+                        </label>
+                        <label className="checkbox-row">
+                            <input
+                                checked={settings?.showPreview !== false}
+                                type="checkbox"
+                                onChange={(event) => updateField('showPreview', event.target.checked)}
+                            />
+                            显示邮件预览
+                        </label>
+                    </div>
+
+                    <label>
+                        <span>签名</span>
+                        <textarea
+                            value={settings?.signature || ''}
+                            onChange={(event) => updateField('signature', event.target.value)}
+                        />
+                    </label>
+
+                    <div className="settings-mini-metrics">
+                        <span>
+                            <strong>{formatCount(settings?.rules?.length)}</strong>
+                            <small>规则</small>
+                        </span>
+                        <span>
+                            <strong>{formatCount(settings?.apiTokens?.length)}</strong>
+                            <small>API Token</small>
+                        </span>
+                        <span>
+                            <strong>{formatDateTime(settings?.lastActivity)}</strong>
+                            <small>最后活动</small>
+                        </span>
+                    </div>
+
+                    <footer>
+                        <small>保存后会同步更新 Worker 里的账号状态。</small>
+                        <button className="primary-action compact" type="submit" disabled={saving || !settings}>
+                            <CircleCheck size={16} />
+                            {saving ? '保存中' : '保存设置'}
+                        </button>
+                    </footer>
+                </form>
+            )}
+        </section>
+    );
+}
+
+function DNSHealthPanel({domain, onNotify, selectedProfile}) {
+    const [domainInput, setDomainInput] = useState(domain || '');
+    const [health, setHealth] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        setDomainInput(domain || '');
+        setHealth(null);
+        setError('');
+    }, [domain]);
+
+    async function handleCheck(event) {
+        event.preventDefault();
+        const targetDomain = normalizeDomainInput(domainInput);
+        if (!selectedProfile?.id || !targetDomain) {
+            setError('请先选择或输入一个域名。');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+
+        try {
+            const result = await GetDomainDNSHealth({
+                profileId: selectedProfile.id,
+                domain: targetDomain
+            });
+            setHealth(result);
+            onNotify?.(result?.ready ? 'success' : 'error', result?.ready ? 'DNS 已就绪' : 'DNS 仍需处理', targetDomain);
+        } catch (checkError) {
+            const message = checkError.message || '无法检查 DNS。';
+            setError(message);
+            onNotify?.('error', 'DNS 检查失败', message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <section className="settings-panel">
+            <SettingsPanelHeader
+                action={health ? <StatusBadge ok={health.ready} label={health.ready ? '就绪' : '待处理'} /> : null}
+                body="按当前接入点检查 MX、TXT、路由等域名记录是否满足收发要求。"
+                icon={Globe2}
+                kicker="域名"
+                title="DNS 健康检查"
+            />
+            <form className="settings-inline-form" onSubmit={handleCheck}>
+                <label>
+                    <span>域名</span>
+                    <input
+                        placeholder="mail.example.com"
+                        value={domainInput}
+                        onChange={(event) => setDomainInput(event.target.value)}
+                    />
+                </label>
+                <button type="submit" disabled={loading || !domainInput.trim()}>
+                    <RefreshCw className={loading ? 'spin-inline' : ''} size={16} />
+                    {loading ? '检查中' : '检查 DNS'}
+                </button>
+            </form>
+            {error ? <p className="settings-error">{error}</p> : null}
+            {health ? (
+                <div className="dns-check-list">
+                    {(health.checks || []).map((check) => (
+                        <article className={check.ok ? 'ok' : ''} key={check.id || check.label}>
+                            {check.ok ? <CircleCheck size={16} /> : <CircleAlert size={16} />}
+                            <div>
+                                <strong>{check.label || check.id}</strong>
+                                <small>{check.status || (check.ok ? '已通过' : check.hint || '需要检查')}</small>
+                                {check.records?.length ? (
+                                    <code>{check.records.join(' / ')}</code>
+                                ) : null}
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            ) : null}
+        </section>
+    );
+}
+
+function DeviceManagerPanel({onNotify, selectedProfile}) {
+    const [devices, setDevices] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [workingDevice, setWorkingDevice] = useState('');
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (!selectedProfile?.id) {
+            setDevices([]);
+            return;
+        }
+
+        loadDevices({silent: true});
+    }, [selectedProfile?.id]);
+
+    async function loadDevices(options = {}) {
+        if (!selectedProfile?.id) {
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+
+        try {
+            const result = await ListDevices({profileId: selectedProfile.id});
+            setDevices(result || []);
+            if (!options.silent) {
+                onNotify?.('success', '设备 Token 已刷新', `${(result || []).length} 个设备`);
+            }
+        } catch (loadError) {
+            const message = loadError.message || '无法读取设备列表。';
+            setError(message);
+            if (!options.silent) {
+                onNotify?.('error', '读取设备失败', message);
+            }
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function handleToggleDevice(device) {
+        if (!selectedProfile?.id || !device?.id) {
+            return;
+        }
+
+        const enabled = device.enabled !== false && !device.revokedAt;
+        setWorkingDevice(device.id);
+        setError('');
+
+        try {
+            const updated = await UpdateDevice({
+                profileId: selectedProfile.id,
+                deviceId: device.id,
+                clientType: device.clientType || 'desktop',
+                label: device.label || 'API Client',
+                scope: device.scope || 'read_write',
+                enabled: !enabled
+            });
+            setDevices((current) => current.map((item) => item.id === updated.id ? updated : item));
+            onNotify?.('success', !enabled ? '设备已启用' : '设备已停用', updated.label || updated.tokenPreview);
+        } catch (updateError) {
+            const message = updateError.message || '无法更新设备。';
+            setError(message);
+            onNotify?.('error', '更新设备失败', message);
+        } finally {
+            setWorkingDevice('');
+        }
+    }
+
+    async function handleRevokeDevice(device) {
+        if (!selectedProfile?.id || !device?.id || !window.confirm(`撤销设备「${device.label || device.tokenPreview || device.id}」？`)) {
+            return;
+        }
+
+        setWorkingDevice(device.id);
+        setError('');
+
+        try {
+            const revoked = await RevokeDevice({
+                profileId: selectedProfile.id,
+                deviceId: device.id
+            });
+            setDevices((current) => current.map((item) => item.id === revoked.id ? revoked : item));
+            onNotify?.('success', '设备 Token 已撤销', revoked.label || revoked.id);
+        } catch (revokeError) {
+            const message = revokeError.message || '无法撤销设备。';
+            setError(message);
+            onNotify?.('error', '撤销设备失败', message);
+        } finally {
+            setWorkingDevice('');
+        }
+    }
+
+    return (
+        <section className="settings-panel">
+            <SettingsPanelHeader
+                action={(
+                    <button type="button" onClick={() => loadDevices()} disabled={loading}>
+                        <RefreshCw className={loading ? 'spin-inline' : ''} size={16} />
+                        刷新
+                    </button>
+                )}
+                body="每个接入点独立维护设备 Token，桌面端不会共享到其他 Base URL。"
+                icon={ShieldCheck}
+                kicker="设备"
+                title="Device Token 管理"
+            />
+            {error ? <p className="settings-error">{error}</p> : null}
+            {devices.length ? (
+                <div className="settings-card-list">
+                    {devices.map((device) => {
+                        const enabled = device.enabled !== false && !device.revokedAt;
+
+                        return (
+                            <article className="settings-item-card" key={device.id}>
+                                <div>
+                                    <strong>{device.label || '未命名设备'}</strong>
+                                    <small>{device.clientType || 'unknown'} · {device.scope || 'read_write'} · {device.tokenPreview || device.id}</small>
+                                    <small>创建：{formatDateTime(device.createdAt)} · 最近使用：{formatDateTime(device.lastSeenAt)}</small>
+                                </div>
+                                <div className="settings-item-actions">
+                                    <StatusBadge ok={enabled} label={enabled ? '启用' : '已停用'} />
+                                    <button type="button" onClick={() => handleToggleDevice(device)} disabled={workingDevice === device.id}>
+                                        {enabled ? '停用' : '启用'}
+                                    </button>
+                                    <button className="danger" type="button" onClick={() => handleRevokeDevice(device)} disabled={workingDevice === device.id || !enabled}>
+                                        <Trash2 size={15} />
+                                        撤销
+                                    </button>
+                                </div>
+                            </article>
+                        );
+                    })}
+                </div>
+            ) : (
+                <p className="insight-empty">{loading ? '正在读取设备 Token。' : '当前接入点还没有可展示的设备 Token。'}</p>
+            )}
+        </section>
+    );
+}
+
+function MaintenancePanel({onNotify, selectedProfile}) {
+    const [retentionDays, setRetentionDays] = useState(90);
+    const [result, setResult] = useState(null);
+    const [loading, setLoading] = useState('');
+    const [error, setError] = useState('');
+
+    async function handleCleanup(dryRun) {
+        if (!selectedProfile?.id) {
+            return;
+        }
+
+        const days = Math.min(Math.max(Number(retentionDays) || 90, 1), 3650);
+        if (!dryRun && !window.confirm(`确认清理 ${days} 天前已删除的数据？`)) {
+            return;
+        }
+
+        setLoading(dryRun ? 'preview' : 'cleanup');
+        setError('');
+
+        try {
+            const cleanup = await RunSystemCleanup({
+                profileId: selectedProfile.id,
+                retentionDays: days,
+                dryRun
+            });
+            setResult(cleanup);
+            onNotify?.('success', dryRun ? '清理预览完成' : '系统清理完成', `邮件 ${formatCount(cleanup.messages)}，附件 ${formatCount(cleanup.attachments)}`);
+        } catch (cleanupError) {
+            const message = cleanupError.message || '当前 Token 可能没有管理员权限。';
+            setError(message);
+            onNotify?.('error', '系统清理失败', message);
+        } finally {
+            setLoading('');
+        }
+    }
+
+    return (
+        <section className="settings-panel">
+            <SettingsPanelHeader
+                body="清理接口要求 Worker 管理员用户权限；设备 Token 被拒绝时会在这里显示服务端错误。"
+                icon={Database}
+                kicker="维护"
+                title="系统清理"
+            />
+            <div className="settings-inline-form">
+                <label>
+                    <span>保留天数</span>
+                    <input
+                        max="3650"
+                        min="1"
+                        type="number"
+                        value={retentionDays}
+                        onChange={(event) => setRetentionDays(event.target.value)}
+                    />
+                </label>
+                <button type="button" onClick={() => handleCleanup(true)} disabled={Boolean(loading)}>
+                    <Eye size={16} />
+                    {loading === 'preview' ? '预览中' : '预览'}
+                </button>
+                <button className="danger" type="button" onClick={() => handleCleanup(false)} disabled={Boolean(loading)}>
+                    <Trash2 size={16} />
+                    {loading === 'cleanup' ? '清理中' : '执行清理'}
+                </button>
+            </div>
+            {error ? <p className="settings-error">{error}</p> : null}
+            {result ? (
+                <div className="settings-mini-metrics">
+                    <span>
+                        <strong>{formatCount(result.messages)}</strong>
+                        <small>邮件</small>
+                    </span>
+                    <span>
+                        <strong>{formatCount(result.attachments)}</strong>
+                        <small>附件</small>
+                    </span>
+                    <span>
+                        <strong>{formatCount(result.accounts)}</strong>
+                        <small>账号</small>
+                    </span>
+                    <span>
+                        <strong>{formatDateTime(result.cutoff)}</strong>
+                        <small>清理边界</small>
+                    </span>
+                </div>
+            ) : null}
+        </section>
+    );
+}
+
+function SecurityPanel({onNotify, selectedProfile}) {
+    const [users, setUsers] = useState([]);
+    const [userForm, setUserForm] = useState(emptyUserForm);
+    const [passwordForm, setPasswordForm] = useState(emptyPasswordForm);
+    const [loading, setLoading] = useState('');
+    const [error, setError] = useState('');
+
+    async function loadUsers() {
+        if (!selectedProfile?.id) {
+            return;
+        }
+
+        setLoading('users');
+        setError('');
+
+        try {
+            const result = await ListUsers({profileId: selectedProfile.id});
+            setUsers(result || []);
+            onNotify?.('success', '管理员用户已刷新', `${(result || []).length} 个用户`);
+        } catch (usersError) {
+            const message = usersError.message || '当前设备 Token 无法读取管理员用户。';
+            setError(message);
+            onNotify?.('error', '读取管理员用户失败', message);
+        } finally {
+            setLoading('');
+        }
+    }
+
+    async function handleCreateUser(event) {
+        event.preventDefault();
+        if (!selectedProfile?.id) {
+            return;
+        }
+
+        if (!userForm.email.includes('@') || userForm.password.length < 8) {
+            setError('请输入有效邮箱，密码至少 8 位。');
+            return;
+        }
+
+        setLoading('create-user');
+        setError('');
+
+        try {
+            const created = await CreateUser({
+                profileId: selectedProfile.id,
+                email: userForm.email,
+                password: userForm.password,
+                displayName: userForm.displayName,
+                avatarColor: userForm.avatarColor
+            });
+            setUsers((current) => [...current, created]);
+            setUserForm(emptyUserForm);
+            onNotify?.('success', '管理员用户已创建', created.email);
+        } catch (createError) {
+            const message = createError.message || '当前 Token 没有管理员用户权限。';
+            setError(message);
+            onNotify?.('error', '创建用户失败', message);
+        } finally {
+            setLoading('');
+        }
+    }
+
+    async function handleToggleUser(user) {
+        if (!selectedProfile?.id || !user?.id) {
+            return;
+        }
+
+        setLoading(`user-${user.id}`);
+        setError('');
+
+        try {
+            const updated = await UpdateUser({
+                profileId: selectedProfile.id,
+                userId: user.id,
+                displayName: user.displayName || '',
+                avatarColor: user.avatarColor || '#dbe7ff',
+                enabled: !user.enabled
+            });
+            setUsers((current) => current.map((item) => item.id === updated.id ? updated : item));
+            onNotify?.('success', updated.enabled ? '用户已启用' : '用户已停用', updated.email);
+        } catch (updateError) {
+            const message = updateError.message || '无法更新用户。';
+            setError(message);
+            onNotify?.('error', '更新用户失败', message);
+        } finally {
+            setLoading('');
+        }
+    }
+
+    async function handleChangePassword(event) {
+        event.preventDefault();
+        if (!selectedProfile?.id) {
+            return;
+        }
+
+        setLoading('password');
+        setError('');
+
+        try {
+            await ChangePassword({
+                profileId: selectedProfile.id,
+                currentPassword: passwordForm.currentPassword,
+                newPassword: passwordForm.newPassword
+            });
+            setPasswordForm(emptyPasswordForm);
+            onNotify?.('success', '密码已修改');
+        } catch (passwordError) {
+            const message = passwordError.message || '设备 Token 不能修改管理员密码。';
+            setError(message);
+            onNotify?.('error', '修改密码失败', message);
+        } finally {
+            setLoading('');
+        }
+    }
+
+    async function handleRevokeSessions() {
+        if (!selectedProfile?.id || !window.confirm('撤销当前管理员用户的其他会话？')) {
+            return;
+        }
+
+        setLoading('sessions');
+        setError('');
+
+        try {
+            await RevokeSessions({profileId: selectedProfile.id});
+            onNotify?.('success', '其他会话已撤销');
+        } catch (sessionsError) {
+            const message = sessionsError.message || '设备 Token 不能撤销管理员会话。';
+            setError(message);
+            onNotify?.('error', '撤销会话失败', message);
+        } finally {
+            setLoading('');
+        }
+    }
+
+    return (
+        <section className="settings-panel settings-panel-wide">
+            <SettingsPanelHeader
+                action={(
+                    <button type="button" onClick={loadUsers} disabled={loading === 'users'}>
+                        <RefreshCw className={loading === 'users' ? 'spin-inline' : ''} size={16} />
+                        读取用户
+                    </button>
+                )}
+                body="这些接口属于 Worker 管理员用户体系，不作为桌面端全局登录。设备 Token 访问失败属于正常权限边界。"
+                icon={KeyRound}
+                kicker="安全"
+                title="管理员用户与会话"
+            />
+            {error ? <p className="settings-error">{error}</p> : null}
+            <div className="security-grid">
+                <form className="settings-form" onSubmit={handleCreateUser}>
+                    <h4>创建管理员</h4>
+                    <label>
+                        <span>邮箱</span>
+                        <input
+                            placeholder="admin@example.com"
+                            value={userForm.email}
+                            onChange={(event) => setUserForm((current) => ({...current, email: event.target.value}))}
+                        />
+                    </label>
+                    <label>
+                        <span>密码</span>
+                        <input
+                            minLength={8}
+                            type="password"
+                            value={userForm.password}
+                            onChange={(event) => setUserForm((current) => ({...current, password: event.target.value}))}
+                        />
+                    </label>
+                    <label>
+                        <span>显示名称</span>
+                        <input
+                            value={userForm.displayName}
+                            onChange={(event) => setUserForm((current) => ({...current, displayName: event.target.value}))}
+                        />
+                    </label>
+                    <button type="submit" disabled={loading === 'create-user'}>
+                        <Plus size={16} />
+                        {loading === 'create-user' ? '创建中' : '创建用户'}
+                    </button>
+                </form>
+
+                <form className="settings-form" onSubmit={handleChangePassword}>
+                    <h4>密码与会话</h4>
+                    <label>
+                        <span>当前密码</span>
+                        <input
+                            type="password"
+                            value={passwordForm.currentPassword}
+                            onChange={(event) => setPasswordForm((current) => ({...current, currentPassword: event.target.value}))}
+                        />
+                    </label>
+                    <label>
+                        <span>新密码</span>
+                        <input
+                            minLength={8}
+                            type="password"
+                            value={passwordForm.newPassword}
+                            onChange={(event) => setPasswordForm((current) => ({...current, newPassword: event.target.value}))}
+                        />
+                    </label>
+                    <div className="settings-inline-actions">
+                        <button type="submit" disabled={loading === 'password'}>
+                            <KeyRound size={16} />
+                            修改密码
+                        </button>
+                        <button type="button" onClick={handleRevokeSessions} disabled={loading === 'sessions'}>
+                            <Power size={16} />
+                            撤销会话
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            {users.length ? (
+                <div className="settings-card-list">
+                    {users.map((user) => (
+                        <article className="settings-item-card" key={user.id}>
+                            <div>
+                                <strong>{user.displayName || user.email}</strong>
+                                <small>{user.email} · {user.role || 'admin'} · 登录：{formatDateTime(user.lastLoginAt)}</small>
+                            </div>
+                            <div className="settings-item-actions">
+                                <StatusBadge ok={user.enabled !== false} label={user.enabled !== false ? '启用' : '停用'} />
+                                <button type="button" onClick={() => handleToggleUser(user)} disabled={loading === `user-${user.id}`}>
+                                    {user.enabled !== false ? '停用' : '启用'}
+                                </button>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            ) : (
+                <p className="insight-empty">点击“读取用户”后显示当前接入点的管理员用户；如果返回 403，说明当前保存的是设备 Token。</p>
+            )}
+        </section>
     );
 }
 
