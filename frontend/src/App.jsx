@@ -317,6 +317,7 @@ function App() {
     const [storagePath, setStoragePath] = useState('');
     const [workspace, setWorkspace] = useState(null);
     const [sidebarPage, setSidebarPage] = useState('profiles');
+    const [contentPage, setContentPage] = useState('start');
     const [endpointDiagnostics, setEndpointDiagnostics] = useState(null);
     const [auditLogs, setAuditLogs] = useState([]);
     const [insightsProfileId, setInsightsProfileId] = useState('');
@@ -679,14 +680,10 @@ function App() {
             const nextProfiles = state.profiles || [];
             setProfiles(nextProfiles);
             setStoragePath(state.storagePath || '');
-
-            const nextSelected = state.selectedProfileId || nextProfiles[0]?.id || '';
-            setSelectedProfileId(nextSelected);
-
-            const profile = nextProfiles.find((item) => item.id === nextSelected);
-            if (profile?.hasToken) {
-                await loadMailbox({profileId: profile.id});
-            }
+            setSelectedProfileId('');
+            setSidebarPage('profiles');
+            setContentPage('start');
+            setWorkspace(null);
         } catch (loadError) {
             showToast('error', '加载本地配置失败', loadError.message || '请检查本地配置文件权限。');
         } finally {
@@ -702,6 +699,8 @@ function App() {
             const profile = await SaveProfile(profileForm);
             setProfiles((current) => upsertProfile(current, profile));
             setSelectedProfileId(profile.id);
+            setSidebarPage('mailbox');
+            setContentPage('mail');
             setProfileForm(emptyProfileForm);
             setWorkspace(null);
             setModal(null);
@@ -717,6 +716,7 @@ function App() {
     async function handleSelectProfile(profile) {
         setSelectedProfileId(profile.id);
         setSidebarPage('mailbox');
+        setContentPage('mail');
         setStatus(null);
         setWorkspace(null);
         setContextMenu(null);
@@ -738,6 +738,7 @@ function App() {
 
     function handleBackToProfiles() {
         setSidebarPage('profiles');
+        setContentPage('start');
         setProfileMenuOpen(false);
         setContextMenu(null);
     }
@@ -805,6 +806,7 @@ function App() {
                 setWorkspace(null);
                 setStatus(null);
                 setSidebarPage('profiles');
+                setContentPage('start');
             }
             showToast('success', '接入点已删除');
         } catch (deleteError) {
@@ -877,6 +879,7 @@ function App() {
             setAuthForm(emptyAuthForm);
             setModal(null);
             setSidebarPage('mailbox');
+            setContentPage('mail');
             await loadMailbox({profileId: profile.id});
             showToast('success', '当前接入点已授权', '设备 Token 只保存到这个接入点，不影响其他接入点。');
         } catch (authError) {
@@ -904,6 +907,7 @@ function App() {
             setManualToken('');
             setModal(null);
             setSidebarPage('mailbox');
+            setContentPage('mail');
             await loadMailbox({profileId: profile.id});
             showToast('success', 'Token 已保存', '该 Token 仅用于当前接入点。');
         } catch (tokenError) {
@@ -1197,6 +1201,9 @@ function App() {
         });
     }
 
+    const showStartPage = contentPage === 'start' || !selectedProfile;
+    const showSettingsPage = contentPage === 'settings';
+
     return (
         <div className="window-shell">
             <TitleBar theme={theme} toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')} />
@@ -1257,73 +1264,102 @@ function App() {
                     value={sidebarWidth}
                 />
 
-                <EmailListPanel
-                    activeFolder={activeFolder}
-                    busy={busy}
-                    messages={visibleMessages}
-                    onCompose={() => setComposerOpen(true)}
-                    onContextMenu={openContextMenu}
-                    onMessageSelect={setSelectedMessageId}
-                    onReload={reloadCurrentMailbox}
-                    searchInputRef={searchInputRef}
-                    searchQuery={searchQuery}
-                    selectedMessageId={selectedMessage?.id || ''}
-                    selectedProfile={selectedProfile}
-                    setSearchQuery={setSearchQuery}
-                    workspace={workspace}
-                />
-
-                <ResizeHandle
-                    active={resizingPanel === 'list'}
-                    label="调整邮件列表宽度"
-                    max={layoutLimits.list.max}
-                    min={layoutLimits.list.min}
-                    onDoubleClick={() => resetLayoutWidth('list')}
-                    onKeyDown={(event) => handleResizeKey('list', event)}
-                    onPointerDown={(event) => startPanelResize('list', event)}
-                    value={listWidth}
-                />
-
-                <main id="reader" className={`reader-panel ${composerOpen ? 'composing' : ''}`}>
-                    {composerOpen ? (
-                        <Composer
-                            account={selectedAccount}
+                {showStartPage ? (
+                    <StartPage
+                        busy={busy}
+                        onAddProfile={handleAddProfile}
+                        onManageProfiles={handleOpenProfileManager}
+                        profiles={profiles}
+                    />
+                ) : showSettingsPage ? (
+                    <SettingsPage
+                        auditLogs={auditLogs}
+                        busy={busy}
+                        canClearCurrentDraft={canClearCurrentDraft}
+                        diagnostics={endpointDiagnostics}
+                        insightsProfileId={insightsProfileId}
+                        onBack={() => setContentPage('mail')}
+                        onClearCurrentDraft={clearCurrentDraft}
+                        onLoadInsights={loadEndpointInsights}
+                        onOpenProfiles={handleOpenProfileManager}
+                        onResetLayout={resetLayoutPreferences}
+                        selectedProfile={selectedProfile}
+                        status={status}
+                        storagePath={storagePath}
+                        theme={theme}
+                        toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
+                    />
+                ) : (
+                    <>
+                        <EmailListPanel
+                            activeFolder={activeFolder}
                             busy={busy}
-                            form={composeForm}
-                            hasSavedDraft={hasSavedDraft}
-                            optionsOpen={composeOptionsOpen}
-                            onChange={setComposeForm}
-                            onClearDraft={clearCurrentDraft}
-                            onClose={() => setComposerOpen(false)}
-                            onSubmit={handleSendMessage}
-                            onToggleOptions={() => setComposeOptionsOpen((value) => !value)}
+                            messages={visibleMessages}
+                            onCompose={() => setComposerOpen(true)}
+                            onContextMenu={openContextMenu}
+                            onMessageSelect={setSelectedMessageId}
+                            onReload={reloadCurrentMailbox}
+                            searchInputRef={searchInputRef}
+                            searchQuery={searchQuery}
+                            selectedMessageId={selectedMessage?.id || ''}
+                            selectedProfile={selectedProfile}
+                            setSearchQuery={setSearchQuery}
+                            workspace={workspace}
                         />
-                    ) : (
-                        <>
-                            <ReaderToolbar
-                                busy={busy}
-                                onArchive={() => handleArchiveMessage(selectedMessage)}
-                                onDelete={() => handleDeleteMessage(selectedMessage)}
-                                onOpenSettings={() => setModal('settings')}
-                                onReload={reloadCurrentMailbox}
-                                onSetStatus={handleSetMessageStatus}
-                                selectedMessage={selectedMessage}
-                                selectedProfile={selectedProfile}
-                            />
 
-                            <ReadingView
-                                busy={busy}
-                                message={selectedMessage}
-                                onArchive={handleArchiveMessage}
-                                onDelete={handleDeleteMessage}
-                                onDownload={handleDownloadAttachment}
-                                onPreview={handlePreviewAttachment}
-                                onSetStatus={handleSetMessageStatus}
-                                selectedProfile={selectedProfile}
-                            />
-                        </>
-                    )}
-                </main>
+                        <ResizeHandle
+                            active={resizingPanel === 'list'}
+                            label="调整邮件列表宽度"
+                            max={layoutLimits.list.max}
+                            min={layoutLimits.list.min}
+                            onDoubleClick={() => resetLayoutWidth('list')}
+                            onKeyDown={(event) => handleResizeKey('list', event)}
+                            onPointerDown={(event) => startPanelResize('list', event)}
+                            value={listWidth}
+                        />
+
+                        <main id="reader" className={`reader-panel ${composerOpen ? 'composing' : ''}`}>
+                            {composerOpen ? (
+                                <Composer
+                                    account={selectedAccount}
+                                    busy={busy}
+                                    form={composeForm}
+                                    hasSavedDraft={hasSavedDraft}
+                                    optionsOpen={composeOptionsOpen}
+                                    onChange={setComposeForm}
+                                    onClearDraft={clearCurrentDraft}
+                                    onClose={() => setComposerOpen(false)}
+                                    onSubmit={handleSendMessage}
+                                    onToggleOptions={() => setComposeOptionsOpen((value) => !value)}
+                                />
+                            ) : (
+                                <>
+                                    <ReaderToolbar
+                                        busy={busy}
+                                        onArchive={() => handleArchiveMessage(selectedMessage)}
+                                        onDelete={() => handleDeleteMessage(selectedMessage)}
+                                        onOpenSettings={() => setContentPage('settings')}
+                                        onReload={reloadCurrentMailbox}
+                                        onSetStatus={handleSetMessageStatus}
+                                        selectedMessage={selectedMessage}
+                                        selectedProfile={selectedProfile}
+                                    />
+
+                                    <ReadingView
+                                        busy={busy}
+                                        message={selectedMessage}
+                                        onArchive={handleArchiveMessage}
+                                        onDelete={handleDeleteMessage}
+                                        onDownload={handleDownloadAttachment}
+                                        onPreview={handlePreviewAttachment}
+                                        onSetStatus={handleSetMessageStatus}
+                                        selectedProfile={selectedProfile}
+                                    />
+                                </>
+                            )}
+                        </main>
+                    </>
+                )}
 
                 {modal === 'profile' ? (
                     <ProfileModal
@@ -1357,26 +1393,6 @@ function App() {
                         onManualTokenChange={setManualToken}
                         onSubmit={handleAuthorize}
                         profile={selectedProfile}
-                    />
-                ) : null}
-
-                {modal === 'settings' ? (
-                    <SettingsModal
-                        auditLogs={auditLogs}
-                        canClearCurrentDraft={canClearCurrentDraft}
-                        diagnostics={endpointDiagnostics}
-                        insightsProfileId={insightsProfileId}
-                        busy={busy}
-                        onClose={() => setModal(null)}
-                        onClearCurrentDraft={clearCurrentDraft}
-                        onLoadInsights={loadEndpointInsights}
-                        selectedProfile={selectedProfile}
-                        status={status}
-                        storagePath={storagePath}
-                        theme={theme}
-                        onOpenProfiles={handleOpenProfileManager}
-                        onResetLayout={resetLayoutPreferences}
-                        toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
                     />
                 ) : null}
 
@@ -1687,6 +1703,63 @@ function Sidebar({
                 ) : null}
             </div>
         </aside>
+    );
+}
+
+function StartPage({onAddProfile, onManageProfiles, profiles}) {
+    const authorizedCount = profiles.filter((profile) => profile.hasToken).length;
+
+    return (
+        <main id="reader" className="workspace-page start-page" aria-label="接入点起始页">
+            <section className="start-page-content">
+                <header className="start-page-header">
+                    <p>OmniMail Desktop</p>
+                    <h1>选择一个接入点开始</h1>
+                    <small>桌面端不会默认进入任何邮箱。选择接入点后，再加载该接入点下的域名、邮箱账号和邮件。</small>
+                </header>
+
+                <div className="start-page-actions">
+                    <button className="primary-action compact" type="button" onClick={onAddProfile}>
+                        <Plus size={16} />
+                        添加接入点
+                    </button>
+                    <button type="button" onClick={onManageProfiles}>
+                        <ShieldCheck size={16} />
+                        管理接入点
+                    </button>
+                </div>
+
+                <div className="start-page-summary">
+                    <span>
+                        <strong>{profiles.length}</strong>
+                        <small>已保存接入点</small>
+                    </span>
+                    <span>
+                        <strong>{authorizedCount}</strong>
+                        <small>已授权</small>
+                    </span>
+                    <span>
+                        <strong>{profiles.length - authorizedCount}</strong>
+                        <small>待授权</small>
+                    </span>
+                </div>
+
+                <div className="start-page-notes">
+                    <p>
+                        <ShieldCheck size={16} />
+                        每个接入点独立保存授权状态和 Device Token。
+                    </p>
+                    <p>
+                        <Mail size={16} />
+                        邮箱数据只在选中接入点后加载。
+                    </p>
+                    <p>
+                        <Database size={16} />
+                        可同时维护多个 Worker Base URL。
+                    </p>
+                </div>
+            </section>
+        </main>
     );
 }
 
@@ -2485,14 +2558,14 @@ function EndpointManagerModal({
     );
 }
 
-function SettingsModal({
+function SettingsPage({
     auditLogs,
     busy,
     canClearCurrentDraft,
     diagnostics,
     insightsProfileId,
+    onBack,
     onClearCurrentDraft,
-    onClose,
     onLoadInsights,
     onOpenProfiles,
     onResetLayout,
@@ -2508,86 +2581,100 @@ function SettingsModal({
     const canLoadInsights = Boolean(selectedProfile?.hasToken);
 
     return (
-        <Modal title="设置" onClose={onClose}>
-            <div className="settings-grid">
-                <SettingRow
-                    icon={theme === 'dark' ? Moon : Sun}
-                    title="外观"
-                    body={theme === 'dark' ? '当前为深色模式' : '当前为浅色模式'}
-                    action={<button type="button" onClick={toggleTheme}>切换主题</button>}
-                />
-                <SettingRow
-                    icon={ShieldCheck}
-                    title="接入点状态"
-                    body={selectedProfile ? selectedProfile.baseUrl : '尚未选择接入点'}
-                    action={<StatusBadge ok={Boolean(status?.ok)} label={status?.ok ? '正常' : '未验证'} />}
-                />
-                <SettingRow
-                    icon={ShieldCheck}
-                    title="接入点管理"
-                    body="集中管理 Base URL、授权状态、Token 和连接测试。"
-                    action={<button type="button" onClick={onOpenProfiles}>打开管理</button>}
-                />
-                <SettingRow
-                    icon={Activity}
-                    title="系统诊断"
-                    body={insightsLoaded
-                        ? `必需项 ${setup?.completedRequired || 0}/${setup?.totalRequired || 0}，总进度 ${setup?.completed || 0}/${setup?.total || 0}`
-                        : canLoadInsights
-                            ? '读取当前接入点的 Worker 绑定、数据量和部署进度。'
-                            : '当前接入点尚未授权，无法读取诊断。'}
-                    action={(
-                        <button type="button" onClick={() => onLoadInsights(selectedProfile)} disabled={!canLoadInsights || busy === 'insights'}>
-                            {busy === 'insights' ? '读取中' : insightsLoaded ? '刷新' : '读取'}
-                        </button>
-                    )}
-                />
-                <SettingRow
-                    icon={ClipboardList}
-                    title="审计日志"
-                    body={insightsLoaded
-                        ? `已加载最近 ${auditLogs.length} 条，接入点累计 ${formatCount(auditCount)} 条。`
-                        : '读取当前接入点最近的授权、邮件和配置变更记录。'}
-                    action={<StatusBadge ok={insightsLoaded} label={insightsLoaded ? '已加载' : '未读取'} />}
-                />
-                <SettingRow
-                    icon={Mail}
-                    title="本机草稿"
-                    body="写信草稿按当前接入点和发件账号分别保存在本机。"
-                    action={<button type="button" onClick={onClearCurrentDraft} disabled={!canClearCurrentDraft}>清除当前草稿</button>}
-                />
-                <SettingRow
-                    icon={PanelLeftOpen}
-                    title="布局偏好"
-                    body="恢复侧栏、邮件列表宽度和侧栏收起状态。"
-                    action={<button type="button" onClick={onResetLayout}>恢复默认</button>}
-                />
-                <SettingRow
-                    icon={KeyRound}
-                    title="快捷键"
-                    body="Ctrl K 搜索，J/K 切换邮件，R 刷新，N 写邮件。"
-                    action={<StatusBadge ok label="已启用" />}
-                />
-                <SettingRow
-                    icon={ShieldCheck}
-                    title="本地存储"
-                    body={storagePath || '正在读取本地配置路径'}
-                    action={<StatusBadge ok label="本机" />}
-                />
-                <SettingRow
-                    icon={KeyRound}
-                    title="Token 存储"
-                    body="Windows 下使用 DPAPI 按接入点分别保护本地设备 Token。"
-                    action={<StatusBadge ok label="已启用" />}
-                />
+        <main id="reader" className="workspace-page settings-page" aria-label="设置">
+            <header className="settings-page-header">
+                <button className="page-back-button" type="button" onClick={onBack}>
+                    <ArrowLeft size={16} />
+                    返回邮箱
+                </button>
+                <div>
+                    <p>设置</p>
+                    <h1>工作台设置</h1>
+                    <small>{selectedProfile ? selectedProfile.baseUrl : '尚未选择接入点'}</small>
+                </div>
+            </header>
+
+            <div className="settings-page-body">
+                <div className="settings-grid">
+                    <SettingRow
+                        icon={theme === 'dark' ? Moon : Sun}
+                        title="外观"
+                        body={theme === 'dark' ? '当前为深色模式' : '当前为浅色模式'}
+                        action={<button type="button" onClick={toggleTheme}>切换主题</button>}
+                    />
+                    <SettingRow
+                        icon={ShieldCheck}
+                        title="接入点状态"
+                        body={selectedProfile ? selectedProfile.baseUrl : '尚未选择接入点'}
+                        action={<StatusBadge ok={Boolean(status?.ok)} label={status?.ok ? '正常' : '未验证'} />}
+                    />
+                    <SettingRow
+                        icon={ShieldCheck}
+                        title="接入点管理"
+                        body="集中管理 Base URL、授权状态、Token 和连接测试。"
+                        action={<button type="button" onClick={onOpenProfiles}>打开管理</button>}
+                    />
+                    <SettingRow
+                        icon={Activity}
+                        title="系统诊断"
+                        body={insightsLoaded
+                            ? `必需项 ${setup?.completedRequired || 0}/${setup?.totalRequired || 0}，总进度 ${setup?.completed || 0}/${setup?.total || 0}`
+                            : canLoadInsights
+                                ? '读取当前接入点的 Worker 绑定、数据量和部署进度。'
+                                : '当前接入点尚未授权，无法读取诊断。'}
+                        action={(
+                            <button type="button" onClick={() => onLoadInsights(selectedProfile)} disabled={!canLoadInsights || busy === 'insights'}>
+                                {busy === 'insights' ? '读取中' : insightsLoaded ? '刷新' : '读取'}
+                            </button>
+                        )}
+                    />
+                    <SettingRow
+                        icon={ClipboardList}
+                        title="审计日志"
+                        body={insightsLoaded
+                            ? `已加载最近 ${auditLogs.length} 条，接入点累计 ${formatCount(auditCount)} 条。`
+                            : '读取当前接入点最近的授权、邮件和配置变更记录。'}
+                        action={<StatusBadge ok={insightsLoaded} label={insightsLoaded ? '已加载' : '未读取'} />}
+                    />
+                    <SettingRow
+                        icon={Mail}
+                        title="本机草稿"
+                        body="写信草稿按当前接入点和发件账号分别保存在本机。"
+                        action={<button type="button" onClick={onClearCurrentDraft} disabled={!canClearCurrentDraft}>清除当前草稿</button>}
+                    />
+                    <SettingRow
+                        icon={PanelLeftOpen}
+                        title="布局偏好"
+                        body="恢复侧栏、邮件列表宽度和侧栏收起状态。"
+                        action={<button type="button" onClick={onResetLayout}>恢复默认</button>}
+                    />
+                    <SettingRow
+                        icon={KeyRound}
+                        title="快捷键"
+                        body="Ctrl K 搜索，J/K 切换邮件，R 刷新，N 写邮件。"
+                        action={<StatusBadge ok label="已启用" />}
+                    />
+                    <SettingRow
+                        icon={ShieldCheck}
+                        title="本地存储"
+                        body={storagePath || '正在读取本地配置路径'}
+                        action={<StatusBadge ok label="本机" />}
+                    />
+                    <SettingRow
+                        icon={KeyRound}
+                        title="Token 存储"
+                        body="Windows 下使用 DPAPI 按接入点分别保护本地设备 Token。"
+                        action={<StatusBadge ok label="已启用" />}
+                    />
+                </div>
+                {insightsLoaded ? (
+                    <>
+                        <DiagnosticsPanel diagnostics={diagnostics} />
+                        <AuditLogPanel logs={auditLogs} />
+                    </>
+                ) : null}
             </div>
-            {insightsLoaded ? (
-                <>
-                    <DiagnosticsPanel diagnostics={diagnostics} />
-                    <AuditLogPanel logs={auditLogs} />
-                </>
-            ) : null}
-        </Modal>
+        </main>
     );
 }
 
