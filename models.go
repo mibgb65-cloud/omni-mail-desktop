@@ -329,6 +329,14 @@ type DiagnosticProgress struct {
 	Steps             []DiagnosticStep `json:"steps"`
 }
 
+type EndpointHealth struct {
+	ProfileID   string               `json:"profileId"`
+	CheckedAt   string               `json:"checkedAt"`
+	Connection  *ConnectionStatus    `json:"connection"`
+	Diagnostics *EndpointDiagnostics `json:"diagnostics"`
+	Error       string               `json:"error"`
+}
+
 type DiagnosticStep struct {
 	ID       string `json:"id"`
 	Label    string `json:"label"`

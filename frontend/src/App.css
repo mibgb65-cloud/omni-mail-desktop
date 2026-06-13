@@ -2160,6 +2160,131 @@ button:disabled {
     gap: var(--space-4);
 }
 
+.endpoint-health-panel {
+    display: grid;
+    gap: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-4);
+}
+
+.endpoint-health-panel header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin: 0;
+}
+
+.endpoint-health-panel header p,
+.endpoint-health-panel header h2,
+.endpoint-health-panel header small {
+    margin: 0;
+}
+
+.endpoint-health-panel header p {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 620;
+}
+
+.endpoint-health-panel header h2 {
+    margin-top: 2px;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.endpoint-health-panel header small {
+    display: block;
+    margin-top: 4px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.endpoint-health-panel button {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    gap: var(--space-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 0 var(--space-3);
+    font-weight: 620;
+}
+
+.endpoint-health-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-2);
+}
+
+.endpoint-health-metrics span {
+    min-width: 0;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-3);
+}
+
+.endpoint-health-metrics strong,
+.endpoint-health-metrics small {
+    display: block;
+}
+
+.endpoint-health-metrics strong {
+    color: var(--text-primary);
+    font-size: 18px;
+    line-height: 1.1;
+}
+
+.endpoint-health-metrics small {
+    margin-top: 4px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.endpoint-health-list {
+    display: grid;
+    gap: var(--space-1);
+}
+
+.endpoint-health-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) auto repeat(3, minmax(86px, 0.45fr));
+    align-items: center;
+    gap: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-3);
+}
+
+.endpoint-health-row div,
+.endpoint-health-row span {
+    min-width: 0;
+}
+
+.endpoint-health-row strong,
+.endpoint-health-row small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.endpoint-health-row strong {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.endpoint-health-row small {
+    margin-top: 2px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
 .endpoint-manager-summary {
     display: flex;
     align-items: center;
@@ -2261,6 +2386,10 @@ button:disabled {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--space-2);
+}
+
+.endpoint-meta-grid-expanded {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .endpoint-meta-grid span {
@@ -3124,7 +3253,9 @@ button:disabled {
         flex-direction: column;
     }
 
-    .endpoint-meta-grid {
+    .endpoint-health-row,
+    .endpoint-meta-grid,
+    .endpoint-meta-grid-expanded {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -3198,7 +3329,18 @@ button:disabled {
         grid-template-columns: 1fr;
     }
 
-    .endpoint-meta-grid {
+    .endpoint-health-panel header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .endpoint-health-metrics,
+    .endpoint-meta-grid,
+    .endpoint-meta-grid-expanded {
+        grid-template-columns: 1fr;
+    }
+
+    .endpoint-health-row {
         grid-template-columns: 1fr;
     }
 

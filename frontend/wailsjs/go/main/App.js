@@ -18,6 +18,10 @@ export function ChangePassword(arg1) {
   return window['go']['main']['App']['ChangePassword'](arg1);
 }
 
+export function CheckEndpointHealth(arg1) {
+  return window['go']['main']['App']['CheckEndpointHealth'](arg1);
+}
+
 export function ClearAdminSession(arg1) {
   return window['go']['main']['App']['ClearAdminSession'](arg1);
 }

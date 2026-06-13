@@ -863,6 +863,65 @@ func (a *App) GetEndpointDiagnostics(profileID string) (*EndpointDiagnostics, er
 	return &diagnostics, nil
 }
 
+func (a *App) CheckEndpointHealth(profileID string) (*EndpointHealth, error) {
+	if err := a.ensureReady(); err != nil {
+		return nil, err
+	}
+
+	profile, ok := a.store.get(profileID)
+	if !ok {
+		return nil, errors.New("profile not found")
+	}
+
+	health := &EndpointHealth{
+		ProfileID: profile.ID,
+		CheckedAt: time.Now().Format(time.RFC3339),
+		Connection: &ConnectionStatus{
+			BaseURL: profile.BaseURL,
+			OK:      false,
+			Message: "unreachable",
+		},
+	}
+
+	var healthData HealthData
+	if err := a.apiRequest(profile.BaseURL, profile.Token, http.MethodGet, "/api/health", nil, &healthData); err != nil {
+		health.Connection.Message = err.Error()
+		health.Error = err.Error()
+		return health, nil
+	}
+
+	health.Connection.OK = true
+	health.Connection.Message = "ok"
+	health.Connection.Health = &healthData
+
+	var auth AuthStatus
+	if err := a.apiRequest(profile.BaseURL, profile.Token, http.MethodGet, "/api/v1/auth/status", nil, &auth); err != nil {
+		health.Connection.AuthError = err.Error()
+	} else {
+		health.Connection.AuthStatus = &auth
+	}
+
+	if profile.Token == "" {
+		return health, nil
+	}
+
+	var diagnostics EndpointDiagnostics
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodGet,
+		"/api/v1/system/diagnostics",
+		nil,
+		&diagnostics,
+	); err != nil {
+		health.Error = err.Error()
+		return health, nil
+	}
+
+	health.Diagnostics = &diagnostics
+	return health, nil
+}
+
 func (a *App) ListAuditLogs(input AuditLogRequest) ([]AuditLog, error) {
 	profile, err := a.profileForRequest(input.ProfileID)
 	if err != nil {

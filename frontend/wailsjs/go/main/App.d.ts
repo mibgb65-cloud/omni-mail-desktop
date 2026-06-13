@@ -10,6 +10,8 @@ export function AuthorizeProfile(arg1:main.DeviceAuthInput):Promise<main.Profile
 
 export function ChangePassword(arg1:main.ChangePasswordInput):Promise<main.AuthResult>;
 
+export function CheckEndpointHealth(arg1:string):Promise<main.EndpointHealth>;
+
 export function ClearAdminSession(arg1:main.ProfileActionInput):Promise<main.Profile>;
 
 export function CreateAccount(arg1:main.AccountInput):Promise<main.Account>;
