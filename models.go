@@ -44,6 +44,11 @@ type MailboxRequest struct {
 	AccountID string `json:"accountId"`
 }
 
+type AuditLogRequest struct {
+	ProfileID string `json:"profileId"`
+	Limit     int    `json:"limit"`
+}
+
 type SendMessageInput struct {
 	ProfileID string `json:"profileId"`
 	AccountID string `json:"accountId"`
@@ -105,6 +110,84 @@ type HealthData struct {
 	Service string `json:"service"`
 	Runtime string `json:"runtime"`
 	Storage string `json:"storage"`
+}
+
+type EndpointDiagnostics struct {
+	Service           string              `json:"service"`
+	Runtime           string              `json:"runtime"`
+	Storage           string              `json:"storage"`
+	GeneratedAt       string              `json:"generatedAt"`
+	Bindings          DiagnosticBindings  `json:"bindings"`
+	ConfiguredDomains []string            `json:"configuredDomains"`
+	Counts            DiagnosticCounts    `json:"counts"`
+	Latest            DiagnosticLatest    `json:"latest"`
+	Setup             *DiagnosticProgress `json:"setup"`
+}
+
+type DiagnosticBindings struct {
+	D1        bool `json:"d1"`
+	R2        bool `json:"r2"`
+	Assets    bool `json:"assets"`
+	JWTSecret bool `json:"jwtSecret"`
+}
+
+type DiagnosticCounts struct {
+	Domains          int `json:"domains"`
+	Accounts         int `json:"accounts"`
+	EnabledAccounts  int `json:"enabledAccounts"`
+	Messages         int `json:"messages"`
+	UnreadMessages   int `json:"unreadMessages"`
+	StarredMessages  int `json:"starredMessages"`
+	ArchivedMessages int `json:"archivedMessages"`
+	Attachments      int `json:"attachments"`
+	Devices          int `json:"devices"`
+	AuditLogs        int `json:"auditLogs"`
+	Users            int `json:"users"`
+}
+
+type DiagnosticLatest struct {
+	Inbound *LatestInboundMessage `json:"inbound"`
+	Audit   *AuditLog             `json:"audit"`
+}
+
+type LatestInboundMessage struct {
+	ID             string `json:"id"`
+	AccountID      string `json:"accountId"`
+	AccountAddress string `json:"accountAddress"`
+	FromEmail      string `json:"fromEmail"`
+	Subject        string `json:"subject"`
+	ReceivedAt     string `json:"receivedAt"`
+}
+
+type DiagnosticProgress struct {
+	Ready             bool             `json:"ready"`
+	Completed         int              `json:"completed"`
+	Total             int              `json:"total"`
+	CompletedRequired int              `json:"completedRequired"`
+	TotalRequired     int              `json:"totalRequired"`
+	NextStep          *DiagnosticStep  `json:"nextStep"`
+	Steps             []DiagnosticStep `json:"steps"`
+}
+
+type DiagnosticStep struct {
+	ID       string `json:"id"`
+	Label    string `json:"label"`
+	Required bool   `json:"required"`
+	Complete bool   `json:"complete"`
+	Hint     string `json:"hint"`
+}
+
+type AuditLog struct {
+	ID           string         `json:"id"`
+	ActorID      string         `json:"actorId"`
+	ActorEmail   string         `json:"actorEmail"`
+	Action       string         `json:"action"`
+	ResourceType string         `json:"resourceType"`
+	ResourceID   string         `json:"resourceId"`
+	Summary      string         `json:"summary"`
+	Metadata     map[string]any `json:"metadata"`
+	IP           string         `json:"ip"`
+	CreatedAt    string         `json:"createdAt"`
 }
 
 type AuthStatus struct {

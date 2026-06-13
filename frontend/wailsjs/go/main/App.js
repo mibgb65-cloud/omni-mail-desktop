@@ -22,8 +22,16 @@ export function DownloadAttachment(arg1) {
   return window['go']['main']['App']['DownloadAttachment'](arg1);
 }
 
+export function GetEndpointDiagnostics(arg1) {
+  return window['go']['main']['App']['GetEndpointDiagnostics'](arg1);
+}
+
 export function GetInitialState() {
   return window['go']['main']['App']['GetInitialState']();
+}
+
+export function ListAuditLogs(arg1) {
+  return window['go']['main']['App']['ListAuditLogs'](arg1);
 }
 
 export function LoadMailbox(arg1) {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -256,6 +257,58 @@ func (a *App) LoadMailbox(input MailboxRequest) (*MailboxPayload, error) {
 	}
 
 	return payload, nil
+}
+
+func (a *App) GetEndpointDiagnostics(profileID string) (*EndpointDiagnostics, error) {
+	profile, err := a.profileForRequest(profileID)
+	if err != nil {
+		return nil, err
+	}
+
+	var diagnostics EndpointDiagnostics
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodGet,
+		"/api/v1/system/diagnostics",
+		nil,
+		&diagnostics,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &diagnostics, nil
+}
+
+func (a *App) ListAuditLogs(input AuditLogRequest) ([]AuditLog, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	limit := input.Limit
+	if limit <= 0 {
+		limit = 30
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	var logs []AuditLog
+	path := "/api/v1/audit-logs?limit=" + queryEscape(strconv.Itoa(limit))
+	if err := a.apiRequest(profile.BaseURL, profile.Token, http.MethodGet, path, nil, &logs); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return logs, nil
 }
 
 func (a *App) SendMessage(input SendMessageInput) (*SendResult, error) {

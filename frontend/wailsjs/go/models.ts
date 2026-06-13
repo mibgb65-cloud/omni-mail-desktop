@@ -1,5 +1,5 @@
 export namespace main {
-	
+
 	export class APIUser {
 	    id: string;
 	    email: string;
@@ -8,11 +8,11 @@ export namespace main {
 	    clientType: string;
 	    label: string;
 	    scope: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new APIUser(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -37,11 +37,11 @@ export namespace main {
 	    time: string;
 	    latestAt: string;
 	    unread: number;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new Account(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -64,11 +64,11 @@ export namespace main {
 	    mimeType: string;
 	    size: number;
 	    downloadable: boolean;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new Attachment(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -78,16 +78,60 @@ export namespace main {
 	        this.downloadable = source["downloadable"];
 	    }
 	}
+	export class AuditLog {
+	    id: string;
+	    actorId: string;
+	    actorEmail: string;
+	    action: string;
+	    resourceType: string;
+	    resourceId: string;
+	    summary: string;
+	    metadata: Record<string, any>;
+	    ip: string;
+	    createdAt: string;
+
+	    static createFrom(source: any = {}) {
+	        return new AuditLog(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.actorId = source["actorId"];
+	        this.actorEmail = source["actorEmail"];
+	        this.action = source["action"];
+	        this.resourceType = source["resourceType"];
+	        this.resourceId = source["resourceId"];
+	        this.summary = source["summary"];
+	        this.metadata = source["metadata"];
+	        this.ip = source["ip"];
+	        this.createdAt = source["createdAt"];
+	    }
+	}
+	export class AuditLogRequest {
+	    profileId: string;
+	    limit: number;
+
+	    static createFrom(source: any = {}) {
+	        return new AuditLogRequest(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.limit = source["limit"];
+	    }
+	}
 	export class AuthStatus {
 	    storage: string;
 	    requiresSetup: boolean;
 	    authenticated: boolean;
 	    user?: APIUser;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new AuthStatus(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.storage = source["storage"];
@@ -95,7 +139,7 @@ export namespace main {
 	        this.authenticated = source["authenticated"];
 	        this.user = this.convertValues(source["user"], APIUser);
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -118,11 +162,11 @@ export namespace main {
 	    service: string;
 	    runtime: string;
 	    storage: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new HealthData(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.service = source["service"];
@@ -137,11 +181,11 @@ export namespace main {
 	    authError: string;
 	    health?: HealthData;
 	    authStatus?: AuthStatus;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new ConnectionStatus(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.baseUrl = source["baseUrl"];
@@ -151,7 +195,7 @@ export namespace main {
 	        this.health = this.convertValues(source["health"], HealthData);
 	        this.authStatus = this.convertValues(source["authStatus"], AuthStatus);
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -176,11 +220,11 @@ export namespace main {
 	    password: string;
 	    deviceLabel: string;
 	    setup: boolean;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new DeviceAuthInput(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -190,81 +234,92 @@ export namespace main {
 	        this.setup = source["setup"];
 	    }
 	}
-	export class DownloadAttachmentInput {
-	    profileId: string;
-	    attachmentId: string;
-	    filename: string;
-	
+	export class DiagnosticBindings {
+	    d1: boolean;
+	    r2: boolean;
+	    assets: boolean;
+	    jwtSecret: boolean;
+
 	    static createFrom(source: any = {}) {
-	        return new DownloadAttachmentInput(source);
+	        return new DiagnosticBindings(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.profileId = source["profileId"];
-	        this.attachmentId = source["attachmentId"];
-	        this.filename = source["filename"];
+	        this.d1 = source["d1"];
+	        this.r2 = source["r2"];
+	        this.assets = source["assets"];
+	        this.jwtSecret = source["jwtSecret"];
 	    }
 	}
-	export class DownloadResult {
-	    path: string;
-	    size: number;
-	
+	export class DiagnosticCounts {
+	    domains: number;
+	    accounts: number;
+	    enabledAccounts: number;
+	    messages: number;
+	    unreadMessages: number;
+	    starredMessages: number;
+	    archivedMessages: number;
+	    attachments: number;
+	    devices: number;
+	    auditLogs: number;
+	    users: number;
+
 	    static createFrom(source: any = {}) {
-	        return new DownloadResult(source);
+	        return new DiagnosticCounts(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.path = source["path"];
-	        this.size = source["size"];
+	        this.domains = source["domains"];
+	        this.accounts = source["accounts"];
+	        this.enabledAccounts = source["enabledAccounts"];
+	        this.messages = source["messages"];
+	        this.unreadMessages = source["unreadMessages"];
+	        this.starredMessages = source["starredMessages"];
+	        this.archivedMessages = source["archivedMessages"];
+	        this.attachments = source["attachments"];
+	        this.devices = source["devices"];
+	        this.auditLogs = source["auditLogs"];
+	        this.users = source["users"];
 	    }
 	}
-	
-	export class Profile {
+	export class LatestInboundMessage {
 	    id: string;
-	    name: string;
-	    baseUrl: string;
-	    deviceLabel: string;
-	    hasToken: boolean;
-	    tokenPreview: string;
-	    createdAt: string;
-	    updatedAt: string;
-	    lastUsedAt: string;
-	
+	    accountId: string;
+	    accountAddress: string;
+	    fromEmail: string;
+	    subject: string;
+	    receivedAt: string;
+
 	    static createFrom(source: any = {}) {
-	        return new Profile(source);
+	        return new LatestInboundMessage(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
-	        this.name = source["name"];
-	        this.baseUrl = source["baseUrl"];
-	        this.deviceLabel = source["deviceLabel"];
-	        this.hasToken = source["hasToken"];
-	        this.tokenPreview = source["tokenPreview"];
-	        this.createdAt = source["createdAt"];
-	        this.updatedAt = source["updatedAt"];
-	        this.lastUsedAt = source["lastUsedAt"];
+	        this.accountId = source["accountId"];
+	        this.accountAddress = source["accountAddress"];
+	        this.fromEmail = source["fromEmail"];
+	        this.subject = source["subject"];
+	        this.receivedAt = source["receivedAt"];
 	    }
 	}
-	export class InitialState {
-	    profiles: Profile[];
-	    selectedProfileId: string;
-	    storagePath: string;
-	
+	export class DiagnosticLatest {
+	    inbound?: LatestInboundMessage;
+	    audit?: AuditLog;
+
 	    static createFrom(source: any = {}) {
-	        return new InitialState(source);
+	        return new DiagnosticLatest(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.profiles = this.convertValues(source["profiles"], Profile);
-	        this.selectedProfileId = source["selectedProfileId"];
-	        this.storagePath = source["storagePath"];
+	        this.inbound = this.convertValues(source["inbound"], LatestInboundMessage);
+	        this.audit = this.convertValues(source["audit"], AuditLog);
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -283,6 +338,209 @@ export namespace main {
 		    return a;
 		}
 	}
+	export class DiagnosticStep {
+	    id: string;
+	    label: string;
+	    required: boolean;
+	    complete: boolean;
+	    hint: string;
+
+	    static createFrom(source: any = {}) {
+	        return new DiagnosticStep(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.required = source["required"];
+	        this.complete = source["complete"];
+	        this.hint = source["hint"];
+	    }
+	}
+	export class DiagnosticProgress {
+	    ready: boolean;
+	    completed: number;
+	    total: number;
+	    completedRequired: number;
+	    totalRequired: number;
+	    nextStep?: DiagnosticStep;
+	    steps: DiagnosticStep[];
+
+	    static createFrom(source: any = {}) {
+	        return new DiagnosticProgress(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ready = source["ready"];
+	        this.completed = source["completed"];
+	        this.total = source["total"];
+	        this.completedRequired = source["completedRequired"];
+	        this.totalRequired = source["totalRequired"];
+	        this.nextStep = this.convertValues(source["nextStep"], DiagnosticStep);
+	        this.steps = this.convertValues(source["steps"], DiagnosticStep);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
+	export class DownloadAttachmentInput {
+	    profileId: string;
+	    attachmentId: string;
+	    filename: string;
+
+	    static createFrom(source: any = {}) {
+	        return new DownloadAttachmentInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.attachmentId = source["attachmentId"];
+	        this.filename = source["filename"];
+	    }
+	}
+	export class DownloadResult {
+	    path: string;
+	    size: number;
+
+	    static createFrom(source: any = {}) {
+	        return new DownloadResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.size = source["size"];
+	    }
+	}
+	export class EndpointDiagnostics {
+	    service: string;
+	    runtime: string;
+	    storage: string;
+	    generatedAt: string;
+	    bindings: DiagnosticBindings;
+	    configuredDomains: string[];
+	    counts: DiagnosticCounts;
+	    latest: DiagnosticLatest;
+	    setup?: DiagnosticProgress;
+
+	    static createFrom(source: any = {}) {
+	        return new EndpointDiagnostics(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.service = source["service"];
+	        this.runtime = source["runtime"];
+	        this.storage = source["storage"];
+	        this.generatedAt = source["generatedAt"];
+	        this.bindings = this.convertValues(source["bindings"], DiagnosticBindings);
+	        this.configuredDomains = source["configuredDomains"];
+	        this.counts = this.convertValues(source["counts"], DiagnosticCounts);
+	        this.latest = this.convertValues(source["latest"], DiagnosticLatest);
+	        this.setup = this.convertValues(source["setup"], DiagnosticProgress);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
+	export class Profile {
+	    id: string;
+	    name: string;
+	    baseUrl: string;
+	    deviceLabel: string;
+	    hasToken: boolean;
+	    tokenPreview: string;
+	    createdAt: string;
+	    updatedAt: string;
+	    lastUsedAt: string;
+
+	    static createFrom(source: any = {}) {
+	        return new Profile(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.baseUrl = source["baseUrl"];
+	        this.deviceLabel = source["deviceLabel"];
+	        this.hasToken = source["hasToken"];
+	        this.tokenPreview = source["tokenPreview"];
+	        this.createdAt = source["createdAt"];
+	        this.updatedAt = source["updatedAt"];
+	        this.lastUsedAt = source["lastUsedAt"];
+	    }
+	}
+	export class InitialState {
+	    profiles: Profile[];
+	    selectedProfileId: string;
+	    storagePath: string;
+
+	    static createFrom(source: any = {}) {
+	        return new InitialState(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profiles = this.convertValues(source["profiles"], Profile);
+	        this.selectedProfileId = source["selectedProfileId"];
+	        this.storagePath = source["storagePath"];
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
 	export class Message {
 	    id: string;
 	    accountId: string;
@@ -298,11 +556,11 @@ export namespace main {
 	    archivedAt: string;
 	    deletedAt: string;
 	    attachments: Attachment[];
-	
+
 	    static createFrom(source: any = {}) {
 	        return new Message(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -320,7 +578,7 @@ export namespace main {
 	        this.deletedAt = source["deletedAt"];
 	        this.attachments = this.convertValues(source["attachments"], Attachment);
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -346,11 +604,11 @@ export namespace main {
 	    messages: Message[];
 	    selectedDomain: string;
 	    selectedAccountId: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new MailboxPayload(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profile = this.convertValues(source["profile"], Profile);
@@ -360,7 +618,7 @@ export namespace main {
 	        this.selectedDomain = source["selectedDomain"];
 	        this.selectedAccountId = source["selectedAccountId"];
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -383,11 +641,11 @@ export namespace main {
 	    profileId: string;
 	    domain: string;
 	    accountId: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new MailboxRequest(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -395,15 +653,15 @@ export namespace main {
 	        this.accountId = source["accountId"];
 	    }
 	}
-	
+
 	export class MessageActionInput {
 	    profileId: string;
 	    messageId: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new MessageActionInput(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -428,16 +686,16 @@ export namespace main {
 	        this.starred = source["starred"];
 	    }
 	}
-	
+
 	export class ProfileInput {
 	    id: string;
 	    name: string;
 	    baseUrl: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new ProfileInput(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -453,11 +711,11 @@ export namespace main {
 	    bcc: string;
 	    subject: string;
 	    text: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new SendMessageInput(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -473,11 +731,11 @@ export namespace main {
 	    queued: boolean;
 	    provider: string;
 	    messageId: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new SendResult(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.queued = source["queued"];
@@ -489,11 +747,11 @@ export namespace main {
 	    profileId: string;
 	    deviceToken: string;
 	    deviceLabel: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new TokenInput(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];

@@ -1,13 +1,17 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {
+    Activity,
     Archive,
     ArchiveRestore,
     CircleAlert,
     CircleCheck,
+    ClipboardList,
+    Database,
     Download,
     FileText,
     Inbox,
     KeyRound,
+    ListChecks,
     Mail,
     MailOpen,
     MailPlus,
@@ -42,7 +46,9 @@ import {
     DeleteMessage,
     DeleteProfile,
     DownloadAttachment,
+    GetEndpointDiagnostics,
     GetInitialState,
+    ListAuditLogs,
     LoadMailbox,
     SaveProfile,
     SaveProfileToken,
@@ -159,6 +165,69 @@ function formatProfileDate(value) {
     });
 }
 
+function formatDateTime(value) {
+    if (!value) {
+        return '暂无';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+const auditActionLabels = {
+    'account.delete': '删除邮箱账号',
+    'account.settings_update': '更新邮箱设置',
+    'account.update': '更新邮箱账号',
+    'auth.change_password': '修改密码',
+    'auth.login': '管理员登录',
+    'auth.logout': '退出登录',
+    'auth.revoke_sessions': '撤销会话',
+    'auth.setup': '初始化管理员',
+    'auth.update_profile': '更新资料',
+    'device.create': '创建设备 Token',
+    'device.revoke': '撤销设备 Token',
+    'device.update': '更新设备 Token',
+    'domain.create': '添加域名',
+    'mail.received': '收到邮件',
+    'mail.rules_applied': '应用收信规则',
+    'message.delete': '删除邮件',
+    'message.send': '发送邮件',
+    'message.status_update': '更新邮件状态',
+    'user.create': '创建用户',
+    'user.update': '更新用户'
+};
+
+function formatAuditAction(action) {
+    return auditActionLabels[action] || action || '未知操作';
+}
+
+function formatCount(value) {
+    const number = Number(value || 0);
+    return Number.isFinite(number) ? number.toLocaleString('zh-CN') : '0';
+}
+
+function metadataSummary(metadata) {
+    const entries = Object.entries(metadata || {}).filter(([, value]) => value !== null && value !== undefined && value !== '');
+    if (!entries.length) {
+        return '';
+    }
+
+    return entries.slice(0, 3).map(([key, value]) => {
+        const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        return `${key}: ${text}`;
+    }).join(' · ');
+}
+
 function formatFileSize(value) {
     if (!value || value <= 0) {
         return '未知大小';
@@ -220,6 +289,9 @@ function App() {
     const [status, setStatus] = useState(null);
     const [storagePath, setStoragePath] = useState('');
     const [workspace, setWorkspace] = useState(null);
+    const [endpointDiagnostics, setEndpointDiagnostics] = useState(null);
+    const [auditLogs, setAuditLogs] = useState([]);
+    const [insightsProfileId, setInsightsProfileId] = useState('');
     const [selectedMessageId, setSelectedMessageId] = useState('');
     const [activeFolder, setActiveFolder] = useState('inbox');
     const [searchQuery, setSearchQuery] = useState('');
@@ -319,6 +391,12 @@ function App() {
     useEffect(() => {
         localStorage.setItem('omnimail_list_width', String(listWidth));
     }, [listWidth]);
+
+    useEffect(() => {
+        setEndpointDiagnostics(null);
+        setAuditLogs([]);
+        setInsightsProfileId('');
+    }, [selectedProfileId]);
 
     useEffect(() => {
         if (!composerOpen) {
@@ -701,6 +779,34 @@ function App() {
             showToast(result.ok ? 'success' : 'error', result.ok ? '连接成功' : '连接失败', result.message);
         } catch (testError) {
             showToast('error', '连接测试失败', testError.message || '无法访问该接入点。');
+        } finally {
+            setBusy('');
+        }
+    }
+
+    async function loadEndpointInsights(profile = selectedProfile) {
+        if (!profile) {
+            return;
+        }
+
+        if (!profile.hasToken) {
+            showToast('error', '接入点尚未授权', '保存 Device Token 后才能读取诊断和审计日志。');
+            return;
+        }
+
+        setBusy('insights');
+
+        try {
+            const [diagnostics, logs] = await Promise.all([
+                GetEndpointDiagnostics(profile.id),
+                ListAuditLogs({profileId: profile.id, limit: 30})
+            ]);
+            setEndpointDiagnostics(diagnostics || null);
+            setAuditLogs(logs || []);
+            setInsightsProfileId(profile.id);
+            showToast('success', '接入点诊断已更新', profile.baseUrl);
+        } catch (insightError) {
+            showToast('error', '加载接入点诊断失败', insightError.message || '请检查当前接入点 Token 权限。');
         } finally {
             setBusy('');
         }
@@ -1130,9 +1236,14 @@ function App() {
 
                 {modal === 'settings' ? (
                     <SettingsModal
+                        auditLogs={auditLogs}
                         canClearCurrentDraft={canClearCurrentDraft}
+                        diagnostics={endpointDiagnostics}
+                        insightsProfileId={insightsProfileId}
+                        busy={busy}
                         onClose={() => setModal(null)}
                         onClearCurrentDraft={clearCurrentDraft}
+                        onLoadInsights={loadEndpointInsights}
                         selectedProfile={selectedProfile}
                         status={status}
                         storagePath={storagePath}
@@ -2009,9 +2120,14 @@ function EndpointManagerModal({
 }
 
 function SettingsModal({
+    auditLogs,
+    busy,
     canClearCurrentDraft,
+    diagnostics,
+    insightsProfileId,
     onClearCurrentDraft,
     onClose,
+    onLoadInsights,
     onOpenProfiles,
     onResetLayout,
     selectedProfile,
@@ -2020,6 +2136,11 @@ function SettingsModal({
     theme,
     toggleTheme
 }) {
+    const insightsLoaded = Boolean(selectedProfile && insightsProfileId === selectedProfile.id && diagnostics);
+    const setup = insightsLoaded ? diagnostics.setup : null;
+    const auditCount = insightsLoaded ? diagnostics.counts?.auditLogs || auditLogs.length : 0;
+    const canLoadInsights = Boolean(selectedProfile?.hasToken);
+
     return (
         <Modal title="设置" onClose={onClose}>
             <div className="settings-grid">
@@ -2040,6 +2161,28 @@ function SettingsModal({
                     title="接入点管理"
                     body="集中管理 Base URL、授权状态、Token 和连接测试。"
                     action={<button type="button" onClick={onOpenProfiles}>打开管理</button>}
+                />
+                <SettingRow
+                    icon={Activity}
+                    title="系统诊断"
+                    body={insightsLoaded
+                        ? `必需项 ${setup?.completedRequired || 0}/${setup?.totalRequired || 0}，总进度 ${setup?.completed || 0}/${setup?.total || 0}`
+                        : canLoadInsights
+                            ? '读取当前接入点的 Worker 绑定、数据量和部署进度。'
+                            : '当前接入点尚未授权，无法读取诊断。'}
+                    action={(
+                        <button type="button" onClick={() => onLoadInsights(selectedProfile)} disabled={!canLoadInsights || busy === 'insights'}>
+                            {busy === 'insights' ? '读取中' : insightsLoaded ? '刷新' : '读取'}
+                        </button>
+                    )}
+                />
+                <SettingRow
+                    icon={ClipboardList}
+                    title="审计日志"
+                    body={insightsLoaded
+                        ? `已加载最近 ${auditLogs.length} 条，接入点累计 ${formatCount(auditCount)} 条。`
+                        : '读取当前接入点最近的授权、邮件和配置变更记录。'}
+                    action={<StatusBadge ok={insightsLoaded} label={insightsLoaded ? '已加载' : '未读取'} />}
                 />
                 <SettingRow
                     icon={Mail}
@@ -2072,7 +2215,171 @@ function SettingsModal({
                     action={<StatusBadge ok label="已启用" />}
                 />
             </div>
+            {insightsLoaded ? (
+                <>
+                    <DiagnosticsPanel diagnostics={diagnostics} />
+                    <AuditLogPanel logs={auditLogs} />
+                </>
+            ) : null}
         </Modal>
+    );
+}
+
+function DiagnosticsPanel({diagnostics}) {
+    const bindings = diagnostics.bindings || {};
+    const counts = diagnostics.counts || {};
+    const setup = diagnostics.setup || {};
+    const latest = diagnostics.latest || {};
+    const domains = diagnostics.configuredDomains || [];
+    const stats = [
+        {label: '域名', value: counts.domains},
+        {label: '邮箱账号', value: counts.accounts},
+        {label: '邮件', value: counts.messages},
+        {label: '未读', value: counts.unreadMessages},
+        {label: '附件', value: counts.attachments},
+        {label: '设备 Token', value: counts.devices}
+    ];
+    const bindingItems = [
+        {label: 'D1 数据库', ok: bindings.d1},
+        {label: 'R2 附件桶', ok: bindings.r2},
+        {label: '静态资源', ok: bindings.assets},
+        {label: 'JWT_SECRET', ok: bindings.jwtSecret}
+    ];
+
+    return (
+        <section className="insight-panel" aria-label="系统诊断详情">
+            <header>
+                <div>
+                    <p>当前接入点诊断</p>
+                    <h3>{diagnostics.service || 'omnimail'} · {diagnostics.storage || 'unknown'}</h3>
+                    <small>生成时间：{formatDateTime(diagnostics.generatedAt)}</small>
+                </div>
+                <StatusBadge ok={Boolean(setup.ready)} label={setup.ready ? '必需项就绪' : '需要配置'} />
+            </header>
+
+            <div className="insight-metrics">
+                {stats.map((item) => (
+                    <span key={item.label}>
+                        <strong>{formatCount(item.value)}</strong>
+                        <small>{item.label}</small>
+                    </span>
+                ))}
+            </div>
+
+            <div className="insight-columns">
+                <section>
+                    <div className="insight-section-title">
+                        <Database size={16} />
+                        <h4>绑定状态</h4>
+                    </div>
+                    <div className="diagnostic-list">
+                        {bindingItems.map((item) => (
+                            <span className={item.ok ? 'ok' : ''} key={item.label}>
+                                {item.ok ? <CircleCheck size={15} /> : <CircleAlert size={15} />}
+                                {item.label}
+                            </span>
+                        ))}
+                    </div>
+                    <p className="insight-muted">
+                        {domains.length ? `配置域名：${domains.join('，')}` : '尚未读取到配置域名。'}
+                    </p>
+                </section>
+
+                <section>
+                    <div className="insight-section-title">
+                        <ListChecks size={16} />
+                        <h4>部署进度</h4>
+                    </div>
+                    <div className="diagnostic-step-list">
+                        {(setup.steps || []).map((step) => (
+                            <article className={`diagnostic-step ${step.complete ? 'complete' : ''}`} key={step.id}>
+                                {step.complete ? <CircleCheck size={15} /> : <CircleAlert size={15} />}
+                                <span>
+                                    <strong>{step.label}{step.required ? '' : ' · 可选'}</strong>
+                                    <small>{step.complete ? '已完成' : step.hint}</small>
+                                </span>
+                            </article>
+                        ))}
+                    </div>
+                </section>
+            </div>
+
+            <div className="diagnostic-latest">
+                <p>
+                    <strong>最新来信</strong>
+                    <span>
+                        {latest.inbound
+                            ? `${latest.inbound.subject || '无主题'} · ${latest.inbound.fromEmail || latest.inbound.accountAddress || '未知发件人'} · ${formatDateTime(latest.inbound.receivedAt)}`
+                            : '暂无来信记录'}
+                    </span>
+                </p>
+                <p>
+                    <strong>最新审计</strong>
+                    <span>
+                        {latest.audit
+                            ? `${formatAuditAction(latest.audit.action)} · ${formatDateTime(latest.audit.createdAt)}`
+                            : '暂无审计记录'}
+                    </span>
+                </p>
+            </div>
+        </section>
+    );
+}
+
+function AuditLogPanel({logs}) {
+    return (
+        <section className="insight-panel" aria-label="最近审计日志">
+            <header>
+                <div>
+                    <p>最近审计日志</p>
+                    <h3>当前接入点活动记录</h3>
+                </div>
+                <StatusBadge ok={logs.length > 0} label={logs.length ? `${logs.length} 条` : '暂无'} />
+            </header>
+
+            {logs.length ? (
+                <div className="audit-log-list">
+                    {logs.map((log) => {
+                        const actor = log.actorEmail || log.actorId || '系统';
+                        const resource = [log.resourceType, log.resourceId].filter(Boolean).join(' · ');
+                        const metadata = metadataSummary(log.metadata);
+
+                        return (
+                            <article className="audit-log-item" key={log.id}>
+                                <div>
+                                    <strong>{formatAuditAction(log.action)}</strong>
+                                    <small>{log.summary || resource || '无摘要'}</small>
+                                </div>
+                                <dl>
+                                    <div>
+                                        <dt>操作者</dt>
+                                        <dd>{actor}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>时间</dt>
+                                        <dd>{formatDateTime(log.createdAt)}</dd>
+                                    </div>
+                                    {resource ? (
+                                        <div>
+                                            <dt>资源</dt>
+                                            <dd>{resource}</dd>
+                                        </div>
+                                    ) : null}
+                                    {metadata ? (
+                                        <div>
+                                            <dt>元数据</dt>
+                                            <dd>{metadata}</dd>
+                                        </div>
+                                    ) : null}
+                                </dl>
+                            </article>
+                        );
+                    })}
+                </div>
+            ) : (
+                <p className="insight-empty">当前接入点还没有可展示的审计日志。</p>
+            )}
+        </section>
     );
 }
 

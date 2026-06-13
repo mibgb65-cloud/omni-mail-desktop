@@ -12,7 +12,11 @@ export function DeleteProfile(arg1:string):Promise<void>;
 
 export function DownloadAttachment(arg1:main.DownloadAttachmentInput):Promise<main.DownloadResult>;
 
+export function GetEndpointDiagnostics(arg1:string):Promise<main.EndpointDiagnostics>;
+
 export function GetInitialState():Promise<main.InitialState>;
+
+export function ListAuditLogs(arg1:main.AuditLogRequest):Promise<Array<main.AuditLog>>;
 
 export function LoadMailbox(arg1:main.MailboxRequest):Promise<main.MailboxPayload>;
 
