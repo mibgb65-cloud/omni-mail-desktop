@@ -44,6 +44,14 @@ type MailboxRequest struct {
 	AccountID string `json:"accountId"`
 }
 
+type AccountInput struct {
+	ProfileID string `json:"profileId"`
+	Domain    string `json:"domain"`
+	LocalPart string `json:"localPart"`
+	Address   string `json:"address"`
+	Name      string `json:"name"`
+}
+
 type AuditLogRequest struct {
 	ProfileID string `json:"profileId"`
 	Limit     int    `json:"limit"`

@@ -44,6 +44,7 @@ import {
 import {
     ArchiveMessage,
     AuthorizeProfile,
+    CreateAccount,
     DeleteMessage,
     DeleteProfile,
     DownloadAttachment,
@@ -62,6 +63,7 @@ import {
 } from '../wailsjs/go/main/App';
 
 const emptyProfileForm = {id: '', name: '', baseUrl: ''};
+const emptyAccountForm = {localPart: '', name: ''};
 const emptyAuthForm = {email: '', password: '', deviceLabel: 'Windows 桌面端', setup: false};
 const emptyComposeForm = {to: '', cc: '', bcc: '', subject: '', text: ''};
 const layoutDefaults = {
@@ -304,6 +306,7 @@ function App() {
     const [profiles, setProfiles] = useState([]);
     const [selectedProfileId, setSelectedProfileId] = useState('');
     const [profileForm, setProfileForm] = useState(emptyProfileForm);
+    const [accountForm, setAccountForm] = useState(emptyAccountForm);
     const [authForm, setAuthForm] = useState(emptyAuthForm);
     const [composeForm, setComposeForm] = useState(emptyComposeForm);
     const [composeOptionsOpen, setComposeOptionsOpen] = useState(false);
@@ -730,6 +733,21 @@ function App() {
         setModal('profile');
     }
 
+    function handleAddAccount() {
+        if (!selectedProfile?.hasToken) {
+            showToast('error', '接入点尚未授权', '请先保存当前接入点的 Device Token。');
+            return;
+        }
+
+        if (!workspace?.selectedDomain) {
+            showToast('error', '缺少域名', '请先选择或加载一个域名。');
+            return;
+        }
+
+        setAccountForm(emptyAccountForm);
+        setModal('account');
+    }
+
     function handleOpenProfileManager() {
         setProfileMenuOpen(false);
         setModal('profiles');
@@ -878,6 +896,46 @@ function App() {
             showToast('success', 'Token 已保存', '该 Token 仅用于当前接入点。');
         } catch (tokenError) {
             showToast('error', '保存 Token 失败', tokenError.message || 'Token 不能为空。');
+        } finally {
+            setBusy('');
+        }
+    }
+
+    async function handleAccountSubmit(event) {
+        event.preventDefault();
+        if (!selectedProfile || !workspace?.selectedDomain) {
+            return;
+        }
+
+        const localPart = accountForm.localPart.trim();
+        if (!localPart) {
+            showToast('error', '缺少邮箱名称', '请输入 @ 前面的邮箱前缀。');
+            return;
+        }
+        if (localPart.includes('@')) {
+            showToast('error', '邮箱名称不需要包含域名', `这里只填写 @${workspace.selectedDomain} 前面的部分。`);
+            return;
+        }
+
+        setBusy('account');
+
+        try {
+            const account = await CreateAccount({
+                profileId: selectedProfile.id,
+                domain: workspace.selectedDomain,
+                localPart,
+                name: accountForm.name.trim()
+            });
+            setAccountForm(emptyAccountForm);
+            setModal(null);
+            await loadMailbox({
+                profileId: selectedProfile.id,
+                domain: account.domain || workspace.selectedDomain,
+                accountId: account.id
+            });
+            showToast('success', '邮箱账号已添加', account.address || `${localPart}@${workspace.selectedDomain}`);
+        } catch (accountError) {
+            showToast('error', '添加邮箱账号失败', accountError.message || '请检查邮箱名称和域名。');
         } finally {
             setBusy('');
         }
@@ -1151,6 +1209,7 @@ function App() {
                         domain: workspace?.selectedDomain || '',
                         accountId
                     })}
+                    onAddAccount={handleAddAccount}
                     onAddProfile={handleAddProfile}
                     onAuth={() => handleOpenAuth(selectedProfile)}
                     onDeleteProfile={handleDeleteProfile}
@@ -1259,6 +1318,17 @@ function App() {
                         onChange={setProfileForm}
                         onClose={() => setModal(null)}
                         onSubmit={handleProfileSubmit}
+                    />
+                ) : null}
+
+                {modal === 'account' && selectedProfile ? (
+                    <AccountModal
+                        busy={busy}
+                        domain={workspace?.selectedDomain || ''}
+                        form={accountForm}
+                        onChange={setAccountForm}
+                        onClose={() => setModal(null)}
+                        onSubmit={handleAccountSubmit}
                     />
                 ) : null}
 
@@ -1384,6 +1454,7 @@ function Sidebar({
     collapsed,
     folderCounts,
     onAccountChange,
+    onAddAccount,
     onAddProfile,
     onAuth,
     onCompose,
@@ -1453,7 +1524,15 @@ function Sidebar({
             </div>
 
             <div className="nav-section accounts-section">
-                <SectionLabel>邮箱账号</SectionLabel>
+                <div className="section-row">
+                    <SectionLabel>邮箱账号</SectionLabel>
+                    <IconButton
+                        icon={Plus}
+                        label="添加邮箱账号"
+                        onClick={onAddAccount}
+                        disabled={!workspace?.selectedDomain}
+                    />
+                </div>
                 {(workspace?.accounts || []).map((account) => (
                     <button
                         className={`account-chip ${account.id === workspace?.selectedAccountId ? 'active' : ''}`}
@@ -2089,6 +2168,47 @@ function ProfileModal({busy, form, onChange, onClose, onSubmit}) {
                     <button type="button" onClick={onClose}>取消</button>
                     <button className="primary-action" type="submit" disabled={busy === 'profile'}>
                         保存接入点
+                    </button>
+                </footer>
+            </form>
+        </Modal>
+    );
+}
+
+function AccountModal({busy, domain, form, onChange, onClose, onSubmit}) {
+    const localPart = form.localPart.trim();
+    const previewAddress = localPart && domain ? `${localPart}@${domain}` : domain ? `name@${domain}` : '';
+
+    return (
+        <Modal title="添加邮箱账号" onClose={onClose}>
+            <form className="modal-form" onSubmit={onSubmit}>
+                <p className="modal-note">在当前域名下创建一个还没有收到邮件的邮箱账号。</p>
+                <label>
+                    <span>邮箱名称</span>
+                    <div className="account-address-input">
+                        <input
+                            value={form.localPart}
+                            onChange={(event) => onChange({...form, localPart: event.target.value})}
+                            placeholder="例如 support"
+                            required
+                            autoFocus
+                        />
+                        <strong>@{domain || 'domain'}</strong>
+                    </div>
+                </label>
+                <label>
+                    <span>显示名称</span>
+                    <input
+                        value={form.name}
+                        onChange={(event) => onChange({...form, name: event.target.value})}
+                        placeholder="例如 Support Desk，可留空"
+                    />
+                </label>
+                <p className="modal-note">将创建：{previewAddress || '选择域名后显示完整邮箱地址'}</p>
+                <footer>
+                    <button type="button" onClick={onClose}>取消</button>
+                    <button className="primary-action" type="submit" disabled={busy === 'account' || !domain}>
+                        创建邮箱账号
                     </button>
                 </footer>
             </form>

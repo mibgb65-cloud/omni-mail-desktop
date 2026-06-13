@@ -10,6 +10,10 @@ export function AuthorizeProfile(arg1) {
   return window['go']['main']['App']['AuthorizeProfile'](arg1);
 }
 
+export function CreateAccount(arg1) {
+  return window['go']['main']['App']['CreateAccount'](arg1);
+}
+
 export function DeleteMessage(arg1) {
   return window['go']['main']['App']['DeleteMessage'](arg1);
 }

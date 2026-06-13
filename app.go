@@ -260,6 +260,41 @@ func (a *App) LoadMailbox(input MailboxRequest) (*MailboxPayload, error) {
 	return payload, nil
 }
 
+func (a *App) CreateAccount(input AccountInput) (*Account, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	payload := map[string]string{
+		"name": strings.TrimSpace(input.Name),
+	}
+
+	address := strings.TrimSpace(input.Address)
+	if address != "" {
+		payload["address"] = address
+	} else {
+		localPart := strings.TrimSpace(input.LocalPart)
+		domain := strings.TrimSpace(input.Domain)
+		if localPart == "" || domain == "" {
+			return nil, errors.New("mailbox name and domain are required")
+		}
+		payload["localPart"] = localPart
+		payload["domain"] = domain
+	}
+
+	var account Account
+	if err := a.apiRequest(profile.BaseURL, profile.Token, http.MethodPost, "/api/v1/accounts", payload, &account); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &account, nil
+}
+
 func (a *App) GetEndpointDiagnostics(profileID string) (*EndpointDiagnostics, error) {
 	profile, err := a.profileForRequest(profileID)
 	if err != nil {

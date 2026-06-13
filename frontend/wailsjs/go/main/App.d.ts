@@ -6,6 +6,8 @@ export function ArchiveMessage(arg1:main.MessageActionInput):Promise<main.Messag
 
 export function AuthorizeProfile(arg1:main.DeviceAuthInput):Promise<main.Profile>;
 
+export function CreateAccount(arg1:main.AccountInput):Promise<main.Account>;
+
 export function DeleteMessage(arg1:main.MessageActionInput):Promise<main.Message>;
 
 export function DeleteProfile(arg1:string):Promise<void>;

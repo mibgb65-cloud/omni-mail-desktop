@@ -58,6 +58,26 @@ export namespace main {
 	        this.unread = source["unread"];
 	    }
 	}
+	export class AccountInput {
+	    profileId: string;
+	    domain: string;
+	    localPart: string;
+	    address: string;
+	    name: string;
+
+	    static createFrom(source: any = {}) {
+	        return new AccountInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.domain = source["domain"];
+	        this.localPart = source["localPart"];
+	        this.address = source["address"];
+	        this.name = source["name"];
+	    }
+	}
 	export class Attachment {
 	    id: string;
 	    filename: string;
