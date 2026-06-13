@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"os"
@@ -436,6 +437,50 @@ func (a *App) DownloadAttachment(input DownloadAttachmentInput) (*DownloadResult
 	}, nil
 }
 
+func (a *App) PreviewAttachment(input DownloadAttachmentInput) (*AttachmentPreview, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	content, contentType, err := a.apiDownload(
+		profile.BaseURL,
+		profile.Token,
+		"/api/v1/attachments/"+pathEscape(input.AttachmentID)+"?disposition=inline",
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(content) > 12*1024*1024 {
+		return nil, errors.New("attachment is too large to preview")
+	}
+
+	mimeType := normalizePreviewMime(contentType, input.Filename)
+	previewType := attachmentPreviewType(mimeType)
+	if previewType == "file" {
+		return nil, errors.New("attachment type is not previewable")
+	}
+
+	preview := &AttachmentPreview{
+		Filename:    safeDownloadName(input.Filename),
+		MimeType:    mimeType,
+		Size:        int64(len(content)),
+		PreviewType: previewType,
+		DataURL:     "data:" + mimeType + ";base64," + base64.StdEncoding.EncodeToString(content),
+	}
+
+	if previewType == "text" {
+		preview.Text = string(content)
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return preview, nil
+}
+
 func (a *App) profileForRequest(profileID string) (storedProfile, error) {
 	if err := a.ensureReady(); err != nil {
 		return storedProfile{}, err
@@ -473,4 +518,54 @@ func (a *App) messageAction(input MessageActionInput, path string, method string
 	}
 
 	return &result, nil
+}
+
+func normalizePreviewMime(contentType string, filename string) string {
+	mimeType := strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))
+	if mimeType != "" && mimeType != "application/octet-stream" {
+		return mimeType
+	}
+
+	lowerName := strings.ToLower(filename)
+	switch {
+	case strings.HasSuffix(lowerName, ".png"):
+		return "image/png"
+	case strings.HasSuffix(lowerName, ".jpg"), strings.HasSuffix(lowerName, ".jpeg"):
+		return "image/jpeg"
+	case strings.HasSuffix(lowerName, ".gif"):
+		return "image/gif"
+	case strings.HasSuffix(lowerName, ".webp"):
+		return "image/webp"
+	case strings.HasSuffix(lowerName, ".svg"):
+		return "image/svg+xml"
+	case strings.HasSuffix(lowerName, ".pdf"):
+		return "application/pdf"
+	case strings.HasSuffix(lowerName, ".txt"), strings.HasSuffix(lowerName, ".log"), strings.HasSuffix(lowerName, ".md"):
+		return "text/plain"
+	case strings.HasSuffix(lowerName, ".json"):
+		return "application/json"
+	case strings.HasSuffix(lowerName, ".csv"):
+		return "text/csv"
+	case strings.HasSuffix(lowerName, ".xml"):
+		return "application/xml"
+	default:
+		return "application/octet-stream"
+	}
+}
+
+func attachmentPreviewType(mimeType string) string {
+	mimeType = strings.ToLower(strings.TrimSpace(mimeType))
+	switch {
+	case strings.HasPrefix(mimeType, "image/"):
+		return "image"
+	case mimeType == "application/pdf":
+		return "pdf"
+	case strings.HasPrefix(mimeType, "text/"),
+		strings.Contains(mimeType, "json"),
+		strings.Contains(mimeType, "xml"),
+		strings.Contains(mimeType, "csv"):
+		return "text"
+	default:
+		return "file"
+	}
 }

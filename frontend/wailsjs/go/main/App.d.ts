@@ -20,6 +20,8 @@ export function ListAuditLogs(arg1:main.AuditLogRequest):Promise<Array<main.Audi
 
 export function LoadMailbox(arg1:main.MailboxRequest):Promise<main.MailboxPayload>;
 
+export function PreviewAttachment(arg1:main.DownloadAttachmentInput):Promise<main.AttachmentPreview>;
+
 export function SaveProfile(arg1:main.ProfileInput):Promise<main.Profile>;
 
 export function SaveProfileToken(arg1:main.TokenInput):Promise<main.Profile>;

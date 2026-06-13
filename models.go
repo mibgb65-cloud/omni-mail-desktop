@@ -88,6 +88,15 @@ type DownloadResult struct {
 	Size int64  `json:"size"`
 }
 
+type AttachmentPreview struct {
+	Filename    string `json:"filename"`
+	MimeType    string `json:"mimeType"`
+	Size        int64  `json:"size"`
+	PreviewType string `json:"previewType"`
+	DataURL     string `json:"dataUrl"`
+	Text        string `json:"text"`
+}
+
 type MailboxPayload struct {
 	Profile           Profile   `json:"profile"`
 	Domains           []string  `json:"domains"`

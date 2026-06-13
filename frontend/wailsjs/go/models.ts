@@ -78,6 +78,28 @@ export namespace main {
 	        this.downloadable = source["downloadable"];
 	    }
 	}
+	export class AttachmentPreview {
+	    filename: string;
+	    mimeType: string;
+	    size: number;
+	    previewType: string;
+	    dataUrl: string;
+	    text: string;
+
+	    static createFrom(source: any = {}) {
+	        return new AttachmentPreview(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.filename = source["filename"];
+	        this.mimeType = source["mimeType"];
+	        this.size = source["size"];
+	        this.previewType = source["previewType"];
+	        this.dataUrl = source["dataUrl"];
+	        this.text = source["text"];
+	    }
+	}
 	export class AuditLog {
 	    id: string;
 	    actorId: string;

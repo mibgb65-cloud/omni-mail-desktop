@@ -8,6 +8,7 @@ import {
     ClipboardList,
     Database,
     Download,
+    Eye,
     FileText,
     Inbox,
     KeyRound,
@@ -50,6 +51,7 @@ import {
     GetInitialState,
     ListAuditLogs,
     LoadMailbox,
+    PreviewAttachment,
     SaveProfile,
     SaveProfileToken,
     SelectProfile,
@@ -275,6 +277,27 @@ function attachmentKind(attachment) {
     }
 
     return {label: extension, short: extension.slice(0, 3)};
+}
+
+function attachmentMime(attachment = {}) {
+    return String(attachment.mimeType || '').toLowerCase();
+}
+
+function isTextPreviewMime(mimeType = '') {
+    return mimeType.startsWith('text/')
+        || mimeType.includes('json')
+        || mimeType.includes('xml')
+        || mimeType.includes('csv');
+}
+
+function isPreviewableAttachment(attachment = {}) {
+    const mimeType = attachmentMime(attachment);
+    const filename = String(attachment.filename || '').toLowerCase();
+
+    return mimeType.startsWith('image/')
+        || mimeType === 'application/pdf'
+        || isTextPreviewMime(mimeType)
+        || /\.(png|jpe?g|gif|webp|svg|pdf|txt|log|md|json|csv|xml)$/.test(filename);
 }
 
 function App() {
@@ -1077,6 +1100,24 @@ function App() {
         }
     }
 
+    async function handlePreviewAttachment(attachment) {
+        if (!selectedProfile || !attachment) {
+            return null;
+        }
+
+        setBusy('preview');
+
+        try {
+            return await PreviewAttachment({
+                profileId: selectedProfile.id,
+                attachmentId: attachment.id,
+                filename: attachment.filename
+            });
+        } finally {
+            setBusy('');
+        }
+    }
+
     function openContextMenu(event, message) {
         event.preventDefault();
         setContextMenu({
@@ -1203,6 +1244,7 @@ function App() {
                                 onArchive={handleArchiveMessage}
                                 onDelete={handleDeleteMessage}
                                 onDownload={handleDownloadAttachment}
+                                onPreview={handlePreviewAttachment}
                                 onSetStatus={handleSetMessageStatus}
                                 selectedProfile={selectedProfile}
                             />
@@ -1619,12 +1661,63 @@ function ReaderToolbar({busy, onArchive, onDelete, onOpenSettings, onReload, onS
     );
 }
 
-function ReadingView({busy, message, onArchive, onDelete, onDownload, onSetStatus, selectedProfile}) {
+function ReadingView({busy, message, onArchive, onDelete, onDownload, onPreview, onSetStatus, selectedProfile}) {
     const [detailsExpanded, setDetailsExpanded] = useState(false);
+    const [attachmentPreview, setAttachmentPreview] = useState({
+        status: 'idle',
+        attachment: null,
+        result: null,
+        error: ''
+    });
 
     useEffect(() => {
         setDetailsExpanded(false);
+        setAttachmentPreview({
+            status: 'idle',
+            attachment: null,
+            result: null,
+            error: ''
+        });
     }, [message?.id]);
+
+    async function openAttachmentPreview(attachment) {
+        if (!onPreview || !attachment.downloadable || !isPreviewableAttachment(attachment)) {
+            return;
+        }
+
+        setAttachmentPreview({
+            status: 'loading',
+            attachment,
+            result: null,
+            error: ''
+        });
+
+        try {
+            const result = await onPreview(attachment);
+            setAttachmentPreview({
+                status: 'ready',
+                attachment,
+                result,
+                error: ''
+            });
+        } catch (previewError) {
+            setAttachmentPreview({
+                status: 'error',
+                attachment,
+                result: null,
+                error: previewError.message || '附件预览失败'
+            });
+        }
+    }
+
+    function closeAttachmentPreview() {
+        setAttachmentPreview({
+            status: 'idle',
+            attachment: null,
+            result: null,
+            error: ''
+        });
+    }
 
     if (busy === 'initial') {
         return <ReadingSkeleton />;
@@ -1745,6 +1838,7 @@ function ReadingView({busy, message, onArchive, onDelete, onDownload, onSetStatu
                         {message.attachments.map((attachment) => {
                             const kind = attachmentKind(attachment);
                             const filename = attachment.filename || '未命名附件';
+                            const previewable = attachment.downloadable && isPreviewableAttachment(attachment);
 
                             return (
                                 <article className="attachment-card" key={attachment.id}>
@@ -1759,22 +1853,95 @@ function ReadingView({busy, message, onArchive, onDelete, onDownload, onSetStatu
                                             {attachment.mimeType ? ` · ${attachment.mimeType}` : ''}
                                         </small>
                                     </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => onDownload(attachment)}
-                                        disabled={!attachment.downloadable || busy === 'download'}
-                                        title={attachment.downloadable ? '保存附件' : '附件内容未存储'}
-                                        aria-label={attachment.downloadable ? `保存附件 ${filename}` : `${filename} 不可下载`}
-                                    >
-                                        <Download size={16} />
-                                    </button>
+                                    <span className="attachment-actions">
+                                        <button
+                                            type="button"
+                                            onClick={() => openAttachmentPreview(attachment)}
+                                            disabled={!previewable || busy === 'preview'}
+                                            title={previewable ? '预览附件' : '该附件类型暂不支持预览'}
+                                            aria-label={previewable ? `预览附件 ${filename}` : `${filename} 不可预览`}
+                                        >
+                                            <Eye size={16} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => onDownload(attachment)}
+                                            disabled={!attachment.downloadable || busy === 'download'}
+                                            title={attachment.downloadable ? '保存附件' : '附件内容未存储'}
+                                            aria-label={attachment.downloadable ? `保存附件 ${filename}` : `${filename} 不可下载`}
+                                        >
+                                            <Download size={16} />
+                                        </button>
+                                    </span>
                                 </article>
                             );
                         })}
                     </div>
                 ) : null}
             </section>
+            <AttachmentPreviewDialog preview={attachmentPreview} onClose={closeAttachmentPreview} />
         </article>
+    );
+}
+
+function AttachmentPreviewDialog({onClose, preview}) {
+    if (!preview || preview.status === 'idle') {
+        return null;
+    }
+
+    const attachment = preview.attachment || {};
+    const result = preview.result || {};
+    const filename = result.filename || attachment.filename || '附件预览';
+    const previewType = result.previewType || '';
+    const mimeType = result.mimeType || attachment.mimeType || '';
+
+    return (
+        <div className="attachment-preview-backdrop" role="presentation" onMouseDown={onClose}>
+            <section
+                className="attachment-preview-card"
+                role="dialog"
+                aria-modal="true"
+                aria-label={`预览附件 ${filename}`}
+                onMouseDown={(event) => event.stopPropagation()}
+            >
+                <header>
+                    <div>
+                        <p>附件预览</p>
+                        <h2>{filename}</h2>
+                        <small>{mimeType || '未知类型'} · {formatFileSize(result.size || attachment.size)}</small>
+                    </div>
+                    <IconButton icon={X} label="关闭附件预览" onClick={onClose} />
+                </header>
+
+                <div className={`attachment-preview-body ${previewType}`}>
+                    {preview.status === 'loading' ? (
+                        <div className="attachment-preview-state">
+                            <RefreshCw className="spin-inline" size={20} />
+                            <span>正在读取附件</span>
+                        </div>
+                    ) : null}
+
+                    {preview.status === 'error' ? (
+                        <div className="attachment-preview-state error">
+                            <CircleAlert size={22} />
+                            <span>{preview.error || '附件预览失败'}</span>
+                        </div>
+                    ) : null}
+
+                    {preview.status === 'ready' && previewType === 'image' ? (
+                        <img src={result.dataUrl} alt={filename} />
+                    ) : null}
+
+                    {preview.status === 'ready' && previewType === 'pdf' ? (
+                        <iframe src={result.dataUrl} title={filename} />
+                    ) : null}
+
+                    {preview.status === 'ready' && previewType === 'text' ? (
+                        <pre>{result.text || '空文本附件'}</pre>
+                    ) : null}
+                </div>
+            </section>
+        </div>
     );
 }
 

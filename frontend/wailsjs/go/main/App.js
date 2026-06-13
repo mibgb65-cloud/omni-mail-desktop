@@ -38,6 +38,10 @@ export function LoadMailbox(arg1) {
   return window['go']['main']['App']['LoadMailbox'](arg1);
 }
 
+export function PreviewAttachment(arg1) {
+  return window['go']['main']['App']['PreviewAttachment'](arg1);
+}
+
 export function SaveProfile(arg1) {
   return window['go']['main']['App']['SaveProfile'](arg1);
 }
