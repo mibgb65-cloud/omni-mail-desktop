@@ -9,6 +9,7 @@ import {
     Inbox,
     KeyRound,
     Mail,
+    MailOpen,
     MailPlus,
     Maximize2,
     Minus,
@@ -22,6 +23,7 @@ import {
     Send,
     Settings,
     ShieldCheck,
+    Star,
     Sun,
     Trash2,
     X
@@ -46,6 +48,7 @@ import {
     SaveProfileToken,
     SelectProfile,
     SendMessage,
+    SetMessageStatus,
     TestBaseURL,
     UnarchiveMessage
 } from '../wailsjs/go/main/App';
@@ -113,6 +116,20 @@ function invalidRecipients(value) {
 
 function composeHasContent(form) {
     return Object.values(form || {}).some((value) => String(value || '').trim());
+}
+
+function isUnreadMessage(message) {
+    return Boolean(
+        message
+        && message.direction !== 'outbound'
+        && !message.readAt
+        && !message.archivedAt
+        && !message.deletedAt
+    );
+}
+
+function isStarredMessage(message) {
+    return Boolean(message?.starredAt);
 }
 
 function isTypingTarget(event) {
@@ -218,6 +235,7 @@ function App() {
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     const [contextMenu, setContextMenu] = useState(null);
     const searchInputRef = useRef(null);
+    const manualUnreadMessageRef = useRef('');
 
     const selectedProfile = useMemo(
         () => profiles.find((profile) => profile.id === selectedProfileId) || null,
@@ -359,6 +377,36 @@ function App() {
     useEffect(() => {
         setSelectedMessageId(visibleMessages[0]?.id || '');
     }, [activeFolder, searchQuery, workspace?.selectedAccountId]);
+
+    useEffect(() => {
+        if (manualUnreadMessageRef.current && manualUnreadMessageRef.current !== selectedMessage?.id) {
+            manualUnreadMessageRef.current = '';
+        }
+    }, [selectedMessage?.id]);
+
+    useEffect(() => {
+        if (
+            !selectedProfile
+            || !workspace?.selectedAccountId
+            || !isUnreadMessage(selectedMessage)
+            || manualUnreadMessageRef.current === selectedMessage?.id
+        ) {
+            return undefined;
+        }
+
+        const timer = window.setTimeout(() => {
+            handleSetMessageStatus(selectedMessage, {read: true}, {silent: true});
+        }, 500);
+
+        return () => window.clearTimeout(timer);
+    }, [
+        selectedMessage?.id,
+        selectedMessage?.readAt,
+        selectedMessage?.archivedAt,
+        selectedMessage?.deletedAt,
+        selectedProfile?.id,
+        workspace?.selectedAccountId
+    ]);
 
     useEffect(() => {
         if (!toast) {
@@ -838,6 +886,68 @@ function App() {
         }
     }
 
+    async function handleSetMessageStatus(message, payload, options = {}) {
+        if (!selectedProfile || !message) {
+            return;
+        }
+
+        setBusy('message-action');
+
+        try {
+            const updated = await SetMessageStatus({
+                profileId: selectedProfile.id,
+                messageId: message.id,
+                ...payload
+            });
+            const affectsUnread = typeof payload.read === 'boolean'
+                && message.direction !== 'outbound'
+                && !message.archivedAt
+                && !message.deletedAt;
+            const unreadDelta = affectsUnread
+                ? payload.read
+                    ? message.readAt ? 0 : -1
+                    : message.readAt ? 1 : 0
+                : 0;
+            if (!options.silent && typeof payload.read === 'boolean') {
+                manualUnreadMessageRef.current = payload.read ? '' : message.id;
+            }
+
+            setWorkspace((current) => {
+                if (!current) {
+                    return current;
+                }
+
+                const accountId = message.accountId || current.selectedAccountId;
+                return {
+                    ...current,
+                    accounts: unreadDelta === 0
+                        ? current.accounts
+                        : (current.accounts || []).map((account) => (
+                            account.id === accountId
+                                ? {...account, unread: Math.max(0, Number(account.unread || 0) + unreadDelta)}
+                                : account
+                        )),
+                    messages: (current.messages || []).map((item) => (
+                        item.id === message.id ? {...item, ...updated} : item
+                    ))
+                };
+            });
+
+            if (!options.silent) {
+                const title = typeof payload.starred === 'boolean'
+                    ? payload.starred ? '已添加星标' : '已取消星标'
+                    : payload.read ? '已标记为已读' : '已标记为未读';
+                showToast('success', title);
+            }
+        } catch (statusError) {
+            if (!options.silent) {
+                showToast('error', '更新邮件状态失败', statusError.message || '请稍后重试。');
+            }
+        } finally {
+            setBusy('');
+        }
+    }
+
     async function handleDownloadAttachment(attachment) {
         if (!selectedProfile || !attachment) {
             return;
@@ -976,6 +1086,7 @@ function App() {
                                 onDelete={() => handleDeleteMessage(selectedMessage)}
                                 onOpenSettings={() => setModal('settings')}
                                 onReload={reloadCurrentMailbox}
+                                onSetStatus={handleSetMessageStatus}
                                 selectedMessage={selectedMessage}
                                 selectedProfile={selectedProfile}
                             />
@@ -986,6 +1097,7 @@ function App() {
                                 onArchive={handleArchiveMessage}
                                 onDelete={handleDeleteMessage}
                                 onDownload={handleDownloadAttachment}
+                                onSetStatus={handleSetMessageStatus}
                                 selectedProfile={selectedProfile}
                             />
                         </>
@@ -1053,6 +1165,7 @@ function App() {
                         onArchive={handleArchiveMessage}
                         onClose={() => setContextMenu(null)}
                         onDelete={handleDeleteMessage}
+                        onSetStatus={handleSetMessageStatus}
                     />
                 ) : null}
 
@@ -1334,11 +1447,12 @@ function EmailListPanel({
 }
 
 function EmailListItem({message, onContextMenu, onSelect, selected}) {
-    const unread = Boolean(message.unread);
+    const unread = isUnreadMessage(message);
+    const starred = isStarredMessage(message);
 
     return (
         <button
-            className={`mail-row ${selected ? 'selected' : ''}`}
+            className={`mail-row ${selected ? 'selected' : ''} ${unread ? 'unread' : ''} ${starred ? 'starred' : ''}`}
             type="button"
             role="option"
             aria-selected={selected}
@@ -1349,7 +1463,10 @@ function EmailListItem({message, onContextMenu, onSelect, selected}) {
             <span className="mail-row-main">
                 <span className="mail-row-top">
                     <strong>{message.author || message.email || '未知发件人'}</strong>
-                    <time>{formatMessageTime(message.time)}</time>
+                    <span className="mail-row-time">
+                        {starred ? <Star size={12} fill="currentColor" /> : null}
+                        <time>{formatMessageTime(message.time)}</time>
+                    </span>
                 </span>
                 <span className="mail-row-subject">{message.subject || '无主题'}</span>
                 <span className="mail-row-preview">{message.preview || message.body || '无预览内容'}</span>
@@ -1358,7 +1475,10 @@ function EmailListItem({message, onContextMenu, onSelect, selected}) {
     );
 }
 
-function ReaderToolbar({busy, onArchive, onDelete, onOpenSettings, onReload, selectedMessage, selectedProfile}) {
+function ReaderToolbar({busy, onArchive, onDelete, onOpenSettings, onReload, onSetStatus, selectedMessage, selectedProfile}) {
+    const unread = isUnreadMessage(selectedMessage);
+    const starred = isStarredMessage(selectedMessage);
+
     return (
         <header className="reader-toolbar">
             <div>
@@ -1367,6 +1487,19 @@ function ReaderToolbar({busy, onArchive, onDelete, onOpenSettings, onReload, sel
             </div>
             <div className="toolbar-actions">
                 <IconButton icon={RefreshCw} label="刷新" onClick={onReload} disabled={!selectedProfile || busy === 'mailbox'} spinning={busy === 'mailbox'} />
+                <IconButton
+                    icon={unread ? MailOpen : Mail}
+                    label={unread ? '标记已读' : '标记未读'}
+                    onClick={() => onSetStatus(selectedMessage, {read: unread})}
+                    disabled={!selectedMessage || selectedMessage.direction === 'outbound' || busy === 'message-action'}
+                />
+                <IconButton
+                    active={starred}
+                    icon={Star}
+                    label={starred ? '取消星标' : '添加星标'}
+                    onClick={() => onSetStatus(selectedMessage, {starred: !starred})}
+                    disabled={!selectedMessage || busy === 'message-action'}
+                />
                 <IconButton icon={selectedMessage?.archivedAt ? ArchiveRestore : Archive} label={selectedMessage?.archivedAt ? '取消归档' : '归档'} onClick={onArchive} disabled={!selectedMessage || busy === 'message-action'} />
                 <IconButton icon={Trash2} label="删除" onClick={onDelete} disabled={!selectedMessage || busy === 'message-action'} tone="danger" />
                 <IconButton icon={Settings} label="设置" onClick={onOpenSettings} />
@@ -1375,7 +1508,7 @@ function ReaderToolbar({busy, onArchive, onDelete, onOpenSettings, onReload, sel
     );
 }
 
-function ReadingView({busy, message, onArchive, onDelete, onDownload, selectedProfile}) {
+function ReadingView({busy, message, onArchive, onDelete, onDownload, onSetStatus, selectedProfile}) {
     const [detailsExpanded, setDetailsExpanded] = useState(false);
 
     useEffect(() => {
@@ -1410,6 +1543,8 @@ function ReadingView({busy, message, onArchive, onDelete, onDownload, selectedPr
     const peerLabel = message.direction === 'outbound' ? '收件人' : '发件人';
     const peerAddress = message.email || '未知地址';
     const authorName = message.author || message.email || '未知发件人';
+    const unread = isUnreadMessage(message);
+    const starred = isStarredMessage(message);
 
     return (
         <article className="reading-view">
@@ -1425,12 +1560,29 @@ function ReadingView({busy, message, onArchive, onDelete, onDownload, selectedPr
                             <span>{message.direction === 'outbound' ? '发往' : '来自'} {peerAddress}</span>
                             <time>{formatMessageTime(message.time)}</time>
                             <span>{directionLabel}</span>
+                            {message.direction !== 'outbound' ? <span>{unread ? '未读' : '已读'}</span> : null}
+                            {starred ? <span>已星标</span> : null}
                         </p>
                     </div>
                     <div className="message-inline-actions">
                         <button className="metadata-toggle" type="button" onClick={() => setDetailsExpanded((value) => !value)}>
                             {detailsExpanded ? '隐藏详情' : '查看详情'}
                         </button>
+                        {message.direction !== 'outbound' ? (
+                            <IconButton
+                                icon={unread ? MailOpen : Mail}
+                                label={unread ? '标记已读' : '标记未读'}
+                                onClick={() => onSetStatus(message, {read: unread})}
+                                disabled={busy === 'message-action'}
+                            />
+                        ) : null}
+                        <IconButton
+                            active={starred}
+                            icon={Star}
+                            label={starred ? '取消星标' : '添加星标'}
+                            onClick={() => onSetStatus(message, {starred: !starred})}
+                            disabled={busy === 'message-action'}
+                        />
                         <IconButton icon={message.archivedAt ? ArchiveRestore : Archive} label={message.archivedAt ? '取消归档' : '归档'} onClick={() => onArchive(message)} />
                         <IconButton icon={Trash2} label="删除" onClick={() => onDelete(message)} tone="danger" />
                     </div>
@@ -1453,8 +1605,16 @@ function ReadingView({busy, message, onArchive, onDelete, onDownload, selectedPr
                         <div>
                             <dt>状态</dt>
                             <dd>
-                                {message.deletedAt ? '已删除' : message.archivedAt ? `已归档：${message.archivedAt}` : '收件箱'}
+                                {message.deletedAt ? '已删除' : message.archivedAt ? `已归档：${message.archivedAt}` : unread ? '未读' : '已读'}
                             </dd>
+                        </div>
+                        <div>
+                            <dt>星标</dt>
+                            <dd>{message.starredAt ? `已星标：${message.starredAt}` : '未星标'}</dd>
+                        </div>
+                        <div>
+                            <dt>已读时间</dt>
+                            <dd>{message.readAt || '未读'}</dd>
                         </div>
                         <div>
                             <dt>账号</dt>
@@ -1929,8 +2089,11 @@ function SettingRow({action, body, icon: Icon, title}) {
     );
 }
 
-function ContextMenu({contextMenu, onArchive, onClose, onDelete}) {
+function ContextMenu({contextMenu, onArchive, onClose, onDelete, onSetStatus}) {
     const message = contextMenu.message;
+    const unread = isUnreadMessage(message);
+    const starred = isStarredMessage(message);
+
     return (
         <div
             className="context-menu"
@@ -1938,6 +2101,16 @@ function ContextMenu({contextMenu, onArchive, onClose, onDelete}) {
             role="menu"
             onClick={(event) => event.stopPropagation()}
         >
+            {message.direction !== 'outbound' ? (
+                <button type="button" onClick={() => { onSetStatus(message, {read: unread}); onClose(); }}>
+                    {unread ? <MailOpen size={15} /> : <Mail size={15} />}
+                    {unread ? '标记已读' : '标记未读'}
+                </button>
+            ) : null}
+            <button type="button" onClick={() => { onSetStatus(message, {starred: !starred}); onClose(); }}>
+                <Star size={15} fill={starred ? 'currentColor' : 'none'} />
+                {starred ? '取消星标' : '添加星标'}
+            </button>
             <button type="button" onClick={() => { onArchive(message); onClose(); }}>
                 {message.archivedAt ? <ArchiveRestore size={15} /> : <Archive size={15} />}
                 {message.archivedAt ? '取消归档' : '归档'}
@@ -2043,17 +2216,18 @@ function StatusBadge({label, ok}) {
     return <span className={`status-badge ${ok ? 'ok' : ''}`}>{label}</span>;
 }
 
-function IconButton({disabled, icon: Icon, label, onClick, spinning, tone = 'default'}) {
+function IconButton({active = false, disabled, icon: Icon, label, onClick, spinning, tone = 'default'}) {
     return (
         <button
-            className={`icon-button ${tone} ${spinning ? 'spinning' : ''}`}
+            className={`icon-button ${tone} ${active ? 'active' : ''} ${spinning ? 'spinning' : ''}`}
             type="button"
             aria-label={label}
+            aria-pressed={active || undefined}
             title={label}
             onClick={onClick}
             disabled={disabled}
         >
-            <Icon size={17} />
+            <Icon size={17} fill={active ? 'currentColor' : 'none'} />
         </button>
     );
 }

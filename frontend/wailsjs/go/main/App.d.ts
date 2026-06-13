@@ -24,6 +24,8 @@ export function SelectProfile(arg1:string):Promise<void>;
 
 export function SendMessage(arg1:main.SendMessageInput):Promise<main.SendResult>;
 
+export function SetMessageStatus(arg1:main.MessageStatusInput):Promise<main.Message>;
+
 export function TestBaseURL(arg1:string,arg2:string):Promise<main.ConnectionStatus>;
 
 export function UnarchiveMessage(arg1:main.MessageActionInput):Promise<main.Message>;

@@ -65,6 +65,13 @@ type MessageActionInput struct {
 	MessageID string `json:"messageId"`
 }
 
+type MessageStatusInput struct {
+	ProfileID string `json:"profileId"`
+	MessageID string `json:"messageId"`
+	Read      *bool  `json:"read,omitempty"`
+	Starred   *bool  `json:"starred,omitempty"`
+}
+
 type DownloadAttachmentInput struct {
 	ProfileID    string `json:"profileId"`
 	AttachmentID string `json:"attachmentId"`
@@ -157,6 +164,8 @@ type Message struct {
 	Body        string       `json:"body"`
 	Preview     string       `json:"preview"`
 	Time        string       `json:"time"`
+	ReadAt      string       `json:"readAt"`
+	StarredAt   string       `json:"starredAt"`
 	ArchivedAt  string       `json:"archivedAt"`
 	DeletedAt   string       `json:"deletedAt"`
 	Attachments []Attachment `json:"attachments"`

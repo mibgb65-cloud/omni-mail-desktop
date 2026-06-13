@@ -293,6 +293,8 @@ export namespace main {
 	    body: string;
 	    preview: string;
 	    time: string;
+	    readAt: string;
+	    starredAt: string;
 	    archivedAt: string;
 	    deletedAt: string;
 	    attachments: Attachment[];
@@ -312,6 +314,8 @@ export namespace main {
 	        this.body = source["body"];
 	        this.preview = source["preview"];
 	        this.time = source["time"];
+	        this.readAt = source["readAt"];
+	        this.starredAt = source["starredAt"];
 	        this.archivedAt = source["archivedAt"];
 	        this.deletedAt = source["deletedAt"];
 	        this.attachments = this.convertValues(source["attachments"], Attachment);
@@ -406,6 +410,24 @@ export namespace main {
 	        this.messageId = source["messageId"];
 	    }
 	}
+	export class MessageStatusInput {
+	    profileId: string;
+	    messageId: string;
+	    read?: boolean;
+	    starred?: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new MessageStatusInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.profileId = source["profileId"];
+	        this.messageId = source["messageId"];
+	        this.read = source["read"];
+	        this.starred = source["starred"];
+	    }
+	}
 	
 	export class ProfileInput {
 	    id: string;
@@ -481,4 +503,3 @@ export namespace main {
 	}
 
 }
-

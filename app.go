@@ -301,6 +301,46 @@ func (a *App) DeleteMessage(input MessageActionInput) (*Message, error) {
 	return a.messageAction(input, "/api/v1/messages/"+pathEscape(input.MessageID), http.MethodDelete)
 }
 
+func (a *App) SetMessageStatus(input MessageStatusInput) (*Message, error) {
+	profile, err := a.profileForRequest(input.ProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	if input.MessageID == "" {
+		return nil, errors.New("message id is required")
+	}
+
+	payload := map[string]bool{}
+	if input.Read != nil {
+		payload["read"] = *input.Read
+	}
+	if input.Starred != nil {
+		payload["starred"] = *input.Starred
+	}
+	if len(payload) == 0 {
+		return nil, errors.New("at least one status field is required")
+	}
+
+	var result Message
+	if err := a.apiRequest(
+		profile.BaseURL,
+		profile.Token,
+		http.MethodPatch,
+		"/api/v1/messages/"+pathEscape(input.MessageID)+"/status",
+		payload,
+		&result,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := a.store.markUsed(profile.ID); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
 func (a *App) DownloadAttachment(input DownloadAttachmentInput) (*DownloadResult, error) {
 	profile, err := a.profileForRequest(input.ProfileID)
 	if err != nil {

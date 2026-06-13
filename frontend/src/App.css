@@ -368,6 +368,16 @@ body.is-resizing-panels * {
     color: var(--text-primary);
 }
 
+.icon-button.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.icon-button.active:hover {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+}
+
 .icon-button.danger:hover {
     background: var(--danger-soft);
     color: var(--danger);
@@ -796,6 +806,22 @@ body.is-resizing-panels * {
 .mail-row-top time {
     color: var(--text-tertiary);
     font-size: 11px;
+}
+
+.mail-row-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-tertiary);
+}
+
+.mail-row.starred .mail-row-time svg {
+    color: var(--accent);
+}
+
+.mail-row.unread .mail-row-subject {
+    color: var(--text-primary);
+    font-weight: 760;
 }
 
 .mail-row-subject {

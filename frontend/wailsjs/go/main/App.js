@@ -46,6 +46,10 @@ export function SendMessage(arg1) {
   return window['go']['main']['App']['SendMessage'](arg1);
 }
 
+export function SetMessageStatus(arg1) {
+  return window['go']['main']['App']['SetMessageStatus'](arg1);
+}
+
 export function TestBaseURL(arg1, arg2) {
   return window['go']['main']['App']['TestBaseURL'](arg1, arg2);
 }
