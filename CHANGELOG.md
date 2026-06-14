@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.0.2] - 2026-06-14
+
+### Fixed
+
+- Refine left sidebar scrolling so domain and mailbox account lists scroll independently inside their own sections.
+
 ## [v1.0.1] - 2026-06-14
 
 ### Fixed

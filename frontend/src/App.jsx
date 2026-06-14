@@ -1906,18 +1906,20 @@ function Sidebar({
 
                     <div className="nav-section resource-section">
                         <SectionLabel>域名</SectionLabel>
-                        {domains.map((domain) => (
-                            <button
-                                className={`domain-item ${domain === workspace?.selectedDomain ? 'active' : ''}`}
-                                key={domain}
-                                type="button"
-                                onClick={() => onDomainChange(domain)}
-                            >
-                                <span>{domain}</span>
-                            </button>
-                        ))}
-                        {mailboxLoading ? <MutedLine>正在加载域名</MutedLine> : null}
-                        {!mailboxLoading && !domains.length ? <MutedLine>暂无域名</MutedLine> : null}
+                        <div className="resource-list domain-list">
+                            {domains.map((domain) => (
+                                <button
+                                    className={`domain-item ${domain === workspace?.selectedDomain ? 'active' : ''}`}
+                                    key={domain}
+                                    type="button"
+                                    onClick={() => onDomainChange(domain)}
+                                >
+                                    <span>{domain}</span>
+                                </button>
+                            ))}
+                            {mailboxLoading ? <MutedLine>正在加载域名</MutedLine> : null}
+                            {!mailboxLoading && !domains.length ? <MutedLine>暂无域名</MutedLine> : null}
+                        </div>
                     </div>
 
                     <div className="nav-section accounts-section resource-section">
@@ -1930,20 +1932,22 @@ function Sidebar({
                                 disabled={!workspace?.selectedDomain}
                             />
                         </div>
-                        {accounts.map((account) => (
-                            <button
-                                className={`account-chip ${account.id === workspace?.selectedAccountId ? 'active' : ''}`}
-                                key={account.id}
-                                type="button"
-                                onClick={() => onAccountChange(account.id)}
-                                title={account.address}
-                            >
-                                <span>{account.address}</span>
-                                {account.unread ? <small>{account.unread}</small> : null}
-                            </button>
-                        ))}
-                        {mailboxLoading ? <MutedLine>正在加载邮箱账号</MutedLine> : null}
-                        {!mailboxLoading && !accounts.length ? <MutedLine>暂无邮箱账号</MutedLine> : null}
+                        <div className="resource-list account-list">
+                            {accounts.map((account) => (
+                                <button
+                                    className={`account-chip ${account.id === workspace?.selectedAccountId ? 'active' : ''}`}
+                                    key={account.id}
+                                    type="button"
+                                    onClick={() => onAccountChange(account.id)}
+                                    title={account.address}
+                                >
+                                    <span>{account.address}</span>
+                                    {account.unread ? <small>{account.unread}</small> : null}
+                                </button>
+                            ))}
+                            {mailboxLoading ? <MutedLine>正在加载邮箱账号</MutedLine> : null}
+                            {!mailboxLoading && !accounts.length ? <MutedLine>暂无邮箱账号</MutedLine> : null}
+                        </div>
                     </div>
                 </div>
             )}
