@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.0.1] - 2026-06-14
+
+### Fixed
+
+- Make the left sidebar resource area scrollable when there are many domains or mailbox accounts.
+
 ## [v1.0.0] - 2026-06-14
 
 Initial Windows desktop release for OmniMail Worker deployments.
