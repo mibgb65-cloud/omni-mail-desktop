@@ -7,6 +7,7 @@ Initial Windows desktop release for OmniMail Worker deployments.
 ### Added
 
 - Manage multiple OmniMail endpoint profiles by base URL.
+- Replace the default Wails icon with an OmniMail Desktop application icon.
 - Test endpoint health and authentication status.
 - Login or first-time setup with an admin account.
 - Register and store desktop device tokens with Windows DPAPI protection.
