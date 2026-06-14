@@ -30,6 +30,14 @@ The Windows executable is written to:
 build/bin/OmniMailDesktop.exe
 ```
 
+The Windows installer is built with Inno Setup from:
+
+```text
+build/windows/OmniMailDesktop.iss
+```
+
+The installer supports English and Simplified Chinese, custom install location, custom data storage location, and in-place updates that preserve user data.
+
 ## Local Data
 
 Profiles are stored in the user config directory under `OmniMailDesktop/profiles.json`.

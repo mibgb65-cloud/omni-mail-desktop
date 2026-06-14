@@ -69,10 +69,17 @@ func newProfileStore() (*profileStore, error) {
 }
 
 func profileStorePath() (string, error) {
+	if dir := strings.TrimSpace(os.Getenv("OMNIMAIL_DESKTOP_DATA_DIR")); dir != "" {
+		return profilePathInDir(dir)
+	}
+
+	if dir, ok := installedDataDir(); ok {
+		return profilePathInDir(dir)
+	}
+
 	if dir, err := os.UserConfigDir(); err == nil {
-		appDir := filepath.Join(dir, "OmniMailDesktop")
-		if err := os.MkdirAll(appDir, 0o700); err == nil {
-			return filepath.Join(appDir, "profiles.json"), nil
+		if path, err := profilePathInDir(filepath.Join(dir, "OmniMailDesktop")); err == nil {
+			return path, nil
 		}
 	}
 
@@ -81,12 +88,15 @@ func profileStorePath() (string, error) {
 		return "", err
 	}
 
-	appDir := filepath.Join(wd, ".omnimail-desktop")
-	if err := os.MkdirAll(appDir, 0o700); err != nil {
+	return profilePathInDir(filepath.Join(wd, ".omnimail-desktop"))
+}
+
+func profilePathInDir(dir string) (string, error) {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", err
 	}
 
-	return filepath.Join(appDir, "profiles.json"), nil
+	return filepath.Join(dir, "profiles.json"), nil
 }
 
 func (s *profileStore) load() error {

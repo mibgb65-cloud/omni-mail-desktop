@@ -55,11 +55,22 @@ jobs:
       - name: Build Windows executable
         run: wails build -tags native_webview2loader -clean
 
-      - name: Upload executable artifact
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress --yes
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $version = (Get-Content wails.json | ConvertFrom-Json).info.productVersion
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$version" build\windows\OmniMailDesktop.iss
+
+      - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: OmniMailDesktop-windows
-          path: build/bin/OmniMailDesktop.exe
+          path: |
+            build/bin/OmniMailDesktop.exe
+            build/installer/OmniMailDesktop-Setup-*.exe
           if-no-files-found: error
 
       - name: Publish GitHub Release
@@ -68,4 +79,4 @@ jobs:
         with:
           name: OmniMail Desktop ${{ github.ref_name }}
           body_path: CHANGELOG.md
-          files: build/bin/OmniMailDesktop.exe
+          files: build/installer/OmniMailDesktop-Setup-*.exe

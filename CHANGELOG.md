@@ -11,4 +11,7 @@ Initial Windows desktop release for OmniMail Worker deployments.
 - Login or first-time setup with an admin account.
 - Register and store desktop device tokens with Windows DPAPI protection.
 - Load domains, mailboxes, messages, account settings, devices, diagnostics, and audit data from the selected endpoint.
-- Build Windows executable with GitHub Actions and attach it to GitHub Releases.
+- Install with a Windows setup wizard that supports English and Simplified Chinese.
+- Choose the application install location and OmniMail data storage location during setup.
+- Preserve the selected data folder and support in-place overwrite installs for future updates.
+- Build the Windows installer with GitHub Actions and attach it to GitHub Releases.
