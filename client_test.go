@@ -1,6 +1,15 @@
 package main
 
-import "testing"
+import (
+	"bytes"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
 
 func TestNormalizeBaseURL(t *testing.T) {
 	tests := []struct {
@@ -61,5 +70,96 @@ func TestAttachmentPreviewTypeFromMimeAndFilename(t *testing.T) {
 				t.Fatalf("attachmentPreviewType() = %q, want %q", gotType, test.wantType)
 			}
 		})
+	}
+}
+
+func TestPDFHasEncryptionDictionary(t *testing.T) {
+	if !pdfHasEncryptionDictionary([]byte("%PDF-1.7\ntrailer\n<< /Encrypt 5 0 R >>")) {
+		t.Fatal("expected PDF encryption dictionary to be detected")
+	}
+
+	if pdfHasEncryptionDictionary([]byte("%PDF-1.7\ntrailer\n<< /Root 1 0 R >>")) {
+		t.Fatal("did not expect unencrypted PDF to be marked encrypted")
+	}
+}
+
+func TestPreviewTempPatternKeepsPDFExtension(t *testing.T) {
+	if got := previewTempPattern("invoice.pdf"); !strings.HasSuffix(got, ".pdf") {
+		t.Fatalf("previewTempPattern() = %q, want .pdf suffix", got)
+	}
+}
+
+func TestAttachmentPreviewURLRoundTripsID(t *testing.T) {
+	previewID := "preview 1"
+	got := attachmentPreviewURL(previewID, "invoice 2026.pdf")
+	parsedID, ok := attachmentPreviewIDFromPath(got)
+	if !ok {
+		t.Fatalf("attachmentPreviewIDFromPath(%q) did not parse", got)
+	}
+	if parsedID != previewID {
+		t.Fatalf("parsed preview ID = %q, want %q", parsedID, previewID)
+	}
+}
+
+func TestAttachmentPreviewHandlerServesRegisteredFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "invoice.pdf")
+	if err := os.WriteFile(path, []byte("%PDF-1.7"), 0o600); err != nil {
+		t.Fatalf("write PDF: %v", err)
+	}
+
+	app := &App{previewFiles: map[string]string{}}
+	previewID := app.registerAttachmentPreview(path)
+	request := httptest.NewRequest(http.MethodGet, attachmentPreviewURL(previewID, "invoice.pdf"), nil)
+	response := httptest.NewRecorder()
+
+	app.assetHandler().ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusOK)
+	}
+	if got := response.Body.String(); got != "%PDF-1.7" {
+		t.Fatalf("body = %q, want PDF bytes", got)
+	}
+}
+
+func TestAPIDownloadToRejectsLargeResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Length", "6")
+		_, _ = writer.Write([]byte("abcdef"))
+	}))
+	defer server.Close()
+
+	app := &App{client: server.Client()}
+	var content bytes.Buffer
+	_, _, err := app.apiDownloadTo(server.URL, "", "/attachment", &content, 3)
+	if !errors.Is(err, errDownloadExceedsSizeLimit) {
+		t.Fatalf("apiDownloadTo() error = %v, want errDownloadExceedsSizeLimit", err)
+	}
+}
+
+func TestReplaceFileOverwritesTarget(t *testing.T) {
+	dir := t.TempDir()
+	sourcePath := filepath.Join(dir, "source.tmp")
+	targetPath := filepath.Join(dir, "invoice.pdf")
+
+	if err := os.WriteFile(sourcePath, []byte("new"), 0o600); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	if err := os.WriteFile(targetPath, []byte("old"), 0o600); err != nil {
+		t.Fatalf("write target: %v", err)
+	}
+
+	if err := replaceFile(sourcePath, targetPath); err != nil {
+		t.Fatalf("replaceFile returned error: %v", err)
+	}
+
+	content, err := os.ReadFile(targetPath)
+	if err != nil {
+		t.Fatalf("read target: %v", err)
+	}
+	if string(content) != "new" {
+		t.Fatalf("target content = %q, want new", content)
+	}
+	if _, err := os.Stat(sourcePath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("source still exists after replace: %v", err)
 	}
 }

@@ -69,6 +69,7 @@ import {
     ListUsers,
     LoadMailbox,
     PreviewAttachment,
+    ReleaseAttachmentPreview,
     RevokeDevice,
     RevokeSessions,
     RunSystemCleanup,
@@ -2413,21 +2414,33 @@ function ReadingView({busy, message, onArchive, onDelete, onDownload, onPreview,
                     </div>
                 ) : null}
             </section>
-            <AttachmentPreviewDialog preview={attachmentPreview} onClose={closeAttachmentPreview} />
+            <AttachmentPreviewDialog preview={attachmentPreview} onClose={closeAttachmentPreview} onDownload={onDownload} />
         </article>
     );
 }
 
-function AttachmentPreviewDialog({onClose, preview}) {
-    if (!preview || preview.status === 'idle') {
-        return null;
-    }
-
-    const attachment = preview.attachment || {};
-    const result = preview.result || {};
+function AttachmentPreviewDialog({onClose, onDownload, preview}) {
+    const attachment = preview?.attachment || {};
+    const result = preview?.result || {};
     const filename = result.filename || attachment.filename || '附件预览';
     const previewType = result.previewType || '';
     const mimeType = result.mimeType || attachment.mimeType || '';
+    const pdfSrc = result.previewUrl || result.dataUrl || '';
+
+    useEffect(() => {
+        const previewId = preview?.status === 'ready' ? result.previewId : '';
+        if (!previewId) {
+            return undefined;
+        }
+
+        return () => {
+            ReleaseAttachmentPreview(previewId).catch(() => {});
+        };
+    }, [preview?.status, result.previewId]);
+
+    if (!preview || preview.status === 'idle') {
+        return null;
+    }
 
     return (
         <div className="attachment-preview-backdrop" role="presentation" onMouseDown={onClose}>
@@ -2442,9 +2455,17 @@ function AttachmentPreviewDialog({onClose, preview}) {
                     <div>
                         <p>附件预览</p>
                         <h2>{filename}</h2>
-                        <small>{mimeType || '未知类型'} · {formatFileSize(result.size || attachment.size)}</small>
+                        <small>
+                            {mimeType || '未知类型'} · {formatFileSize(result.size || attachment.size)}
+                            {result.encrypted ? ' · 受密码保护' : ''}
+                        </small>
                     </div>
-                    <IconButton icon={X} label="关闭附件预览" onClick={onClose} />
+                    <div className="attachment-preview-actions">
+                        {attachment.downloadable && onDownload ? (
+                            <IconButton icon={Download} label="保存附件" onClick={() => onDownload(attachment)} />
+                        ) : null}
+                        <IconButton icon={X} label="关闭附件预览" onClick={onClose} />
+                    </div>
                 </header>
 
                 <div className={`attachment-preview-body ${previewType}`}>
@@ -2467,7 +2488,14 @@ function AttachmentPreviewDialog({onClose, preview}) {
                     ) : null}
 
                     {preview.status === 'ready' && previewType === 'pdf' ? (
-                        <iframe src={result.dataUrl} title={filename} />
+                        pdfSrc ? (
+                            <iframe src={pdfSrc} title={filename} />
+                        ) : (
+                            <div className="attachment-preview-state error">
+                                <CircleAlert size={22} />
+                                <span>PDF 预览文件无法读取</span>
+                            </div>
+                        )
                     ) : null}
 
                     {preview.status === 'ready' && previewType === 'text' ? (

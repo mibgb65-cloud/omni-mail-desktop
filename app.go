@@ -1,37 +1,49 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type App struct {
-	ctx     context.Context
-	client  *http.Client
-	store   *profileStore
-	initErr error
+	ctx          context.Context
+	client       *http.Client
+	store        *profileStore
+	initErr      error
+	previewMu    sync.Mutex
+	previewSeq   uint64
+	previewFiles map[string]string
 }
 
 func NewApp() *App {
 	store, err := newProfileStore()
 
 	return &App{
-		client:  &http.Client{Timeout: 20 * time.Second},
-		store:   store,
-		initErr: err,
+		client:       &http.Client{Timeout: 20 * time.Second},
+		store:        store,
+		initErr:      err,
+		previewFiles: map[string]string{},
 	}
 }
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+}
+
+func (a *App) shutdown(context.Context) {
+	a.releaseAllAttachmentPreviews()
 }
 
 func (a *App) appContext() context.Context {
@@ -40,6 +52,31 @@ func (a *App) appContext() context.Context {
 	}
 
 	return context.Background()
+}
+
+func (a *App) assetHandler() http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodGet {
+			http.Error(writer, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		previewID, ok := attachmentPreviewIDFromPath(request.URL.Path)
+		if !ok {
+			http.NotFound(writer, request)
+			return
+		}
+
+		path, ok := a.attachmentPreviewPath(previewID)
+		if !ok {
+			http.NotFound(writer, request)
+			return
+		}
+
+		writer.Header().Set("Content-Type", "application/pdf")
+		writer.Header().Set("X-Content-Type-Options", "nosniff")
+		http.ServeFile(writer, request, path)
+	})
 }
 
 func (a *App) ensureReady() error {
@@ -1038,15 +1075,6 @@ func (a *App) DownloadAttachment(input DownloadAttachmentInput) (*DownloadResult
 		return nil, err
 	}
 
-	content, _, err := a.apiDownload(
-		profile.BaseURL,
-		profile.Token,
-		"/api/v1/attachments/"+pathEscape(input.AttachmentID),
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	filename := safeDownloadName(input.Filename)
 	path, err := wailsruntime.SaveFileDialog(a.appContext(), wailsruntime.SaveDialogOptions{
 		DefaultFilename: filename,
@@ -1060,9 +1088,37 @@ func (a *App) DownloadAttachment(input DownloadAttachmentInput) (*DownloadResult
 		return nil, errors.New("download canceled")
 	}
 
-	if err := os.WriteFile(path, content, 0o600); err != nil {
+	tempFile, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".download-*")
+	if err != nil {
 		return nil, err
 	}
+	tempPath := tempFile.Name()
+	keepTempFile := false
+	defer func() {
+		if !keepTempFile {
+			_ = os.Remove(tempPath)
+		}
+	}()
+
+	_, size, err := a.apiDownloadTo(
+		profile.BaseURL,
+		profile.Token,
+		"/api/v1/attachments/"+pathEscape(input.AttachmentID),
+		tempFile,
+		0,
+	)
+	closeErr := tempFile.Close()
+	if err != nil {
+		return nil, err
+	}
+	if closeErr != nil {
+		return nil, closeErr
+	}
+
+	if err := replaceFile(tempPath, path); err != nil {
+		return nil, err
+	}
+	keepTempFile = true
 
 	if err := a.store.markUsed(profile.ID); err != nil {
 		return nil, err
@@ -1070,7 +1126,7 @@ func (a *App) DownloadAttachment(input DownloadAttachmentInput) (*DownloadResult
 
 	return &DownloadResult{
 		Path: path,
-		Size: int64(len(content)),
+		Size: size,
 	}, nil
 }
 
@@ -1080,17 +1136,34 @@ func (a *App) PreviewAttachment(input DownloadAttachmentInput) (*AttachmentPrevi
 		return nil, err
 	}
 
-	content, contentType, err := a.apiDownload(
-		profile.BaseURL,
-		profile.Token,
-		"/api/v1/attachments/"+pathEscape(input.AttachmentID)+"?disposition=inline",
-	)
+	tempFile, err := os.CreateTemp("", previewTempPattern(input.Filename))
 	if err != nil {
 		return nil, err
 	}
+	tempPath := tempFile.Name()
+	keepTempFile := false
+	defer func() {
+		if !keepTempFile {
+			_ = os.Remove(tempPath)
+		}
+	}()
 
-	if len(content) > 12*1024*1024 {
-		return nil, errors.New("attachment is too large to preview")
+	contentType, size, err := a.apiDownloadTo(
+		profile.BaseURL,
+		profile.Token,
+		"/api/v1/attachments/"+pathEscape(input.AttachmentID)+"?disposition=inline",
+		tempFile,
+		12*1024*1024,
+	)
+	closeErr := tempFile.Close()
+	if err != nil {
+		if errors.Is(err, errDownloadExceedsSizeLimit) {
+			return nil, errors.New("attachment is too large to preview")
+		}
+		return nil, err
+	}
+	if closeErr != nil {
+		return nil, closeErr
 	}
 
 	mimeType := normalizePreviewMime(contentType, input.Filename)
@@ -1102,20 +1175,81 @@ func (a *App) PreviewAttachment(input DownloadAttachmentInput) (*AttachmentPrevi
 	preview := &AttachmentPreview{
 		Filename:    safeDownloadName(input.Filename),
 		MimeType:    mimeType,
-		Size:        int64(len(content)),
+		Size:        size,
 		PreviewType: previewType,
-		DataURL:     "data:" + mimeType + ";base64," + base64.StdEncoding.EncodeToString(content),
 	}
+	tempPreviewPath := ""
 
-	if previewType == "text" {
-		preview.Text = string(content)
+	switch previewType {
+	case "pdf":
+		if !strings.HasSuffix(strings.ToLower(tempPath), ".pdf") {
+			pdfPath := tempPath + ".pdf"
+			if err := os.Rename(tempPath, pdfPath); err == nil {
+				tempPath = pdfPath
+			}
+		}
+
+		preview.Encrypted = pdfFileHasEncryptionDictionary(tempPath)
+		tempPreviewPath = tempPath
+	case "image", "text":
+		content, err := os.ReadFile(tempPath)
+		if err != nil {
+			return nil, err
+		}
+		preview.DataURL = "data:" + mimeType + ";base64," + base64.StdEncoding.EncodeToString(content)
+		if previewType == "text" {
+			preview.Text = string(content)
+		}
 	}
 
 	if err := a.store.markUsed(profile.ID); err != nil {
 		return nil, err
 	}
 
+	if tempPreviewPath != "" {
+		preview.PreviewID = a.registerAttachmentPreview(tempPreviewPath)
+		preview.PreviewURL = attachmentPreviewURL(preview.PreviewID, preview.Filename)
+		keepTempFile = true
+	}
+
 	return preview, nil
+}
+
+func (a *App) ReleaseAttachmentPreview(previewID string) error {
+	if previewID == "" {
+		return nil
+	}
+
+	a.previewMu.Lock()
+	path, ok := a.previewFiles[previewID]
+	if ok {
+		delete(a.previewFiles, previewID)
+	}
+	a.previewMu.Unlock()
+
+	if !ok {
+		return nil
+	}
+
+	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) releaseAllAttachmentPreviews() {
+	a.previewMu.Lock()
+	paths := make([]string, 0, len(a.previewFiles))
+	for previewID, path := range a.previewFiles {
+		paths = append(paths, path)
+		delete(a.previewFiles, previewID)
+	}
+	a.previewMu.Unlock()
+
+	for _, path := range paths {
+		_ = os.Remove(path)
+	}
 }
 
 func (a *App) profileForRequest(profileID string) (storedProfile, error) {
@@ -1222,4 +1356,97 @@ func attachmentPreviewType(mimeType string) string {
 	default:
 		return "file"
 	}
+}
+
+func previewTempPattern(filename string) string {
+	if strings.HasSuffix(strings.ToLower(filename), ".pdf") {
+		return "omnimail-attachment-preview-*.pdf"
+	}
+
+	return "omnimail-attachment-preview-*"
+}
+
+func attachmentPreviewURL(previewID string, filename string) string {
+	return "/attachment-preview/" + url.PathEscape(previewID) + "/" + url.PathEscape(safeDownloadName(filename))
+}
+
+func attachmentPreviewIDFromPath(path string) (string, bool) {
+	const routePrefix = "/attachment-preview/"
+	if !strings.HasPrefix(path, routePrefix) {
+		return "", false
+	}
+
+	remaining := strings.TrimPrefix(path, routePrefix)
+	previewID, _, _ := strings.Cut(remaining, "/")
+	if previewID == "" {
+		return "", false
+	}
+
+	decodedID, err := url.PathUnescape(previewID)
+	if err != nil {
+		return "", false
+	}
+
+	return decodedID, true
+}
+
+func replaceFile(sourcePath string, targetPath string) error {
+	targetInfo, err := os.Stat(targetPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return os.Rename(sourcePath, targetPath)
+		}
+		return err
+	}
+	if targetInfo.IsDir() {
+		return errors.New("download path is a directory")
+	}
+
+	backupPath := targetPath + ".omnimail-backup-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	if err := os.Rename(targetPath, backupPath); err != nil {
+		return err
+	}
+
+	if err := os.Rename(sourcePath, targetPath); err != nil {
+		_ = os.Rename(backupPath, targetPath)
+		return err
+	}
+
+	_ = os.Remove(backupPath)
+	return nil
+}
+
+func (a *App) attachmentPreviewPath(previewID string) (string, bool) {
+	a.previewMu.Lock()
+	defer a.previewMu.Unlock()
+
+	path, ok := a.previewFiles[previewID]
+	return path, ok
+}
+
+func (a *App) registerAttachmentPreview(path string) string {
+	a.previewMu.Lock()
+	defer a.previewMu.Unlock()
+
+	if a.previewFiles == nil {
+		a.previewFiles = map[string]string{}
+	}
+
+	a.previewSeq++
+	previewID := strconv.FormatUint(a.previewSeq, 10)
+	a.previewFiles[previewID] = path
+	return previewID
+}
+
+func pdfFileHasEncryptionDictionary(path string) bool {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return false
+	}
+
+	return pdfHasEncryptionDictionary(content)
+}
+
+func pdfHasEncryptionDictionary(content []byte) bool {
+	return bytes.Contains(content, []byte("/Encrypt"))
 }

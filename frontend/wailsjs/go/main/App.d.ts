@@ -46,6 +46,8 @@ export function LoadMailbox(arg1:main.MailboxRequest):Promise<main.MailboxPayloa
 
 export function PreviewAttachment(arg1:main.DownloadAttachmentInput):Promise<main.AttachmentPreview>;
 
+export function ReleaseAttachmentPreview(arg1:string):Promise<void>;
+
 export function RevokeDevice(arg1:main.DeviceDeleteInput):Promise<main.DeviceResult>;
 
 export function RevokeSessions(arg1:main.ProfileActionInput):Promise<main.AuthResult>;

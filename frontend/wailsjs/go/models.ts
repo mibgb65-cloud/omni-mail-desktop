@@ -302,7 +302,10 @@ export namespace main {
 	    size: number;
 	    previewType: string;
 	    dataUrl: string;
+	    previewUrl: string;
+	    previewId: string;
 	    text: string;
+	    encrypted: boolean;
 
 	    static createFrom(source: any = {}) {
 	        return new AttachmentPreview(source);
@@ -315,7 +318,10 @@ export namespace main {
 	        this.size = source["size"];
 	        this.previewType = source["previewType"];
 	        this.dataUrl = source["dataUrl"];
+	        this.previewUrl = source["previewUrl"];
+	        this.previewId = source["previewId"];
 	        this.text = source["text"];
+	        this.encrypted = source["encrypted"];
 	    }
 	}
 	export class AuditLog {

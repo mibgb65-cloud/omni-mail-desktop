@@ -1895,6 +1895,12 @@ body.is-resizing-panels * {
     white-space: nowrap;
 }
 
+.attachment-preview-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: var(--space-1);
+}
+
 .attachment-preview-body {
     display: grid;
     min-height: 420px;

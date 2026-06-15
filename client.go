@@ -18,6 +18,8 @@ type apiEnvelope struct {
 	Data    json.RawMessage `json:"data"`
 }
 
+var errDownloadExceedsSizeLimit = errors.New("download exceeds size limit")
+
 func (a *App) apiRequest(baseURL string, token string, method string, path string, body any, target any) error {
 	var requestBody io.Reader
 
@@ -80,9 +82,19 @@ func (a *App) apiRequest(baseURL string, token string, method string, path strin
 }
 
 func (a *App) apiDownload(baseURL string, token string, path string) ([]byte, string, error) {
-	request, err := http.NewRequestWithContext(a.appContext(), http.MethodGet, apiURL(baseURL, path), nil)
+	var content bytes.Buffer
+	contentType, _, err := a.apiDownloadTo(baseURL, token, path, &content, 100*1024*1024)
 	if err != nil {
 		return nil, "", err
+	}
+
+	return content.Bytes(), contentType, nil
+}
+
+func (a *App) apiDownloadTo(baseURL string, token string, path string, target io.Writer, maxBytes int64) (string, int64, error) {
+	request, err := http.NewRequestWithContext(a.appContext(), http.MethodGet, apiURL(baseURL, path), nil)
+	if err != nil {
+		return "", 0, err
 	}
 
 	request.Header.Set("X-Client-Type", "desktop")
@@ -92,25 +104,43 @@ func (a *App) apiDownload(baseURL string, token string, path string) ([]byte, st
 
 	response, err := a.client.Do(request)
 	if err != nil {
-		return nil, "", err
+		return "", 0, err
 	}
 	defer response.Body.Close()
 
-	content, err := io.ReadAll(io.LimitReader(response.Body, 100*1024*1024))
-	if err != nil {
-		return nil, "", err
-	}
-
 	if response.StatusCode >= 400 {
-		var envelope apiEnvelope
-		if err := json.Unmarshal(content, &envelope); err == nil && envelope.Message != "" {
-			return nil, "", errors.New(envelope.Message)
+		content, err := io.ReadAll(io.LimitReader(response.Body, 1024*1024))
+		if err != nil {
+			return "", 0, err
 		}
 
-		return nil, "", fmt.Errorf("download failed: HTTP %d", response.StatusCode)
+		var envelope apiEnvelope
+		if err := json.Unmarshal(content, &envelope); err == nil && envelope.Message != "" {
+			return "", 0, errors.New(envelope.Message)
+		}
+
+		return "", 0, fmt.Errorf("download failed: HTTP %d", response.StatusCode)
 	}
 
-	return content, response.Header.Get("Content-Type"), nil
+	if maxBytes > 0 && response.ContentLength > maxBytes {
+		return "", 0, errDownloadExceedsSizeLimit
+	}
+
+	reader := io.Reader(response.Body)
+	if maxBytes > 0 {
+		reader = io.LimitReader(response.Body, maxBytes+1)
+	}
+
+	size, err := io.Copy(target, reader)
+	if err != nil {
+		return "", size, err
+	}
+
+	if maxBytes > 0 && size > maxBytes {
+		return "", size, errDownloadExceedsSizeLimit
+	}
+
+	return response.Header.Get("Content-Type"), size, nil
 }
 
 func normalizeBaseURL(value string) (string, error) {

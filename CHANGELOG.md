@@ -1,5 +1,13 @@
 # Changelog
 
+## [v1.0.3] - 2026-06-15
+
+### Fixed
+
+- Improve PDF attachment preview reliability by serving temporary preview files through the Wails asset server instead of embedding PDFs as base64 data URLs.
+- Mark password-protected PDF attachments in the preview dialog and keep a direct save action available for system PDF readers.
+- Stream attachment downloads through temporary files before replacing the selected target file, reducing memory use and preserving existing files if a download fails.
+
 ## [v1.0.2] - 2026-06-14
 
 ### Fixed

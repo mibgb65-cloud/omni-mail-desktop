@@ -90,6 +90,10 @@ export function PreviewAttachment(arg1) {
   return window['go']['main']['App']['PreviewAttachment'](arg1);
 }
 
+export function ReleaseAttachmentPreview(arg1) {
+  return window['go']['main']['App']['ReleaseAttachmentPreview'](arg1);
+}
+
 export function RevokeDevice(arg1) {
   return window['go']['main']['App']['RevokeDevice'](arg1);
 }

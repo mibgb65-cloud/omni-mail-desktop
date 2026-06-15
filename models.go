@@ -245,7 +245,10 @@ type AttachmentPreview struct {
 	Size        int64  `json:"size"`
 	PreviewType string `json:"previewType"`
 	DataURL     string `json:"dataUrl"`
+	PreviewURL  string `json:"previewUrl"`
+	PreviewID   string `json:"previewId"`
 	Text        string `json:"text"`
+	Encrypted   bool   `json:"encrypted"`
 }
 
 type MailboxPayload struct {
