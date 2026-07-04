@@ -1,15 +1,27 @@
 # Changelog
 
-## [v1.0.4] - 2026-06-18
+## [v1.0.4] - 2026-07-04
 
 ### Added
 
 - Add built-in PDF.js attachment preview with password prompt, page navigation, and zoom controls.
+- Add paged mailbox loading with a "load more" control in the desktop UI.
+- Add CI enforcement to keep hand-written source files under 600 lines.
 
 ### Changed
 
 - Render one PDF page at a time in the attachment preview to reduce memory use on large documents.
 - Standardize desktop release builds on the default Wails WebView2 loader.
+- Split large Go, React, and CSS files into focused modules.
+- Serve image and PDF attachment previews through local preview URLs instead of base64 payloads.
+- Write local profile storage atomically and reduce unnecessary `LastUsedAt` writes.
+- Use `npm ci` for Wails frontend installs.
+
+### Fixed
+
+- Prevent protected tokens from silently falling back to plaintext when Windows DPAPI protection fails.
+- Ignore stale mailbox and endpoint-health responses after the user switches context.
+- Improve attachment filename sanitization for Unicode names and Windows reserved device names.
 
 ## [v1.0.3] - 2026-06-15
 
