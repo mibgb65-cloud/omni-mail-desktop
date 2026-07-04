@@ -26,6 +26,21 @@ type githubReleaseAsset struct {
 }
 
 func (a *App) CheckForUpdates() (*UpdateInfo, error) {
+	release, err := a.fetchLatestRelease()
+	if err != nil {
+		return nil, err
+	}
+
+	info := release.updateInfo(currentAppVersion())
+	a.logEvent("info", "update check completed", map[string]any{
+		"currentVersion":  info.CurrentVersion,
+		"latestVersion":   info.LatestVersion,
+		"updateAvailable": info.UpdateAvailable,
+	})
+	return info, nil
+}
+
+func (a *App) fetchLatestRelease() (*githubRelease, error) {
 	request, err := http.NewRequestWithContext(a.appContext(), http.MethodGet, githubLatestReleaseURL, nil)
 	if err != nil {
 		return nil, err
@@ -55,17 +70,14 @@ func (a *App) CheckForUpdates() (*UpdateInfo, error) {
 		return nil, err
 	}
 
-	info := release.updateInfo(currentAppVersion())
-	a.logEvent("info", "update check completed", map[string]any{
-		"currentVersion":  info.CurrentVersion,
-		"latestVersion":   info.LatestVersion,
-		"updateAvailable": info.UpdateAvailable,
-	})
-	return info, nil
+	return &release, nil
 }
 
 func (release githubRelease) updateInfo(currentVersion string) *UpdateInfo {
 	latestVersion := strings.TrimPrefix(strings.TrimSpace(release.TagName), "v")
+	installer := installerAsset(release.Assets)
+	checksum := checksumAsset(release.Assets, installer)
+
 	info := &UpdateInfo{
 		CurrentVersion: currentVersion,
 		LatestVersion:  latestVersion,
@@ -74,19 +86,46 @@ func (release githubRelease) updateInfo(currentVersion string) *UpdateInfo {
 		Name:           release.Name,
 		Body:           truncateReleaseBody(release.Body),
 	}
-	info.DownloadURL = installerDownloadURL(release.Assets)
+	if installer != nil {
+		info.DownloadURL = installer.BrowserDownloadURL
+		info.InstallerName = installer.Name
+	}
+	if checksum != nil {
+		info.ChecksumURL = checksum.BrowserDownloadURL
+	}
 	info.UpdateAvailable = compareVersions(latestVersion, currentVersion) > 0
 	return info
 }
 
-func installerDownloadURL(assets []githubReleaseAsset) string {
-	for _, asset := range assets {
+func installerAsset(assets []githubReleaseAsset) *githubReleaseAsset {
+	for index := range assets {
+		asset := &assets[index]
 		name := strings.ToLower(asset.Name)
 		if strings.HasSuffix(name, ".exe") && !strings.HasSuffix(name, ".sha256") {
-			return asset.BrowserDownloadURL
+			return asset
 		}
 	}
-	return ""
+	return nil
+}
+
+func checksumAsset(assets []githubReleaseAsset, installer *githubReleaseAsset) *githubReleaseAsset {
+	if installer != nil {
+		expectedName := strings.ToLower(installer.Name + ".sha256")
+		for index := range assets {
+			asset := &assets[index]
+			if strings.ToLower(asset.Name) == expectedName {
+				return asset
+			}
+		}
+	}
+
+	for index := range assets {
+		asset := &assets[index]
+		if strings.HasSuffix(strings.ToLower(asset.Name), ".sha256") {
+			return asset
+		}
+	}
+	return nil
 }
 
 func truncateReleaseBody(value string) string {

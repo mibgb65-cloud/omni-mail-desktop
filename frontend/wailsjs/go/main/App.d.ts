@@ -30,6 +30,8 @@ export function DeleteProfile(arg1:string):Promise<void>;
 
 export function DownloadAttachment(arg1:main.DownloadAttachmentInput):Promise<main.DownloadResult>;
 
+export function DownloadUpdateInstaller():Promise<main.UpdateInstallResult>;
+
 export function GetAccountSettings(arg1:main.AccountSettingsRequest):Promise<main.AccountSettings>;
 
 export function GetDomainDNSHealth(arg1:main.DNSHealthRequest):Promise<main.DNSHealth>;
@@ -37,6 +39,8 @@ export function GetDomainDNSHealth(arg1:main.DNSHealthRequest):Promise<main.DNSH
 export function GetEndpointDiagnostics(arg1:string):Promise<main.EndpointDiagnostics>;
 
 export function GetInitialState():Promise<main.InitialState>;
+
+export function LaunchUpdateInstaller(arg1:string):Promise<void>;
 
 export function ListAuditLogs(arg1:main.AuditLogRequest):Promise<Array<main.AuditLog>>;
 

@@ -50,7 +50,7 @@ The Windows installer is built with Inno Setup from:
 build/windows/OmniMailDesktop.iss
 ```
 
-The installer supports English and Simplified Chinese, custom install location, custom data storage location, and in-place updates that preserve user data.
+The installer supports English and Simplified Chinese, custom install location, custom data storage location, and in-place updates that preserve user data. The app can check GitHub Releases from the settings page, download the newer installer, verify its `.sha256` checksum, launch the installer, and quit the running app so the update can replace files cleanly.
 
 ## Release
 

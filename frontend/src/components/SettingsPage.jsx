@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {Activity, ArrowLeft, ClipboardList, Download, ExternalLink, KeyRound, Mail, Moon, PanelLeftOpen, RefreshCw, ShieldCheck, Sun} from 'lucide-react';
 import {BrowserOpenURL, ClipboardSetText} from '../../wailsjs/runtime/runtime';
-import {CheckForUpdates, SaveDiagnosticPackage} from '../../wailsjs/go/main/App';
+import {CheckForUpdates, DownloadUpdateInstaller, LaunchUpdateInstaller, SaveDiagnosticPackage} from '../../wailsjs/go/main/App';
 import {formatCount, settingsTabs, stringifyDiagnosticReport} from '../app/utils';
 import {EmptyState, SettingRow, StatusBadge} from './Common';
 import {AuditLogPanel, DiagnosticsPanel} from './InsightsPanels';
@@ -33,6 +33,7 @@ export function SettingsPage({
 }) {
     const [activeTab, setActiveTab] = useState('general');
     const [checkingUpdate, setCheckingUpdate] = useState(false);
+    const [installingUpdate, setInstallingUpdate] = useState(false);
     const [savingDiagnostics, setSavingDiagnostics] = useState(false);
     const [updateInfo, setUpdateInfo] = useState(null);
     const insightsLoaded = Boolean(selectedProfile && insightsProfileId === selectedProfile.id && diagnostics);
@@ -91,6 +92,18 @@ export function SettingsPage({
             }
         } finally {
             setSavingDiagnostics(false);
+        }
+    }
+
+    async function handleInstallUpdate() {
+        setInstallingUpdate(true);
+        try {
+            const result = await DownloadUpdateInstaller();
+            onNotify?.('success', '更新安装包已校验', `版本 ${result?.version || updateInfo?.latestVersion || ''}`);
+            await LaunchUpdateInstaller(result.path);
+        } catch (error) {
+            onNotify?.('error', '更新安装失败', error.message || '无法下载或启动更新安装包。');
+            setInstallingUpdate(false);
         }
     }
 
@@ -210,7 +223,7 @@ export function SettingsPage({
                                     ? updateInfo.updateAvailable
                                         ? `当前 ${updateInfo.currentVersion}，最新 ${updateInfo.latestVersion}。`
                                         : `当前 ${updateInfo.currentVersion}，已是最新版本。`
-                                    : '启动后会自动检查 GitHub Release，也可以在这里手动检查。'}
+                                    : '启动后会自动检查 GitHub Release；发现新版后可下载、校验并启动更新安装器。'}
                                 action={(
                                     <span className="setting-row-actions">
                                         <button type="button" onClick={handleCheckUpdates} disabled={checkingUpdate}>
@@ -218,11 +231,19 @@ export function SettingsPage({
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => BrowserOpenURL(updateInfo?.downloadUrl || updateInfo?.releaseUrl || '')}
-                                            disabled={!updateInfo?.updateAvailable || (!updateInfo?.downloadUrl && !updateInfo?.releaseUrl)}
+                                            onClick={handleInstallUpdate}
+                                            disabled={!updateInfo?.updateAvailable || installingUpdate}
+                                        >
+                                            <Download size={15} />
+                                            {installingUpdate ? '处理中' : '下载并安装'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => BrowserOpenURL(updateInfo?.releaseUrl || updateInfo?.downloadUrl || '')}
+                                            disabled={!updateInfo?.releaseUrl && !updateInfo?.downloadUrl}
                                         >
                                             <ExternalLink size={15} />
-                                            下载
+                                            详情
                                         </button>
                                     </span>
                                 )}

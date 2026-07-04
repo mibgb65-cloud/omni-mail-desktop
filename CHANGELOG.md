@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [v1.0.7] - 2026-07-04
+
+### Added
+
+- Add one-click update installation from the settings page with release installer download, SHA256 verification, installer launch, and app exit.
+
+### Changed
+
+- Include installer asset and checksum metadata in update checks so the app can drive verified update installation instead of only opening the release page.
+
 ## [v1.0.6] - 2026-07-04
 
 ### Added

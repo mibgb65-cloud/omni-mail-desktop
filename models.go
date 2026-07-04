@@ -258,9 +258,18 @@ type UpdateInfo struct {
 	UpdateAvailable bool   `json:"updateAvailable"`
 	ReleaseURL      string `json:"releaseUrl"`
 	DownloadURL     string `json:"downloadUrl"`
+	ChecksumURL     string `json:"checksumUrl"`
+	InstallerName   string `json:"installerName"`
 	PublishedAt     string `json:"publishedAt"`
 	Name            string `json:"name"`
 	Body            string `json:"body"`
+}
+
+type UpdateInstallResult struct {
+	Version string `json:"version"`
+	Path    string `json:"path"`
+	Size    int64  `json:"size"`
+	SHA256  string `json:"sha256"`
 }
 
 type AttachmentPreview struct {

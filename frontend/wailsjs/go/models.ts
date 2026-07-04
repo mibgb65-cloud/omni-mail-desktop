@@ -1371,6 +1371,8 @@ export namespace main {
 	    updateAvailable: boolean;
 	    releaseUrl: string;
 	    downloadUrl: string;
+	    checksumUrl: string;
+	    installerName: string;
 	    publishedAt: string;
 	    name: string;
 	    body: string;
@@ -1386,9 +1388,29 @@ export namespace main {
 	        this.updateAvailable = source["updateAvailable"];
 	        this.releaseUrl = source["releaseUrl"];
 	        this.downloadUrl = source["downloadUrl"];
+	        this.checksumUrl = source["checksumUrl"];
+	        this.installerName = source["installerName"];
 	        this.publishedAt = source["publishedAt"];
 	        this.name = source["name"];
 	        this.body = source["body"];
+	    }
+	}
+	export class UpdateInstallResult {
+	    version: string;
+	    path: string;
+	    size: number;
+	    sha256: string;
+
+	    static createFrom(source: any = {}) {
+	        return new UpdateInstallResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
+	        this.path = source["path"];
+	        this.size = source["size"];
+	        this.sha256 = source["sha256"];
 	    }
 	}
 	export class UserInput {
@@ -1415,5 +1437,4 @@ export namespace main {
 	        this.enabled = source["enabled"];
 	    }
 	}
-
 }

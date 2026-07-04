@@ -58,6 +58,10 @@ export function DownloadAttachment(arg1) {
   return window['go']['main']['App']['DownloadAttachment'](arg1);
 }
 
+export function DownloadUpdateInstaller() {
+  return window['go']['main']['App']['DownloadUpdateInstaller']();
+}
+
 export function GetAccountSettings(arg1) {
   return window['go']['main']['App']['GetAccountSettings'](arg1);
 }
@@ -72,6 +76,10 @@ export function GetEndpointDiagnostics(arg1) {
 
 export function GetInitialState() {
   return window['go']['main']['App']['GetInitialState']();
+}
+
+export function LaunchUpdateInstaller(arg1) {
+  return window['go']['main']['App']['LaunchUpdateInstaller'](arg1);
 }
 
 export function ListAuditLogs(arg1) {
