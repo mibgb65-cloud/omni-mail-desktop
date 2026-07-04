@@ -11,11 +11,12 @@ Windows desktop client for OmniMail Worker deployments.
 - Load domains, mailboxes, and messages through the selected endpoint.
 - Review a workspace overview with mailbox metrics, priority messages, recent mail, and common actions.
 - Inspect endpoint activity with diagnostics, deployment progress, recent mailbox activity, and audit logs.
-- Search the current loaded mailbox from a dedicated center with keyword matching, status filters, relevance/time sorting, and jump-to-message actions.
+- Search the current loaded mailbox from a dedicated center with keyword matching, status filters, relevance/time sorting, jump-to-message actions, and optional endpoint-scope expansion across domains and accounts.
 - Review current-mailbox contacts from a dedicated center with aggregation, filters, copy-email, compose, and jump-to-message actions.
 - Browse current-mailbox attachments from a dedicated center with metrics, type filters, search, sorting, preview, download, and jump-to-message actions.
+- Queue visible mailbox actions for batch read/unread, star/unstar, archive, and restore processing.
 - Install desktop updates with global update notifications, update badges, release notes, automatic-check preferences, remind-later and skip-version controls, download progress, cancel support, SHA256 verification, and verified installer cache reuse.
-- Inspect local app information, recent application logs, update cache usage, and clear update or preview caches from the settings page.
+- Inspect local app information, privacy status, recent application logs, update cache usage, and clear update or preview caches from the settings page.
 
 Each profile maps to one deployed OmniMail Worker base URL. One profile can still expose many mail domains through the OmniMail API.
 
@@ -96,4 +97,4 @@ When the signing certificate secret is not present, the release workflow skips s
 
 Profiles are stored in the user config directory under `OmniMailDesktop/profiles.json`.
 If that directory is not writable during local development, the app falls back to `.omnimail-desktop/profiles.json` in the project directory.
-The app also writes a small local JSONL log next to `profiles.json` as `omnimail-desktop.log`. The workspace settings page can export a diagnostic package that includes the redacted endpoint report and recent local log lines.
+The app also writes a small local JSONL log next to `profiles.json` as `omnimail-desktop.log`. The workspace settings page can export a diagnostic package that includes the redacted endpoint report and recent local log lines, and flags local privacy items such as preview cache, update cache, and retained logs.

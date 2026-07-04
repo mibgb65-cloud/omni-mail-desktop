@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
-import {Database, FileText, HardDrive, RefreshCw, Trash2} from 'lucide-react';
+import {Database, FileText, HardDrive, RefreshCw, ShieldCheck, Trash2} from 'lucide-react';
 import {ClearAttachmentPreviewCache, ClearUpdateCache, GetAppInfo, GetRecentApplicationLogs, GetUpdateCacheInfo} from '../../wailsjs/go/main/App';
+import {buildPrivacyStatus} from '../app/privacyStatus';
 import {formatDateTime, formatFileSize} from '../app/utils';
 import {StatusBadge} from './Common';
 import {SettingsPanelHeader} from './SettingsCommon';
@@ -10,6 +11,7 @@ export function SettingsLocalPanel({onNotify}) {
     const [cacheInfo, setCacheInfo] = useState(null);
     const [logs, setLogs] = useState([]);
     const [busy, setBusy] = useState('');
+    const privacyStatus = buildPrivacyStatus({appInfo, cacheInfo, logs});
 
     useEffect(() => {
         loadLocalStatus();
@@ -97,6 +99,27 @@ export function SettingsLocalPanel({onNotify}) {
                     </button>
                     <StatusBadge ok={!busy} label={busy ? '处理中' : '就绪'} />
                 </footer>
+            </section>
+
+            <section className="settings-panel settings-panel-wide">
+                <SettingsPanelHeader
+                    action={<StatusBadge ok={privacyStatus.every((item) => item.ok)} label={privacyStatus.every((item) => item.ok) ? '低风险' : '需关注'} />}
+                    body="汇总本机缓存、日志和活动预览状态，帮助判断是否需要清理本机数据。"
+                    icon={ShieldCheck}
+                    kicker="隐私"
+                    title="本机隐私状态"
+                />
+                <div className="settings-card-list">
+                    {privacyStatus.map((item) => (
+                        <article className="settings-item-card" key={item.id}>
+                            <span>
+                                <strong>{item.title}</strong>
+                                <small>{item.detail}</small>
+                            </span>
+                            <StatusBadge ok={item.ok} label={item.ok ? '正常' : '需处理'} />
+                        </article>
+                    ))}
+                </div>
             </section>
 
             <section className="settings-panel settings-panel-wide">

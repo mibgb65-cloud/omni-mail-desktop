@@ -19,6 +19,8 @@ import {
 } from './utils.js';
 import {collectContacts, contactStats, filterContacts, normalizeContactEmail, sortContacts} from './contactCenter.js';
 import {searchMessages, searchMessageStats} from './messageSearch.js';
+import {createQueueItems, filterQueueCandidates, operationQueueStats, queueActionLabel} from './operationQueue.js';
+import {buildPrivacyStatus} from './privacyStatus.js';
 
 test('splitRecipients normalizes display names and separators', () => {
     assert.deepEqual(
@@ -193,6 +195,46 @@ test('contact helpers aggregate current mailbox participants', () => {
         starred: 1,
         attachments: 1
     });
+});
+
+test('operation queue helpers filter candidates and summarize queue states', () => {
+    const messages = [
+        {id: 'm1', direction: 'inbound', readAt: '', archivedAt: '', starredAt: '', attachments: []},
+        {id: 'm2', direction: 'inbound', readAt: '2026-07-04T10:00:00Z', archivedAt: '', starredAt: '2026-07-04T10:00:00Z', attachments: [{filename: 'a.pdf'}]},
+        {id: 'm3', direction: 'inbound', readAt: '2026-07-04T11:00:00Z', archivedAt: '2026-07-04T12:00:00Z', attachments: []}
+    ];
+
+    assert.equal(queueActionLabel('archive'), '归档');
+    assert.equal(filterQueueCandidates(messages, 'unread').at(0).id, 'm1');
+    assert.equal(filterQueueCandidates(messages, 'starred').at(0).id, 'm2');
+    assert.equal(filterQueueCandidates(messages, 'attachments').at(0).id, 'm2');
+    assert.equal(filterQueueCandidates(messages, 'archive').at(0).id, 'm3');
+
+    const queue = createQueueItems(messages, ['m1', 'm3'], 'read', 4);
+    queue[0].status = 'success';
+    queue[1].status = 'error';
+
+    assert.equal(queue.length, 2);
+    assert.deepEqual(operationQueueStats(queue), {
+        total: 2,
+        pending: 0,
+        running: 0,
+        success: 1,
+        error: 1
+    });
+});
+
+test('privacy status flags active previews and update cache', () => {
+    const status = buildPrivacyStatus({
+        appInfo: {activeAttachmentPreviews: 1},
+        cacheInfo: {size: 1024},
+        logs: [{message: 'one'}]
+    });
+
+    assert.equal(status.find((item) => item.id === 'token-storage').ok, true);
+    assert.equal(status.find((item) => item.id === 'preview-cache').ok, false);
+    assert.equal(status.find((item) => item.id === 'update-cache').ok, false);
+    assert.equal(status.find((item) => item.id === 'local-logs').ok, true);
 });
 
 test('formatFileSize keeps compact labels', () => {

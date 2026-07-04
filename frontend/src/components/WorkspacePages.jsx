@@ -1,9 +1,10 @@
-import {Activity, ArrowLeft, BarChart3, Clock3, Globe2, Inbox, Mail, MailPlus, Paperclip, RefreshCw, Search, Settings, ShieldCheck, Star, Users} from 'lucide-react';
+import {Activity, ArrowLeft, BarChart3, Clock3, Globe2, Inbox, ListChecks, Mail, MailPlus, Paperclip, RefreshCw, Search, Settings, ShieldCheck, Star, Users} from 'lucide-react';
 import {formatCount, formatMessageTime, isStarredMessage, isUnreadMessage} from '../app/utils';
 import {EmptyState, StatusBadge} from './Common';
 import {AttachmentCenterPage} from './AttachmentCenterPage';
 import {ContactCenterPage} from './ContactCenterPage';
 import {AuditLogPanel, DiagnosticsPanel} from './InsightsPanels';
+import {OperationQueuePage} from './OperationQueuePage';
 import {SearchCenterPage} from './SearchCenterPage';
 import {SettingsPage} from './SettingsPage';
 
@@ -59,12 +60,14 @@ export function WorkspacePageRouter({
     onOpenContacts,
     onOpenMessage,
     onOpenProfiles,
+    onOpenQueue,
     onOpenSearch,
     onOpenSettings,
     onPreviewAttachment,
     onProfileUpdate,
     onReloadMailbox,
     onResetLayout,
+    onRunMessageAction,
     page,
     profiles,
     selectedAccount,
@@ -89,6 +92,7 @@ export function WorkspacePageRouter({
                 onOpenAttachments={onOpenAttachments}
                 onOpenContacts={onOpenContacts}
                 onOpenMessage={onOpenMessage}
+                onOpenQueue={onOpenQueue}
                 onOpenSearch={onOpenSearch}
                 onOpenSettings={onOpenSettings}
                 onReloadMailbox={onReloadMailbox}
@@ -137,6 +141,20 @@ export function WorkspacePageRouter({
                 onCopy={onCopyText}
                 onLoadMore={onLoadMoreMessages}
                 onOpenMessage={onOpenMessage}
+                selectedProfile={selectedProfile}
+                workspace={workspace}
+            />
+        );
+    }
+
+    if (page === 'queue') {
+        return (
+            <OperationQueuePage
+                busy={busy}
+                onBack={onBack}
+                onLoadMore={onLoadMoreMessages}
+                onOpenMessage={onOpenMessage}
+                onRunMessageAction={onRunMessageAction}
                 selectedProfile={selectedProfile}
                 workspace={workspace}
             />
@@ -196,6 +214,7 @@ export function DashboardPage({
     onOpenAttachments,
     onOpenContacts,
     onOpenMessage,
+    onOpenQueue,
     onOpenSearch,
     onOpenSettings,
     onReloadMailbox,
@@ -288,6 +307,10 @@ export function DashboardPage({
                         <button type="button" onClick={onOpenContacts} disabled={!selectedProfile?.hasToken || !workspace?.selectedAccountId}>
                             <Users size={16} />
                             联系人中心
+                        </button>
+                        <button type="button" onClick={onOpenQueue} disabled={!selectedProfile?.hasToken || !workspace?.selectedAccountId}>
+                            <ListChecks size={16} />
+                            操作队列
                         </button>
                         <button type="button" onClick={onOpenSettings}>
                             <Settings size={16} />

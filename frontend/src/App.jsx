@@ -2,14 +2,11 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import './App.css';
 import {WindowSetDarkTheme, WindowSetLightTheme} from '../wailsjs/runtime/runtime';
 
-import {emptyAccountForm, emptyAuthForm, emptyComposeForm, emptyDomainForm, emptyProfileForm, composeHasContent, clamp, invalidRecipients, isTypingTarget, isUnreadMessage, layoutDefaults, layoutLimits, mailboxPageSize, normalizeDomainInput, readStoredWidth, splitRecipients, upsertProfile} from './app/utils';
+import {emptyAccountForm, emptyAuthForm, emptyComposeForm, emptyDomainForm, emptyProfileForm, composeHasContent, isTypingTarget, isUnreadMessage, layoutDefaults, layoutLimits, readStoredWidth} from './app/utils';
 import {useUpdateManager} from './app/updateManager';
 import {ContextMenu, ResizeHandle, TitleBar, Toast} from './components/Common';
 import {Sidebar} from './components/Sidebar';
-import {AccountEditorPage, AccountManagerPage, AuthPage, DomainManagerPage, ProfileEditorPage, StartPage} from './components/StartAndEditors';
-import {EndpointManagerPage} from './components/EndpointManager';
-import {WorkspacePageRouter} from './components/WorkspacePages';
-import {MailWorkspace} from './components/MailWorkspace';
+import {AppMainContent} from './components/AppMainContent';
 
 import {createLayoutActions} from './app/layoutActions';
 import {createProfileActions} from './app/profileActions';
@@ -299,14 +296,7 @@ function App() {
 
     const profileActions = createProfileActions({selectedProfile, selectedProfileId, profileForm, contentPage, profileReturnPage, authReturnPage, authForm, manualToken, workspace, loadMailbox, showToast, setBusy, setProfiles, setStoragePath, setSelectedProfileId, setSidebarPage, setContentPage, setWorkspace, setProfileForm, setStatus, setContextMenu, setProfileReturnPage, setAuthReturnPage, setProfileMenuOpen, setManualToken, setEndpointDiagnostics, setAuditLogs, setInsightsProfileId, setAccountForm, setAuthForm});
     const {loadInitialState, handleProfileSubmit, handleSelectProfile, handleAddProfile, handleCloseProfileEditor, handleBackToProfiles, handleAddAccount, handleCloseAccountEditor, handleOpenAccountManager, handleOpenDomainManager, handleOpenProfileManager, handleOpenAuth, handleCloseAuthPage, handleTestProfile, handleEditProfile, handleDeleteProfile, loadEndpointInsights, handleAuthorize, handleManualToken} = profileActions;
-    const showEndpointPage = contentPage === 'endpoints';
-    const showProfilePage = contentPage === 'profile';
-    const showAuthPage = contentPage === 'auth';
-    const showAccountPage = contentPage === 'account';
-    const showAccountManagerPage = contentPage === 'accounts';
-    const showDomainManagerPage = contentPage === 'domains';
-    const showWorkspacePage = ['dashboard', 'activity', 'attachments', 'contacts', 'search', 'settings'].includes(contentPage);
-    const showStartPage = contentPage === 'start' || (!selectedProfile && !showEndpointPage && !showProfilePage && !showWorkspacePage);
+    const showWorkspacePage = ['dashboard', 'activity', 'attachments', 'contacts', 'queue', 'search', 'settings'].includes(contentPage);
     const openWorkspacePage = (page) => {
         setContentPage(page);
         setProfileMenuOpen(false);
@@ -328,10 +318,54 @@ function App() {
         setComposerOpen(true);
     };
     const openComposerForContact = (contact) => openComposer({to: contact?.email || ''});
-    const openMessageFromWorkspace = (message) => {
+    const openMessageFromWorkspace = async (message) => {
+        const shouldLoadScopedAccount = selectedProfile?.id
+            && message?.accountId
+            && message?.searchScopeDomain
+            && (
+                message.accountId !== workspace?.selectedAccountId
+                || message.searchScopeDomain !== workspace?.selectedDomain
+            );
+
+        if (shouldLoadScopedAccount) {
+            const loaded = await loadMailbox({
+                profileId: selectedProfile.id,
+                domain: message.searchScopeDomain,
+                accountId: message.accountId
+            });
+            if (!loaded) {
+                return;
+            }
+        }
+
         setActiveFolder(message.archivedAt ? 'archive' : message.direction === 'outbound' ? 'sent' : 'inbox');
         setSelectedMessageId(message.id);
         setContentPage('mail');
+    };
+    const runQueuedMessageAction = async (message, action) => {
+        if (action === 'read') {
+            await handleSetMessageStatus(message, {read: true}, {silent: true, throwOnError: true});
+            return;
+        }
+        if (action === 'unread') {
+            await handleSetMessageStatus(message, {read: false}, {silent: true, throwOnError: true});
+            return;
+        }
+        if (action === 'star') {
+            await handleSetMessageStatus(message, {starred: true}, {silent: true, throwOnError: true});
+            return;
+        }
+        if (action === 'unstar') {
+            await handleSetMessageStatus(message, {starred: false}, {silent: true, throwOnError: true});
+            return;
+        }
+        if (action === 'archive' && !message.archivedAt) {
+            await handleArchiveMessage(message, {silent: true, throwOnError: true});
+            return;
+        }
+        if (action === 'unarchive' && message.archivedAt) {
+            await handleArchiveMessage(message, {silent: true, throwOnError: true});
+        }
     };
 
     return (
@@ -373,6 +407,7 @@ function App() {
                     onOpenAttachments={() => openWorkspacePage('attachments')}
                     onOpenContacts={() => openWorkspacePage('contacts')}
                     onOpenDashboard={() => openWorkspacePage('dashboard')}
+                    onOpenQueue={() => openWorkspacePage('queue')}
                     onOpenSearch={() => openWorkspacePage('search')}
                     onOpenSettings={openSettingsPage}
                     onCompose={() => openComposer()}
@@ -404,158 +439,97 @@ function App() {
                     value={sidebarWidth}
                 />
 
-                {showProfilePage ? (
-                    <ProfileEditorPage
-                        busy={busy}
-                        form={profileForm}
-                        onBack={handleCloseProfileEditor}
-                        onChange={setProfileForm}
-                        onSubmit={handleProfileSubmit}
-                    />
-                ) : showEndpointPage ? (
-                    <EndpointManagerPage
-                        busy={busy}
-                        onAddProfile={handleAddProfile}
-                        onAuth={handleOpenAuth}
-                        onBack={() => setContentPage(selectedProfile ? 'mail' : 'start')}
-                        onDeleteProfile={handleDeleteProfile}
-                        onEditProfile={handleEditProfile}
-                        onNotify={showToast}
-                        onProfileSelect={handleSelectProfile}
-                        onTestProfile={handleTestProfile}
-                        profiles={profiles}
-                        selectedProfileId={selectedProfileId}
-                        status={status}
-                    />
-                ) : showAuthPage && selectedProfile ? (
-                    <AuthPage
-                        authForm={authForm}
-                        busy={busy}
-                        manualToken={manualToken}
-                        onAuthFormChange={setAuthForm}
-                        onBack={handleCloseAuthPage}
-                        onManualToken={handleManualToken}
-                        onManualTokenChange={setManualToken}
-                        onSubmit={handleAuthorize}
-                        profile={selectedProfile}
-                        status={status}
-                    />
-                ) : showStartPage ? (
-                    <StartPage
-                        busy={busy}
-                        onAddProfile={handleAddProfile}
-                        onManageProfiles={handleOpenProfileManager}
-                        profiles={profiles}
-                    />
-                ) : showAccountPage && selectedProfile ? (
-                    <AccountEditorPage
-                        busy={busy}
-                        domain={workspace?.selectedDomain || ''}
-                        form={accountForm}
-                        onBack={handleCloseAccountEditor}
-                        onChange={setAccountForm}
-                        onSubmit={handleAccountSubmit}
-                        profile={selectedProfile}
-                    />
-                ) : showAccountManagerPage && selectedProfile ? (
-                    <AccountManagerPage
-                        accounts={workspace?.accounts || []}
-                        busy={busy}
-                        domain={workspace?.selectedDomain || ''}
-                        onAddAccount={handleAddAccount}
-                        onBack={() => setContentPage('mail')}
-                        onCopy={handleCopyText}
-                        onDeleteAccount={handleDeleteAccount}
-                        onSelectAccount={(accountId) => loadMailbox({
-                            profileId: selectedProfile.id,
-                            domain: workspace?.selectedDomain || '',
-                            accountId
-                        })}
-                        onUpdateAccount={handleUpdateAccount}
-                        selectedAccountId={workspace?.selectedAccountId || ''}
-                    />
-                ) : showDomainManagerPage && selectedProfile ? (
-                    <DomainManagerPage
-                        busy={busy}
-                        domains={workspace?.domains || []}
-                        form={domainForm}
-                        onBack={() => setContentPage('mail')}
-                        onChange={setDomainForm}
-                        onCopy={handleCopyText}
-                        onSelectDomain={(domain) => loadMailbox({profileId: selectedProfile.id, domain})}
-                        onSubmit={handleDomainSubmit}
-                        selectedDomain={workspace?.selectedDomain || ''}
-                        selectedProfile={selectedProfile}
-                    />
-                ) : showWorkspacePage ? (
-                    <WorkspacePageRouter
-                        {...{auditLogs, busy, canClearCurrentDraft, folderCounts, insightsProfileId, profiles, selectedAccount, selectedProfile, status, storagePath, theme, workspace}}
-                        diagnostics={endpointDiagnostics}
-                        onBack={() => setContentPage('mail')}
-                        onCompose={() => openComposer()}
-                        onComposeContact={openComposerForContact}
-                        onCopyText={handleCopyText}
-                        onClearCurrentDraft={clearCurrentDraft}
-                        onDownloadAttachment={handleDownloadAttachment}
-                        onLoadInsights={loadEndpointInsights}
-                        onLoadMoreMessages={loadMoreMessages}
-                        onManageAccounts={handleOpenAccountManager}
-                        onManageDomains={handleOpenDomainManager}
-                        onOpenActivity={() => openWorkspacePage('activity')}
-                        onOpenAttachments={() => openWorkspacePage('attachments')}
-                        onOpenContacts={() => openWorkspacePage('contacts')}
-                        onOpenMessage={openMessageFromWorkspace}
-                        onNotify={showToast}
-                        onOpenProfiles={handleOpenProfileManager}
-                        onOpenSearch={() => openWorkspacePage('search')}
-                        onOpenSettings={openSettingsPage}
-                        onPreviewAttachment={handlePreviewAttachment}
-                        onProfileUpdate={(profile) => setProfiles((current) => upsertProfile(current, profile))}
-                        onReloadMailbox={reloadCurrentMailbox}
-                        onResetLayout={resetLayoutPreferences}
-                        page={contentPage}
-                        toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
-                        updateManager={updateManager}
-                    />
-                ) : (
-                    <MailWorkspace
-                        activeFolder={activeFolder}
-                        busy={busy}
-                        composerOpen={composerOpen}
-                        composeForm={composeForm}
-                        composeOptionsOpen={composeOptionsOpen}
-                        hasSavedDraft={hasSavedDraft}
-                        listWidth={listWidth}
-                        onArchiveMessage={handleArchiveMessage}
-                        onClearCurrentDraft={clearCurrentDraft}
-                        onCloseComposer={() => setComposerOpen(false)}
-                        onCompose={() => openComposer()}
-                        onContextMenu={openContextMenu}
-                        onDeleteMessage={handleDeleteMessage}
-                        onDownloadAttachment={handleDownloadAttachment}
-                        onLoadMoreMessages={loadMoreMessages}
-                        onOpenSettings={openSettingsPage}
-                        onPreviewAttachment={handlePreviewAttachment}
-                        onReloadMailbox={reloadCurrentMailbox}
-                        onResizeKey={handleResizeKey}
-                        onResizePointerDown={startPanelResize}
-                        onResetListWidth={() => resetLayoutWidth('list')}
-                        onSelectMessage={setSelectedMessageId}
-                        onSendMessage={handleSendMessage}
-                        onSetComposeForm={setComposeForm}
-                        onSetMessageStatus={handleSetMessageStatus}
-                        onToggleComposeOptions={() => setComposeOptionsOpen((value) => !value)}
-                        resizingPanel={resizingPanel}
-                        searchInputRef={searchInputRef}
-                        searchQuery={searchQuery}
-                        selectedAccount={selectedAccount}
-                        selectedMessage={selectedMessage}
-                        selectedProfile={selectedProfile}
-                        setSearchQuery={setSearchQuery}
-                        visibleMessages={visibleMessages}
-                        workspace={workspace}
-                    />
-                )}
+                <AppMainContent
+                    accountForm={accountForm}
+                    activeFolder={activeFolder}
+                    auditLogs={auditLogs}
+                    authForm={authForm}
+                    busy={busy}
+                    canClearCurrentDraft={canClearCurrentDraft}
+                    clearCurrentDraft={clearCurrentDraft}
+                    composerOpen={composerOpen}
+                    composeForm={composeForm}
+                    composeOptionsOpen={composeOptionsOpen}
+                    contentPage={contentPage}
+                    domainForm={domainForm}
+                    endpointDiagnostics={endpointDiagnostics}
+                    folderCounts={folderCounts}
+                    handleAccountSubmit={handleAccountSubmit}
+                    handleAddAccount={handleAddAccount}
+                    handleAddProfile={handleAddProfile}
+                    handleArchiveMessage={handleArchiveMessage}
+                    handleAuthorize={handleAuthorize}
+                    handleCloseAccountEditor={handleCloseAccountEditor}
+                    handleCloseAuthPage={handleCloseAuthPage}
+                    handleCloseProfileEditor={handleCloseProfileEditor}
+                    handleCopyText={handleCopyText}
+                    handleDeleteAccount={handleDeleteAccount}
+                    handleDeleteMessage={handleDeleteMessage}
+                    handleDeleteProfile={handleDeleteProfile}
+                    handleDomainSubmit={handleDomainSubmit}
+                    handleDownloadAttachment={handleDownloadAttachment}
+                    handleEditProfile={handleEditProfile}
+                    handleManualToken={handleManualToken}
+                    handleOpenAccountManager={handleOpenAccountManager}
+                    handleOpenAuth={handleOpenAuth}
+                    handleOpenDomainManager={handleOpenDomainManager}
+                    handleOpenProfileManager={handleOpenProfileManager}
+                    handlePreviewAttachment={handlePreviewAttachment}
+                    handleProfileSubmit={handleProfileSubmit}
+                    handleResizeKey={handleResizeKey}
+                    handleSelectProfile={handleSelectProfile}
+                    handleSendMessage={handleSendMessage}
+                    handleSetMessageStatus={handleSetMessageStatus}
+                    handleTestProfile={handleTestProfile}
+                    handleUpdateAccount={handleUpdateAccount}
+                    hasSavedDraft={hasSavedDraft}
+                    insightsProfileId={insightsProfileId}
+                    listWidth={listWidth}
+                    loadEndpointInsights={loadEndpointInsights}
+                    loadMailbox={loadMailbox}
+                    loadMoreMessages={loadMoreMessages}
+                    manualToken={manualToken}
+                    onNotify={showToast}
+                    openComposer={openComposer}
+                    openComposerForContact={openComposerForContact}
+                    openContextMenu={openContextMenu}
+                    openMessageFromWorkspace={openMessageFromWorkspace}
+                    openSettingsPage={openSettingsPage}
+                    openWorkspacePage={openWorkspacePage}
+                    onRunMessageAction={runQueuedMessageAction}
+                    profileForm={profileForm}
+                    profiles={profiles}
+                    reloadCurrentMailbox={reloadCurrentMailbox}
+                    resetLayoutPreferences={resetLayoutPreferences}
+                    resetLayoutWidth={resetLayoutWidth}
+                    resizingPanel={resizingPanel}
+                    searchInputRef={searchInputRef}
+                    searchQuery={searchQuery}
+                    selectedAccount={selectedAccount}
+                    selectedMessage={selectedMessage}
+                    selectedProfile={selectedProfile}
+                    selectedProfileId={selectedProfileId}
+                    setAccountForm={setAccountForm}
+                    setAuthForm={setAuthForm}
+                    setComposeForm={setComposeForm}
+                    setComposeOptionsOpen={setComposeOptionsOpen}
+                    setComposerOpen={setComposerOpen}
+                    setContentPage={setContentPage}
+                    setDomainForm={setDomainForm}
+                    setManualToken={setManualToken}
+                    setProfileForm={setProfileForm}
+                    setProfiles={setProfiles}
+                    setSearchQuery={setSearchQuery}
+                    setSelectedMessageId={setSelectedMessageId}
+                    startPanelResize={startPanelResize}
+                    status={status}
+                    storagePath={storagePath}
+                    theme={theme}
+                    toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
+                    updateManager={updateManager}
+                    visibleMessages={visibleMessages}
+                    workspace={workspace}
+                />
 
                 {contextMenu ? (
                     <ContextMenu

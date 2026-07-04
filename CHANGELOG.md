@@ -4,14 +4,18 @@
 
 ### Added
 
+- Add a mailbox operation queue for batching read/unread, star/unstar, archive, and restore actions against visible message sets.
 - Add a current-mailbox search center with keyword search, status filters, relevance/time sorting, load-more support, and jump-to-message actions.
+- Add opt-in search expansion across the selected endpoint's loaded domains, accounts, sender/account metadata, and recent messages.
 - Add message search helpers and tests for field matching, filters, sorting, and summary counts.
 - Add a current-mailbox contact center with contact aggregation, search, filters, sorting, copy-email, compose, and jump-to-message actions.
 - Add contact aggregation helpers and tests for participant normalization, counts, filters, and sorting.
+- Add a local privacy status panel for token protection, preview cache, update cache, and recent local log exposure.
 
 ### Changed
 
 - Extract the mailbox list, reader, and composer workspace into a dedicated component to keep `App.jsx` below the line limit as more workspace pages are added.
+- Split shared overlay, skeleton, empty-state, and responsive CSS into a separate style module to keep style files below the line limit.
 - Route compose actions from workspace pages back to the mailbox composer so contact prefill and dashboard compose actions open the expected view.
 
 ## [v1.0.13] - 2026-07-04

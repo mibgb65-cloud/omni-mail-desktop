@@ -1,4 +1,4 @@
-import {Activity, ArrowLeft, Globe2, KeyRound, LayoutDashboard, Mail, MailPlus, Moon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Plus, Search, Settings, ShieldCheck, Sun, Trash2, Users} from 'lucide-react';
+import {Activity, ArrowLeft, Globe2, KeyRound, LayoutDashboard, ListChecks, Mail, MailPlus, Moon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Plus, Search, Settings, ShieldCheck, Sun, Trash2, Users} from 'lucide-react';
 import {collectContacts} from '../app/contactCenter';
 import {folders} from '../app/utils';
 import {IconButton, MutedLine, NavItem, SectionLabel, SidebarNotice} from './Common';
@@ -26,6 +26,7 @@ export function Sidebar({
     onOpenAttachments,
     onOpenContacts,
     onOpenDashboard,
+    onOpenQueue,
     onOpenSearch,
     onOpenSettings,
     onProfileSelect,
@@ -166,6 +167,12 @@ export function Sidebar({
                     icon={Users}
                     label="联系人"
                     onClick={onOpenContacts}
+                />
+                <NavItem
+                    active={activeWorkspacePage === 'queue'}
+                    icon={ListChecks}
+                    label="队列"
+                    onClick={onOpenQueue}
                 />
                 <NavItem
                     active={activeWorkspacePage === 'settings'}

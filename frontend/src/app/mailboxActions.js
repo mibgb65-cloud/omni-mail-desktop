@@ -299,7 +299,7 @@ export function createMailboxActions({selectedProfile, selectedProfileId, worksp
         }
     }
 
-    async function handleArchiveMessage(message) {
+    async function handleArchiveMessage(message, options = {}) {
         if (!selectedProfile || !message) {
             return;
         }
@@ -310,14 +310,23 @@ export function createMailboxActions({selectedProfile, selectedProfileId, worksp
             const payload = {profileId: selectedProfile.id, messageId: message.id};
             if (message.archivedAt) {
                 await UnarchiveMessage(payload);
-                showToast('success', '已移回收件箱');
+                if (!options.silent) {
+                    showToast('success', '已移回收件箱');
+                }
             } else {
                 await ArchiveMessage(payload);
-                showToast('success', '已归档');
+                if (!options.silent) {
+                    showToast('success', '已归档');
+                }
             }
             await reloadCurrentMailbox();
         } catch (actionError) {
-            showToast('error', '更新邮件失败', actionError.message || '请稍后重试。');
+            if (!options.silent) {
+                showToast('error', '更新邮件失败', actionError.message || '请稍后重试。');
+            }
+            if (options.throwOnError) {
+                throw actionError;
+            }
         } finally {
             setBusy('');
         }
@@ -397,6 +406,9 @@ export function createMailboxActions({selectedProfile, selectedProfileId, worksp
         } catch (statusError) {
             if (!options.silent) {
                 showToast('error', '更新邮件状态失败', statusError.message || '请稍后重试。');
+            }
+            if (options.throwOnError) {
+                throw statusError;
             }
         } finally {
             setBusy('');

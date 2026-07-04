@@ -1,0 +1,347 @@
+.context-menu {
+    position: fixed;
+    z-index: 70;
+    display: grid;
+    min-width: 152px;
+    gap: var(--space-1);
+    border-radius: var(--radius-lg);
+    padding: var(--space-2);
+}
+
+.toast {
+    position: fixed;
+    right: var(--space-5);
+    bottom: var(--space-5);
+    z-index: 80;
+    display: grid;
+    grid-template-columns: 22px minmax(180px, 1fr) 34px;
+    align-items: center;
+    gap: var(--space-2);
+    width: min(420px, calc(100vw - 40px));
+    border-radius: var(--radius-lg);
+    padding: var(--space-3);
+}
+
+.toast.success > svg {
+    color: var(--success);
+}
+
+.toast.error > svg {
+    color: var(--danger);
+}
+
+.toast strong,
+.toast small {
+    display: block;
+}
+
+.toast strong {
+    font-size: 13px;
+}
+
+.toast small {
+    margin-top: 2px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.empty-state {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    min-height: 320px;
+    color: var(--text-tertiary);
+    padding: var(--space-8);
+    text-align: center;
+}
+
+.empty-state svg {
+    margin-bottom: var(--space-3);
+}
+
+.empty-state h3 {
+    font-size: 18px;
+}
+
+.empty-state p {
+    max-width: 340px;
+    margin: var(--space-2) 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.empty-state-action {
+    margin-top: var(--space-4);
+}
+
+.loading-list {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-2);
+}
+
+.skeleton-row,
+.reading-skeleton {
+    border-radius: var(--radius-lg);
+    background: linear-gradient(90deg, var(--bg-panel-soft), var(--bg-hover), var(--bg-panel-soft));
+    background-size: 220% 100%;
+    animation: shimmer 1.3s ease-in-out infinite;
+}
+
+.skeleton-row {
+    display: grid;
+    gap: var(--space-2);
+    height: 94px;
+    padding: var(--space-3);
+}
+
+.skeleton-row span,
+.skeleton-row strong,
+.skeleton-row em,
+.reading-skeleton span,
+.reading-skeleton strong,
+.reading-skeleton p {
+    display: block;
+    border-radius: 999px;
+    background: var(--bg-active);
+}
+
+.skeleton-row span {
+    width: 44%;
+    height: 12px;
+}
+
+.skeleton-row strong {
+    width: 72%;
+    height: 13px;
+}
+
+.skeleton-row em {
+    width: 92%;
+    height: 11px;
+}
+
+.reading-skeleton {
+    display: grid;
+    gap: var(--space-4);
+    max-width: 760px;
+    margin: 0 auto;
+    padding: var(--space-8);
+}
+
+.reading-skeleton span {
+    width: 120px;
+    height: 14px;
+}
+
+.reading-skeleton strong {
+    width: 70%;
+    height: 30px;
+}
+
+.reading-skeleton p {
+    width: 100%;
+    height: 14px;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 120% 0;
+    }
+    100% {
+        background-position: -120% 0;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes page-enter {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+@media (max-width: 1160px) {
+    .app-shell {
+        --list-width: 340px;
+    }
+}
+
+@media (max-width: 920px) {
+    .app-shell {
+        --sidebar-width: 72px;
+        --sidebar-resizer-width: 0px;
+        grid-template-columns: var(--sidebar-width) 0 minmax(300px, 42vw) var(--resize-handle-width) minmax(0, 1fr);
+    }
+
+    .sidebar {
+        align-items: center;
+    }
+
+    .workspace-heading,
+    .compose-primary span,
+    .nav-item span,
+    .nav-item small,
+    .section-label,
+    .domain-item span,
+    .account-chip span,
+    .account-chip small,
+    .endpoint-section,
+    .resource-scope,
+    .sidebar-notice,
+    .endpoint-button > span:nth-child(2),
+    .endpoint-button > svg {
+        display: none;
+    }
+
+    .auth-page-grid,
+    .domain-create-form,
+    .resource-manager-summary,
+    .resource-inline-edit {
+        grid-template-columns: 1fr;
+    }
+
+    .endpoint-manager-summary {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .endpoint-health-row,
+    .endpoint-meta-grid,
+    .endpoint-meta-grid-expanded {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .insight-metrics {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .advanced-settings-grid,
+    .insight-columns,
+    .profile-editor-layout,
+    .account-editor-layout,
+    .admin-session-card,
+    .security-grid,
+    .audit-log-item dl {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-panel-wide {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 720px) {
+    .app-shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 42vh minmax(0, 1fr);
+        overflow-y: auto;
+    }
+
+    .resize-handle {
+        display: none;
+    }
+
+    .sidebar {
+        min-height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .list-panel {
+        border-right: 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .reading-view,
+    .composer-card {
+        padding: var(--space-5);
+    }
+
+    .composer-field-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .composer-card footer,
+    .composer-footer-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .message-meta {
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+    }
+
+    .message-inline-actions {
+        grid-column: 1 / -1;
+        margin-left: 0;
+    }
+
+    .message-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .endpoint-health-panel header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .endpoint-health-metrics,
+    .endpoint-meta-grid,
+    .endpoint-meta-grid-expanded {
+        grid-template-columns: 1fr;
+    }
+
+    .endpoint-health-row {
+        grid-template-columns: 1fr;
+    }
+
+    .insight-panel header,
+    .settings-panel header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .settings-form-grid,
+    .settings-check-grid,
+    .settings-inline-form,
+    .settings-item-card {
+        grid-template-columns: 1fr;
+    }
+
+    .update-notes {
+        max-width: 100%;
+        text-align: left;
+    }
+
+    .insight-metrics,
+    .settings-mini-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .diagnostic-latest p {
+        grid-template-columns: 1fr;
+    }
+}

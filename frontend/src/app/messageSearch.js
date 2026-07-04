@@ -12,6 +12,8 @@ export function messageSearchText(message = {}) {
         message.subject,
         message.author,
         message.email,
+        message.accountAddress,
+        message.searchScopeDomain,
         message.preview,
         message.body,
         messageAttachmentText(message)
@@ -33,6 +35,8 @@ export function messageSearchMatch(message = {}, query = '') {
         {name: 'subject', weight: 8, value: message.subject},
         {name: 'author', weight: 5, value: message.author},
         {name: 'email', weight: 5, value: message.email},
+        {name: 'account', weight: 4, value: message.accountAddress},
+        {name: 'domain', weight: 4, value: message.searchScopeDomain},
         {name: 'attachments', weight: 4, value: messageAttachmentText(message)},
         {name: 'preview', weight: 3, value: message.preview},
         {name: 'body', weight: 1, value: message.body}

@@ -1,0 +1,210 @@
+.workspace-queue-page {
+    padding: var(--space-6);
+}
+
+.queue-layout {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.queue-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+.queue-metrics article {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel);
+    padding: var(--space-4);
+}
+
+.queue-metrics strong {
+    color: var(--text-primary);
+    font-size: 22px;
+    line-height: 1.1;
+}
+
+.queue-metrics small {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.queue-builder,
+.queue-runner {
+    display: grid;
+    gap: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-4);
+}
+
+.queue-control-row,
+.queue-runner-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.queue-control-row button,
+.queue-runner-actions button,
+.queue-candidate-item button {
+    display: inline-flex;
+    min-height: 34px;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+    padding: 0 var(--space-3);
+    font-weight: 620;
+}
+
+.queue-control-row button:hover:not(:disabled),
+.queue-runner-actions button:hover:not(:disabled),
+.queue-candidate-item button:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.queue-candidate-list,
+.queue-task-list {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.queue-candidate-item {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    gap: var(--space-2);
+    align-items: center;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-3);
+}
+
+.queue-candidate-item span,
+.queue-candidate-item strong,
+.queue-candidate-item small {
+    min-width: 0;
+}
+
+.queue-candidate-item strong,
+.queue-candidate-item small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.queue-candidate-item strong {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.queue-candidate-item small,
+.queue-empty,
+.queue-task-item small,
+.queue-task-item em {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.queue-empty {
+    margin: 0;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-4);
+    text-align: center;
+}
+
+.queue-runner header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.queue-runner header p,
+.queue-runner header h3 {
+    margin: 0;
+}
+
+.queue-runner header p {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 620;
+}
+
+.queue-runner header h3 {
+    margin-top: 2px;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.queue-task-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
+    align-items: center;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-3);
+}
+
+.queue-task-item.running {
+    outline: 1px solid var(--accent);
+}
+
+.queue-task-item.error {
+    background: var(--danger-soft);
+}
+
+.queue-task-item strong,
+.queue-task-item small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.queue-task-item strong {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.queue-task-item em {
+    grid-column: 1 / -1;
+    font-style: normal;
+}
+
+@media (max-width: 920px) {
+    .queue-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .queue-runner header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 720px) {
+    .workspace-queue-page {
+        padding: var(--space-5);
+    }
+
+    .queue-metrics,
+    .queue-candidate-item,
+    .queue-task-item {
+        grid-template-columns: 1fr;
+    }
+}
