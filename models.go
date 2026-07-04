@@ -252,6 +252,49 @@ type DiagnosticPackageResult struct {
 	Size int64  `json:"size"`
 }
 
+type AppInfo struct {
+	Version                  string `json:"version"`
+	StoragePath              string `json:"storagePath"`
+	LogPath                  string `json:"logPath"`
+	UpdateCachePath          string `json:"updateCachePath"`
+	UpdateCacheSize          int64  `json:"updateCacheSize"`
+	UpdateCacheFiles         int    `json:"updateCacheFiles"`
+	ActiveAttachmentPreviews int    `json:"activeAttachmentPreviews"`
+}
+
+type ApplicationLogResult struct {
+	Path    string                `json:"path"`
+	Entries []ApplicationLogEntry `json:"entries"`
+}
+
+type ApplicationLogEntry struct {
+	At      string         `json:"at"`
+	Level   string         `json:"level"`
+	Message string         `json:"message"`
+	Fields  map[string]any `json:"fields,omitempty"`
+	Raw     string         `json:"raw,omitempty"`
+}
+
+type UpdateCacheInfo struct {
+	Path     string               `json:"path"`
+	Size     int64                `json:"size"`
+	Files    int                  `json:"files"`
+	Versions []UpdateCacheVersion `json:"versions"`
+}
+
+type UpdateCacheVersion struct {
+	Version    string `json:"version"`
+	Size       int64  `json:"size"`
+	Files      int    `json:"files"`
+	ModifiedAt string `json:"modifiedAt"`
+}
+
+type CacheClearResult struct {
+	Path         string `json:"path"`
+	RemovedSize  int64  `json:"removedSize"`
+	RemovedFiles int    `json:"removedFiles"`
+}
+
 type UpdateInfo struct {
 	CurrentVersion  string `json:"currentVersion"`
 	LatestVersion   string `json:"latestVersion"`

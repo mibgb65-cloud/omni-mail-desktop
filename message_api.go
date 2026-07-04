@@ -305,6 +305,34 @@ func (a *App) releaseAllAttachmentPreviews() {
 	}
 }
 
+func (a *App) attachmentPreviewCount() int {
+	a.previewMu.Lock()
+	defer a.previewMu.Unlock()
+
+	return len(a.previewFiles)
+}
+
+func (a *App) clearAttachmentPreviewCache() *CacheClearResult {
+	a.previewMu.Lock()
+	paths := make([]string, 0, len(a.previewFiles))
+	for previewID, file := range a.previewFiles {
+		paths = append(paths, file.path)
+		delete(a.previewFiles, previewID)
+	}
+	a.previewMu.Unlock()
+
+	result := &CacheClearResult{}
+	for _, path := range paths {
+		info, err := os.Stat(path)
+		if err == nil && !info.IsDir() {
+			result.RemovedSize += info.Size()
+			result.RemovedFiles++
+		}
+		_ = os.Remove(path)
+	}
+	return result
+}
+
 func (a *App) profileForRequest(profileID string) (storedProfile, error) {
 	if err := a.ensureReady(); err != nil {
 		return storedProfile{}, err

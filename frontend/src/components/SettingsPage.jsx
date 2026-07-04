@@ -1,12 +1,14 @@
 import {useEffect, useState} from 'react';
-import {Activity, ArrowLeft, ClipboardList, Download, ExternalLink, KeyRound, Mail, Moon, PanelLeftOpen, RefreshCw, ShieldCheck, Sun} from 'lucide-react';
+import {Activity, ArrowLeft, Clock, ClipboardList, Download, ExternalLink, KeyRound, Mail, Moon, PanelLeftOpen, RefreshCw, ShieldCheck, Sun} from 'lucide-react';
 import {BrowserOpenURL, ClipboardSetText} from '../../wailsjs/runtime/runtime';
 import {SaveDiagnosticPackage} from '../../wailsjs/go/main/App';
+import {reminderHourOptions} from '../app/updatePreferences';
 import {formatCount, formatFileSize, settingsTabs, stringifyDiagnosticReport} from '../app/utils';
 import {EmptyState, SettingRow, StatusBadge} from './Common';
 import {AuditLogPanel, DiagnosticsPanel} from './InsightsPanels';
 import {DNSHealthPanel, DeviceManagerPanel, MaintenancePanel} from './SystemPanels';
 import {MailboxSettingsPanel} from './MailboxSettingsPanel';
+import {SettingsLocalPanel} from './SettingsLocalPanel';
 import {SecurityPanel} from './SecurityPanel';
 
 export function SettingsPage({
@@ -233,6 +235,29 @@ export function SettingsPage({
                                 )}
                             />
                             <SettingRow
+                                icon={Clock}
+                                title="更新策略"
+                                body={updateManager?.autoCheck
+                                    ? `启动时自动检查；稍后提醒间隔 ${updateManager?.reminderHours || 24} 小时。`
+                                    : '启动时自动检查已关闭，仍可手动检查更新。'}
+                                action={(
+                                    <span className="setting-row-actions update-policy-actions">
+                                        <button type="button" onClick={() => updateManager?.setAutoCheck(!updateManager?.autoCheck)}>
+                                            {updateManager?.autoCheck ? '关闭自动检查' : '开启自动检查'}
+                                        </button>
+                                        <select
+                                            aria-label="稍后提醒间隔"
+                                            value={updateManager?.reminderHours || 24}
+                                            onChange={(event) => updateManager?.setReminderHours(event.target.value)}
+                                        >
+                                            {reminderHourOptions.map((hours) => (
+                                                <option key={hours} value={hours}>{hours} 小时</option>
+                                            ))}
+                                        </select>
+                                    </span>
+                                )}
+                            />
+                            <SettingRow
                                 icon={Mail}
                                 title="本机草稿"
                                 body="写信草稿按当前接入点和发件账号分别保存在本机。"
@@ -283,6 +308,7 @@ export function SettingsPage({
                                 <AuditLogPanel logs={auditLogs} />
                             </>
                         ) : null}
+                        <SettingsLocalPanel onNotify={onNotify} />
                     </>
                 ) : null}
 

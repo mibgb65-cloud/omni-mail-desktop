@@ -34,6 +34,14 @@ export function ClearAdminSession(arg1) {
   return window['go']['main']['App']['ClearAdminSession'](arg1);
 }
 
+export function ClearAttachmentPreviewCache() {
+  return window['go']['main']['App']['ClearAttachmentPreviewCache']();
+}
+
+export function ClearUpdateCache() {
+  return window['go']['main']['App']['ClearUpdateCache']();
+}
+
 export function CreateAccount(arg1) {
   return window['go']['main']['App']['CreateAccount'](arg1);
 }
@@ -70,6 +78,10 @@ export function GetAccountSettings(arg1) {
   return window['go']['main']['App']['GetAccountSettings'](arg1);
 }
 
+export function GetAppInfo() {
+  return window['go']['main']['App']['GetAppInfo']();
+}
+
 export function GetDomainDNSHealth(arg1) {
   return window['go']['main']['App']['GetDomainDNSHealth'](arg1);
 }
@@ -80,6 +92,14 @@ export function GetEndpointDiagnostics(arg1) {
 
 export function GetInitialState() {
   return window['go']['main']['App']['GetInitialState']();
+}
+
+export function GetRecentApplicationLogs(arg1) {
+  return window['go']['main']['App']['GetRecentApplicationLogs'](arg1);
+}
+
+export function GetUpdateCacheInfo() {
+  return window['go']['main']['App']['GetUpdateCacheInfo']();
 }
 
 export function LaunchUpdateInstaller(arg1) {

@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [v1.0.12] - 2026-07-04
+
+### Added
+
+- Add release manifest validation in CI and a post-publish release asset check for installer, checksum, SBOM, and manifest consistency.
+- Add settings controls for automatic update checks and remind-later interval preferences.
+- Add settings panels for app version, local storage paths, update cache usage, active attachment previews, cache cleanup, and recent local logs.
+- Add frontend tests for update reminder and skip-version preferences.
+
+### Changed
+
+- Expose local app info, recent application logs, update cache info, update cache cleanup, and attachment preview cache cleanup through desktop APIs.
+
 ## [v1.0.11] - 2026-07-04
 
 ### Added

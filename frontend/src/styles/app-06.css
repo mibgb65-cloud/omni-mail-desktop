@@ -189,6 +189,16 @@
     gap: 6px;
 }
 
+.setting-row-actions select {
+    min-height: 34px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 0 var(--space-2);
+    font: inherit;
+}
+
 .setting-row-actions.update-actions {
     min-width: min(360px, 42vw);
 }

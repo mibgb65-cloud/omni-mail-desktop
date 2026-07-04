@@ -11,7 +11,8 @@ Windows desktop client for OmniMail Worker deployments.
 - Load domains, mailboxes, and messages through the selected endpoint.
 - Review a workspace overview with mailbox metrics, priority messages, recent mail, and common actions.
 - Inspect endpoint activity with diagnostics, deployment progress, recent mailbox activity, and audit logs.
-- Install desktop updates with global update notifications, update badges, release notes, remind-later and skip-version controls, download progress, cancel support, SHA256 verification, and verified installer cache reuse.
+- Install desktop updates with global update notifications, update badges, release notes, automatic-check preferences, remind-later and skip-version controls, download progress, cancel support, SHA256 verification, and verified installer cache reuse.
+- Inspect local app information, recent application logs, update cache usage, and clear update or preview caches from the settings page.
 
 Each profile maps to one deployed OmniMail Worker base URL. One profile can still expose many mail domains through the OmniMail API.
 
@@ -69,14 +70,14 @@ Before tagging a release:
 For example:
 
 ```bash
-git tag v1.0.11
+git tag v1.0.12
 git push origin main
-git push origin v1.0.11
+git push origin v1.0.12
 ```
 
 The tag version and `wails.json` `productVersion` must match. CI enforces that match and checks that `CHANGELOG.md` contains the matching release section.
 
-The workflow builds `build/bin/OmniMailDesktop.exe`, builds `build/installer/OmniMailDesktop-Setup-*.exe`, generates a SHA256 checksum and `build/installer/update-manifest.json`, and attaches the installer, checksum, and update manifest to the GitHub Release. Release notes are extracted from the matching `CHANGELOG.md` section.
+The workflow builds `build/bin/OmniMailDesktop.exe`, builds `build/installer/OmniMailDesktop-Setup-*.exe`, generates a SHA256 checksum and `build/installer/update-manifest.json`, validates the manifest against the installer and checksum, and attaches the installer, checksum, and update manifest to the GitHub Release. Release notes are extracted from the matching `CHANGELOG.md` section. After publishing, CI verifies the GitHub Release contains the installer, checksum, SBOM, and update manifest, and that the published manifest matches the installer asset.
 
 Release builds also generate a CycloneDX SBOM at `build/installer/OmniMailDesktop-Setup-*.sbom.json` and attach it to the GitHub Release.
 

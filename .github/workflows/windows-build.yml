@@ -128,6 +128,10 @@ jobs:
         shell: pwsh
         run: ./scripts/write-update-manifest.ps1
 
+      - name: Check update manifest
+        shell: pwsh
+        run: ./scripts/check-update-manifest.ps1
+
       - name: Generate SBOM
         shell: pwsh
         run: ./scripts/write-sbom.ps1
@@ -177,3 +181,9 @@ jobs:
             artifacts/**/OmniMailDesktop-Setup-*.exe.sha256
             artifacts/**/update-manifest.json
             artifacts/**/OmniMailDesktop-Setup-*.sbom.json
+
+      - name: Verify published release assets
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./scripts/check-published-release.ps1 -Repository "${{ github.repository }}" -Tag "${{ github.ref_name }}"

@@ -18,6 +18,10 @@ export function CheckForUpdates():Promise<main.UpdateInfo>;
 
 export function ClearAdminSession(arg1:main.ProfileActionInput):Promise<main.Profile>;
 
+export function ClearAttachmentPreviewCache():Promise<main.CacheClearResult>;
+
+export function ClearUpdateCache():Promise<main.CacheClearResult>;
+
 export function CreateAccount(arg1:main.AccountInput):Promise<main.Account>;
 
 export function CreateDomain(arg1:main.DomainInput):Promise<main.DomainRecord>;
@@ -36,11 +40,17 @@ export function DownloadUpdateInstaller():Promise<main.UpdateInstallResult>;
 
 export function GetAccountSettings(arg1:main.AccountSettingsRequest):Promise<main.AccountSettings>;
 
+export function GetAppInfo():Promise<main.AppInfo>;
+
 export function GetDomainDNSHealth(arg1:main.DNSHealthRequest):Promise<main.DNSHealth>;
 
 export function GetEndpointDiagnostics(arg1:string):Promise<main.EndpointDiagnostics>;
 
 export function GetInitialState():Promise<main.InitialState>;
+
+export function GetRecentApplicationLogs(arg1:number):Promise<main.ApplicationLogResult>;
+
+export function GetUpdateCacheInfo():Promise<main.UpdateCacheInfo>;
 
 export function LaunchUpdateInstaller(arg1:string):Promise<void>;
 

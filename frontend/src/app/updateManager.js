@@ -1,21 +1,22 @@
 import {useEffect, useRef, useState} from 'react';
 import {CancelUpdateDownload, CheckForUpdates, DownloadUpdateInstaller, LaunchUpdateInstaller} from '../../wailsjs/go/main/App';
 import {EventsOn} from '../../wailsjs/runtime/runtime';
+import {isUpdateDeferred, nextReminderUntil, readUpdatePreferences, updatePreferenceKeys, writeAutoCheck, writeReminderHours} from './updatePreferences';
 
 const updateProgressEvent = 'omnimail:update-download-progress';
-const skippedVersionKey = 'omnimail_update_skipped_version';
-const remindLaterUntilKey = 'omnimail_update_remind_later_until';
-const remindLaterMs = 24 * 60 * 60 * 1000;
 
 export function useUpdateManager(showToast) {
     const notifyRef = useRef(showToast);
+    const initialPreferences = readUpdatePreferences();
     const [info, setInfo] = useState(null);
     const [checking, setChecking] = useState(false);
     const [installing, setInstalling] = useState(false);
     const [error, setError] = useState('');
     const [progress, setProgress] = useState(null);
-    const [skippedVersion, setSkippedVersion] = useState(() => localStorage.getItem(skippedVersionKey) || '');
-    const [remindLaterUntil, setRemindLaterUntil] = useState(() => Number(localStorage.getItem(remindLaterUntilKey)) || 0);
+    const [autoCheck, setAutoCheckState] = useState(initialPreferences.autoCheck);
+    const [reminderHours, setReminderHoursState] = useState(initialPreferences.remindLaterHours);
+    const [skippedVersion, setSkippedVersion] = useState(initialPreferences.skippedVersion);
+    const [remindLaterUntil, setRemindLaterUntil] = useState(initialPreferences.remindLaterUntil);
 
     useEffect(() => {
         notifyRef.current = showToast;
@@ -29,8 +30,10 @@ export function useUpdateManager(showToast) {
     }), []);
 
     useEffect(() => {
-        check({announceAvailable: true, notifyCurrent: false, notifyError: false});
-    }, []);
+        if (autoCheck) {
+            check({announceAvailable: true, notifyCurrent: false, notifyError: false});
+        }
+    }, [autoCheck]);
 
     const updateDeferred = isUpdateDeferred(info, skippedVersion, remindLaterUntil);
     const visibleUpdateAvailable = Boolean(info?.updateAvailable && !updateDeferred);
@@ -89,12 +92,12 @@ export function useUpdateManager(showToast) {
     }
 
     function remindLater() {
-        const nextUntil = Date.now() + remindLaterMs;
-        localStorage.setItem(remindLaterUntilKey, String(nextUntil));
-        localStorage.removeItem(skippedVersionKey);
+        const nextUntil = nextReminderUntil(reminderHours);
+        localStorage.setItem(updatePreferenceKeys.remindLaterUntil, String(nextUntil));
+        localStorage.removeItem(updatePreferenceKeys.skippedVersion);
         setRemindLaterUntil(nextUntil);
         setSkippedVersion('');
-        notifyRef.current?.('success', '稍后提醒', '24 小时内不会自动提示这个更新。');
+        notifyRef.current?.('success', '稍后提醒', `${reminderHours} 小时内不会自动提示这个更新。`);
     }
 
     function skipVersion() {
@@ -102,19 +105,30 @@ export function useUpdateManager(showToast) {
             return;
         }
 
-        localStorage.setItem(skippedVersionKey, info.latestVersion);
-        localStorage.removeItem(remindLaterUntilKey);
+        localStorage.setItem(updatePreferenceKeys.skippedVersion, info.latestVersion);
+        localStorage.removeItem(updatePreferenceKeys.remindLaterUntil);
         setSkippedVersion(info.latestVersion);
         setRemindLaterUntil(0);
         notifyRef.current?.('success', '已跳过此版本', `版本 ${info.latestVersion}`);
     }
 
     function clearUpdatePreference() {
-        localStorage.removeItem(skippedVersionKey);
-        localStorage.removeItem(remindLaterUntilKey);
+        localStorage.removeItem(updatePreferenceKeys.skippedVersion);
+        localStorage.removeItem(updatePreferenceKeys.remindLaterUntil);
         setSkippedVersion('');
         setRemindLaterUntil(0);
         notifyRef.current?.('success', '更新提醒已恢复', info?.latestVersion || '');
+    }
+
+    function setAutoCheck(value) {
+        writeAutoCheck(value);
+        setAutoCheckState(Boolean(value));
+        notifyRef.current?.('success', value ? '已开启自动检查' : '已关闭自动检查', '');
+    }
+
+    function setReminderHours(value) {
+        const hours = writeReminderHours(value);
+        setReminderHoursState(hours);
     }
 
     async function cancel() {
@@ -126,6 +140,7 @@ export function useUpdateManager(showToast) {
     }
 
     return {
+        autoCheck,
         cancel,
         check,
         checking,
@@ -136,21 +151,13 @@ export function useUpdateManager(showToast) {
         installing,
         progress,
         remindLater,
+        reminderHours,
         remindLaterUntil,
+        setAutoCheck,
+        setReminderHours,
         skipVersion,
         skippedVersion,
         updateDeferred,
         visibleUpdateAvailable
     };
-}
-
-function isUpdateDeferred(info, skippedVersion, remindLaterUntil) {
-    if (!info?.updateAvailable || info?.mandatory) {
-        return false;
-    }
-
-    if (skippedVersion && skippedVersion === info.latestVersion) {
-        return true;
-    }
-    return Number(remindLaterUntil) > Date.now();
 }
