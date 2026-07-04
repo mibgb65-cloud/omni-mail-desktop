@@ -1,0 +1,502 @@
+
+.start-page-summary strong {
+    color: var(--text-primary);
+    font-size: 24px;
+    line-height: 1;
+}
+
+.start-page-summary small,
+.start-page-notes p {
+    color: var(--text-tertiary);
+    font-size: 13px;
+}
+
+.start-page-notes {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.start-page-notes p {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.settings-page,
+.endpoint-manager-page,
+.profile-editor-page,
+.account-editor-page,
+.auth-page,
+.resource-manager-page {
+    padding: var(--space-6);
+}
+
+.settings-page-header,
+.endpoint-manager-page-header,
+.profile-editor-page-header,
+.account-editor-page-header,
+.auth-page-header,
+.resource-manager-page-header {
+    display: grid;
+    max-width: 1040px;
+    width: 100%;
+    gap: var(--space-3);
+    margin: 0 auto var(--space-5);
+}
+
+.settings-page-header > div,
+.endpoint-manager-page-header > div,
+.profile-editor-page-header > div,
+.account-editor-page-header > div,
+.auth-page-header > div,
+.resource-manager-page-header > div {
+    display: grid;
+    gap: 3px;
+}
+
+.page-back-button {
+    justify-self: start;
+    padding: 0 var(--space-3);
+}
+
+.settings-page-body {
+    width: min(1040px, 100%);
+    margin: 0 auto;
+}
+
+.endpoint-manager-page .endpoint-manager {
+    width: min(1040px, 100%);
+    margin: 0 auto;
+}
+
+.profile-editor-layout,
+.account-editor-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.42fr);
+    width: min(960px, 100%);
+    align-items: start;
+    gap: var(--space-4);
+    margin: 0 auto;
+}
+
+.profile-editor-form,
+.account-editor-form {
+    display: grid;
+    gap: var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel);
+    padding: var(--space-5);
+}
+
+.profile-editor-form label,
+.account-editor-form label {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.profile-editor-form label span,
+.account-editor-form label span,
+.profile-editor-aside strong,
+.account-editor-aside strong {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 620;
+}
+
+.profile-editor-form label small,
+.account-editor-form label small,
+.profile-editor-aside small,
+.account-editor-aside small {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.profile-editor-form footer,
+.account-editor-form footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-3);
+}
+
+.profile-editor-form footer button:not(.primary-action),
+.account-editor-form footer button:not(.primary-action) {
+    min-height: 38px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 0 var(--space-4);
+    font-weight: 620;
+}
+
+.profile-editor-aside,
+.account-editor-aside {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.profile-editor-aside section,
+.account-editor-aside section {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-4);
+}
+
+.profile-editor-aside svg,
+.account-editor-aside svg {
+    color: var(--text-tertiary);
+}
+
+.profile-editor-aside strong,
+.profile-editor-aside small,
+.account-editor-aside strong,
+.account-editor-aside small {
+    display: block;
+}
+
+.profile-editor-aside small,
+.account-editor-aside small {
+    margin-top: 4px;
+}
+
+.account-preview-card {
+    display: grid;
+    gap: 4px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-4);
+}
+
+.account-preview-card span {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 620;
+}
+
+.account-preview-card strong {
+    color: var(--text-primary);
+    font-size: 18px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.auth-page-layout,
+.resource-manager-body {
+    display: grid;
+    width: min(1040px, 100%);
+    gap: var(--space-4);
+    margin: 0 auto;
+}
+
+.auth-context-card,
+.domain-create-form,
+.resource-manager-summary,
+.resource-card,
+.auth-page-form {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel);
+}
+
+.auth-context-card {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+}
+
+.auth-context-card svg,
+.resource-card-title svg,
+.auth-page-form header svg {
+    color: var(--text-tertiary);
+}
+
+.auth-context-card strong,
+.auth-context-card small {
+    display: block;
+}
+
+.auth-context-card small {
+    margin-top: 3px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.auth-page-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-4);
+}
+
+.auth-page-form {
+    display: grid;
+    align-content: start;
+    gap: var(--space-4);
+    padding: var(--space-5);
+}
+
+.auth-page-form header {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-3);
+}
+
+.auth-page-form h2,
+.auth-page-form p {
+    margin: 0;
+}
+
+.auth-page-form h2 {
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.auth-page-form p {
+    margin-top: 4px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.auth-page-form label,
+.domain-create-form label {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.auth-page-form label span,
+.domain-create-form label span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 620;
+}
+
+.domain-create-form label small {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.auth-page-form > button,
+.domain-create-form > button {
+    min-height: 38px;
+    justify-self: start;
+}
+
+.domain-create-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--space-3);
+    padding: var(--space-5);
+}
+
+.resource-manager-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+    align-items: stretch;
+    gap: var(--space-2);
+    padding: var(--space-3);
+}
+
+.resource-manager-summary span {
+    display: grid;
+    gap: 4px;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel-soft);
+    padding: var(--space-3);
+}
+
+.resource-manager-summary strong {
+    color: var(--text-primary);
+    font-size: 20px;
+    line-height: 1;
+}
+
+.resource-manager-summary small {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.resource-card-list {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.resource-card {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    transition: background-color var(--motion-fast), border-color var(--motion-fast);
+}
+
+.resource-card.active {
+    border-color: var(--accent-soft);
+    background: var(--bg-selected);
+}
+
+.resource-card header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.resource-card-title {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.resource-card-title strong,
+.resource-card-title small {
+    display: block;
+}
+
+.resource-card-title strong {
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+
+.resource-card-title small {
+    margin-top: 4px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.resource-row-actions,
+.resource-inline-edit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.resource-row-actions button,
+.resource-inline-edit button {
+    display: inline-flex;
+    min-height: 34px;
+    align-items: center;
+    gap: var(--space-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel-soft);
+    color: var(--text-primary);
+    padding: 0 var(--space-3);
+    font-weight: 620;
+    transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+}
+
+.resource-row-actions button:hover:not(:disabled),
+.resource-inline-edit button:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+}
+
+.resource-row-actions .danger {
+    color: var(--danger);
+}
+
+.resource-inline-edit {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.list-panel {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-subtle);
+    background: var(--bg-panel);
+}
+
+.list-header,
+.reader-toolbar {
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: 76px;
+    padding: var(--space-4) var(--space-5);
+}
+
+.list-header p,
+.reader-toolbar p,
+.composer-card p {
+    margin: 0 0 3px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.list-header h1,
+.reader-toolbar h2,
+.composer-card h3,
+.message-meta h3,
+.empty-state h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-weight: 650;
+    letter-spacing: 0;
+}
+
+.list-header h1 {
+    font-size: 22px;
+}
+
+.reader-toolbar h2 {
+    max-width: 560px;
+    overflow: hidden;
+    font-size: 17px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.list-actions,
+.toolbar-actions,
+.message-inline-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.search-box {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 42px;
+    margin: 0 var(--space-4) var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: 0 var(--space-3);
+    color: var(--text-tertiary);
+    transition: border-color var(--motion-fast), background-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.search-box:focus-within {
+    border-color: var(--border-strong);
+    background: var(--bg-panel);
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.search-box input {
+    height: 38px;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    padding: 0;
+}

@@ -1,0 +1,500 @@
+.endpoint-health-row small {
+    margin-top: 2px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.endpoint-manager-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+
+.endpoint-manager-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.endpoint-manager-counts span {
+    display: grid;
+    min-width: 86px;
+    gap: 2px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-3);
+}
+
+.endpoint-manager-counts strong {
+    color: var(--text-primary);
+    font-size: 20px;
+    line-height: 1;
+}
+
+.endpoint-manager-counts small,
+.endpoint-manager-title small,
+.endpoint-meta-grid small,
+.endpoint-test-result {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.endpoint-manager-list {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.endpoint-manager-card {
+    display: grid;
+    gap: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-4);
+}
+
+.endpoint-manager-card.active {
+    border-color: var(--border-strong);
+    background: var(--bg-active);
+}
+
+.endpoint-manager-card header,
+.endpoint-manager-actions,
+.endpoint-manager-badges {
+    display: flex;
+    align-items: center;
+}
+
+.endpoint-manager-card header {
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin: 0;
+}
+
+.endpoint-manager-title {
+    min-width: 0;
+}
+
+.endpoint-manager-title strong,
+.endpoint-manager-title small,
+.endpoint-meta-grid strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.endpoint-manager-title strong,
+.endpoint-meta-grid strong {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.endpoint-manager-title small {
+    margin-top: 3px;
+}
+
+.endpoint-manager-badges {
+    flex: 0 0 auto;
+    gap: var(--space-1);
+}
+
+.endpoint-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-2);
+}
+
+.endpoint-meta-grid-expanded {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.endpoint-meta-grid span {
+    min-width: 0;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-2);
+}
+
+.endpoint-meta-grid small {
+    display: block;
+    margin-bottom: 3px;
+}
+
+.endpoint-test-result {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+}
+
+.endpoint-test-result.ok {
+    color: var(--success);
+}
+
+.endpoint-test-result.error {
+    color: var(--danger);
+}
+
+.endpoint-manager-actions {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.endpoint-manager-actions button {
+    background: var(--bg-panel);
+}
+
+.endpoint-manager-actions button:hover,
+.settings-grid button:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.endpoint-manager-actions .danger {
+    color: var(--danger);
+}
+
+.setting-row {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    gap: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-4);
+}
+
+.setting-row strong {
+    display: block;
+    margin-bottom: 2px;
+}
+
+.setting-row small {
+    overflow-wrap: anywhere;
+}
+
+.status-badge {
+    border-radius: 999px;
+    background: var(--warning-soft);
+    color: var(--warning);
+    padding: 5px 9px;
+    font-size: 12px;
+    font-weight: 680;
+}
+
+.status-badge.ok {
+    background: var(--success-soft);
+    color: var(--success);
+}
+
+.advanced-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+}
+
+.settings-panel {
+    display: grid;
+    align-content: start;
+    gap: var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-4);
+}
+
+.settings-panel-wide {
+    grid-column: 1 / -1;
+}
+
+.settings-panel header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin: 0;
+}
+
+.settings-panel-title {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: var(--space-2);
+    min-width: 0;
+}
+
+.settings-panel-title svg {
+    margin-top: 2px;
+    color: var(--text-tertiary);
+}
+
+.settings-panel-title p,
+.settings-panel-title h3,
+.settings-panel-title small,
+.settings-form h4 {
+    margin: 0;
+}
+
+.settings-panel-title p {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 620;
+}
+
+.settings-panel-title h3 {
+    margin-top: 2px;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.settings-panel-title small {
+    display: block;
+    margin-top: 4px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.settings-form,
+.settings-form label,
+.settings-inline-form label {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.settings-form {
+    gap: var(--space-4);
+}
+
+.settings-form h4 {
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.settings-form label span,
+.settings-inline-form label span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 620;
+}
+
+.settings-form-grid,
+.settings-check-grid,
+.security-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+.settings-check-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.settings-inline-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: end;
+    gap: var(--space-2);
+}
+
+.settings-inline-actions,
+.settings-form footer,
+.settings-item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.settings-form footer {
+    justify-content: space-between;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: var(--space-3);
+}
+
+.settings-form footer small {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.settings-panel button {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 0 var(--space-3);
+    font-weight: 620;
+}
+
+.settings-panel button:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+}
+
+.settings-panel .primary-action {
+    border-color: var(--text-primary);
+    background: var(--text-primary);
+    color: var(--text-inverse);
+}
+
+.settings-panel .primary-action:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #ffffff;
+}
+
+.settings-panel button.danger,
+.settings-item-actions .danger {
+    color: var(--danger);
+}
+
+.settings-error {
+    margin: 0;
+    border-radius: var(--radius-md);
+    background: var(--danger-soft);
+    color: var(--danger);
+    padding: var(--space-3);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.settings-panel-loading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-tertiary);
+    padding: var(--space-4);
+    font-size: 13px;
+}
+
+.admin-session-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) auto minmax(180px, 0.8fr) minmax(160px, 0.7fr) auto;
+    align-items: end;
+    gap: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-3);
+}
+
+.admin-session-card > div:first-child {
+    align-self: center;
+    min-width: 0;
+}
+
+.admin-session-card strong,
+.admin-session-card small {
+    display: block;
+}
+
+.admin-session-card strong {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.admin-session-card small {
+    margin-top: 4px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.admin-session-card label {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.admin-session-card label span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 620;
+}
+
+.settings-mini-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-2);
+}
+
+.settings-mini-metrics span {
+    min-width: 0;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-3);
+}
+
+.settings-mini-metrics strong,
+.settings-mini-metrics small {
+    display: block;
+}
+
+.settings-mini-metrics strong {
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.settings-mini-metrics small {
+    margin-top: 4px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.dns-check-list,
+.settings-card-list {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.dns-check-list article,
+.settings-item-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-3);
+}
+
+.settings-item-card.current {
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.dns-check-list article {
+    grid-template-columns: 20px minmax(0, 1fr);
+    color: var(--warning);
+}
+
+.dns-check-list article.ok {
+    color: var(--success);
+}
+
+.dns-check-list strong,
+.dns-check-list small,
+.dns-check-list code,
+.settings-item-card strong,
+.settings-item-card small {
+    display: block;
+}
+
+.dns-check-list strong,
+.settings-item-card strong {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+

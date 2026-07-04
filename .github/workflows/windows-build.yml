@@ -49,6 +49,10 @@ jobs:
       - name: Run Go tests
         run: go test ./...
 
+      - name: Check source file line limits
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File .\scripts\check-line-limit.ps1
+
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
 

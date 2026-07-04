@@ -1,0 +1,500 @@
+
+.pdf-password-form span {
+    color: var(--text-tertiary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.pdf-password-form label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.pdf-password-form input {
+    width: 100%;
+    min-height: 40px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 0 var(--space-3);
+    font: inherit;
+    outline: none;
+}
+
+.pdf-password-form input:focus {
+    border-color: var(--accent);
+    box-shadow: var(--focus);
+}
+
+.pdf-password-form button,
+.pdf-preview-secondary {
+    min-height: 36px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--accent);
+    color: var(--text-inverse);
+    padding: 0 var(--space-4);
+    font: inherit;
+    font-weight: 650;
+}
+
+.pdf-password-form button:hover,
+.pdf-preview-secondary:hover {
+    background: var(--accent-strong);
+}
+
+.pdf-preview {
+    display: grid;
+    min-width: 0;
+    min-height: min(72vh, 760px);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    overflow: hidden;
+}
+
+.pdf-preview-toolbar {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    padding: var(--space-2) var(--space-3);
+}
+
+.pdf-preview-page-controls {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.pdf-preview-page-controls button {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+}
+
+.pdf-preview-page-controls button:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.pdf-preview-page-controls button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.pdf-preview-page-controls span {
+    min-width: 64px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 650;
+    text-align: center;
+}
+
+.pdf-preview-render-error {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    border-bottom: 1px solid rgba(194, 65, 58, 0.18);
+    background: var(--danger-soft);
+    color: var(--danger);
+    padding: var(--space-3);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.pdf-preview-canvas-region {
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    background: var(--bg-panel-soft);
+    padding: var(--space-4);
+}
+
+.pdf-preview-canvas-frame {
+    width: max-content;
+    max-width: none;
+    margin: 0 auto;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: #ffffff;
+    padding: var(--space-2);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+}
+
+.pdf-preview-canvas-frame canvas {
+    display: block;
+    background: #ffffff;
+}
+
+.composer-card {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg-panel);
+    padding: var(--space-8);
+}
+
+.composer-card form {
+    display: grid;
+    width: min(860px, 100%);
+    max-width: 860px;
+    gap: var(--space-4);
+    margin: 0 auto;
+}
+
+.composer-card header {
+    justify-content: space-between;
+    min-height: 48px;
+    margin-bottom: var(--space-2);
+}
+
+.composer-header-actions,
+.composer-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.composer-secondary-action,
+.composer-footer-actions > button:not(.primary-action) {
+    min-height: 36px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel-soft);
+    color: var(--text-primary);
+    padding: 0 var(--space-3);
+    font-weight: 620;
+    transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+}
+
+.composer-secondary-action:hover:not(:disabled),
+.composer-footer-actions > button:not(.primary-action):hover:not(:disabled) {
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+}
+
+.composer-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+.composer-card textarea {
+    min-height: 240px;
+}
+
+.composer-card label {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.composer-card label span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 620;
+}
+
+input,
+textarea,
+select {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    font: inherit;
+    outline: none;
+    transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background-color var(--motion-fast);
+}
+
+input,
+select {
+    height: 40px;
+    padding: 0 var(--space-3);
+}
+
+select {
+    appearance: none;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 112px;
+    padding: var(--space-3);
+    line-height: 1.65;
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+button:focus-visible {
+    border-color: var(--accent);
+    box-shadow: var(--focus);
+}
+
+button {
+    font: inherit;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.composer-card footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.composer-card footer {
+    flex-wrap: wrap;
+}
+
+.composer-card footer span {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.composer-meta-line {
+    min-width: min(260px, 100%);
+    flex: 1;
+}
+
+.composer-meta-line.error {
+    color: var(--danger);
+}
+
+.spin-inline {
+    animation: spin 900ms linear infinite;
+}
+
+.account-address-input {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.account-address-input strong {
+    display: flex;
+    min-height: 40px;
+    align-items: center;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel-soft);
+    color: var(--text-secondary);
+    padding: 0 var(--space-3);
+    font-size: 13px;
+    font-weight: 620;
+}
+
+.settings-grid button,
+.endpoint-manager-actions button {
+    min-height: 38px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 0 var(--space-4);
+    font-weight: 620;
+}
+
+.primary-action.compact {
+    min-height: 38px;
+    padding: 0 var(--space-4);
+}
+
+.checkbox-row {
+    display: flex !important;
+    align-items: center;
+    gap: var(--space-2) !important;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.checkbox-row input {
+    width: 16px;
+    height: 16px;
+}
+
+.settings-grid {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.settings-tabbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-2);
+}
+
+.settings-tabbar button {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    gap: var(--space-1);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 0 var(--space-3);
+    font-weight: 620;
+    transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+}
+
+.settings-tabbar button:hover,
+.settings-tabbar button.active {
+    border-color: var(--border-subtle);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+}
+
+.settings-tabbar button.active {
+    box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+
+.endpoint-manager {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.endpoint-health-panel {
+    display: grid;
+    gap: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-4);
+}
+
+.endpoint-health-panel header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin: 0;
+}
+
+.endpoint-health-panel header p,
+.endpoint-health-panel header h2,
+.endpoint-health-panel header small {
+    margin: 0;
+}
+
+.endpoint-health-panel header p {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 620;
+}
+
+.endpoint-health-panel header h2 {
+    margin-top: 2px;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.endpoint-health-panel header small {
+    display: block;
+    margin-top: 4px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.endpoint-health-panel button {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    gap: var(--space-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 0 var(--space-3);
+    font-weight: 620;
+}
+
+.endpoint-health-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-2);
+}
+
+.endpoint-health-metrics span {
+    min-width: 0;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-3);
+}
+
+.endpoint-health-metrics strong,
+.endpoint-health-metrics small {
+    display: block;
+}
+
+.endpoint-health-metrics strong {
+    color: var(--text-primary);
+    font-size: 18px;
+    line-height: 1.1;
+}
+
+.endpoint-health-metrics small {
+    margin-top: 4px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.endpoint-health-list {
+    display: grid;
+    gap: var(--space-1);
+}
+
+.endpoint-health-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) auto repeat(3, minmax(86px, 0.45fr));
+    align-items: center;
+    gap: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-3);
+}
+
+.endpoint-health-row div,
+.endpoint-health-row span {
+    min-width: 0;
+}
+
+.endpoint-health-row strong,
+.endpoint-health-row small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.endpoint-health-row strong {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+

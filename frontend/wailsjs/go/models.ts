@@ -1,5 +1,5 @@
 export namespace main {
-
+	
 	export class APIUser {
 	    id: string;
 	    email: string;
@@ -16,11 +16,11 @@ export namespace main {
 	    lastLoginIp: string;
 	    createdAt: string;
 	    updatedAt: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new APIUser(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -55,11 +55,11 @@ export namespace main {
 	    unread: number;
 	    enabled: boolean;
 	    deletedAt: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new Account(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -85,11 +85,11 @@ export namespace main {
 	    createdAt: string;
 	    lastUsed: string;
 	    enabled: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AccountAPIToken(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -103,11 +103,11 @@ export namespace main {
 	export class AccountDeleteInput {
 	    profileId: string;
 	    accountId: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AccountDeleteInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -120,11 +120,11 @@ export namespace main {
 	    localPart: string;
 	    address: string;
 	    name: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AccountInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -141,11 +141,11 @@ export namespace main {
 	    value: string;
 	    action: string;
 	    enabled: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AccountRule(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -170,11 +170,11 @@ export namespace main {
 	    signature: string;
 	    rules: AccountRule[];
 	    apiTokens: AccountAPIToken[];
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AccountSettings(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.enabled = source["enabled"];
@@ -191,7 +191,7 @@ export namespace main {
 	        this.rules = this.convertValues(source["rules"], AccountRule);
 	        this.apiTokens = this.convertValues(source["apiTokens"], AccountAPIToken);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -214,18 +214,18 @@ export namespace main {
 	    profileId: string;
 	    accountId: string;
 	    settings: AccountSettings;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AccountSettingsInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
 	        this.accountId = source["accountId"];
 	        this.settings = this.convertValues(source["settings"], AccountSettings);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -247,11 +247,11 @@ export namespace main {
 	export class AccountSettingsRequest {
 	    profileId: string;
 	    accountId: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AccountSettingsRequest(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -263,11 +263,11 @@ export namespace main {
 	    accountId: string;
 	    name: string;
 	    enabled?: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AccountUpdateInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -282,11 +282,11 @@ export namespace main {
 	    mimeType: string;
 	    size: number;
 	    downloadable: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new Attachment(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -307,11 +307,11 @@ export namespace main {
 	    text: string;
 	    textTruncated: boolean;
 	    encrypted: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AttachmentPreview(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.filename = source["filename"];
@@ -337,11 +337,11 @@ export namespace main {
 	    metadata: Record<string, any>;
 	    ip: string;
 	    createdAt: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AuditLog(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -359,11 +359,11 @@ export namespace main {
 	export class AuditLogRequest {
 	    profileId: string;
 	    limit: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AuditLogRequest(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -373,17 +373,17 @@ export namespace main {
 	export class AuthResult {
 	    token: string;
 	    user?: APIUser;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AuthResult(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.token = source["token"];
 	        this.user = this.convertValues(source["user"], APIUser);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -407,11 +407,11 @@ export namespace main {
 	    requiresSetup: boolean;
 	    authenticated: boolean;
 	    user?: APIUser;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AuthStatus(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.storage = source["storage"];
@@ -419,7 +419,7 @@ export namespace main {
 	        this.authenticated = source["authenticated"];
 	        this.user = this.convertValues(source["user"], APIUser);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -442,11 +442,11 @@ export namespace main {
 	    profileId: string;
 	    currentPassword: string;
 	    newPassword: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new ChangePasswordInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -458,11 +458,11 @@ export namespace main {
 	    profileId: string;
 	    retentionDays: number;
 	    dryRun: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new CleanupInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -477,11 +477,11 @@ export namespace main {
 	    messages: number;
 	    attachments: number;
 	    accounts: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new CleanupResult(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.dryRun = source["dryRun"];
@@ -496,11 +496,11 @@ export namespace main {
 	    service: string;
 	    runtime: string;
 	    storage: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new HealthData(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.service = source["service"];
@@ -515,11 +515,11 @@ export namespace main {
 	    authError: string;
 	    health?: HealthData;
 	    authStatus?: AuthStatus;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new ConnectionStatus(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.baseUrl = source["baseUrl"];
@@ -529,7 +529,7 @@ export namespace main {
 	        this.health = this.convertValues(source["health"], HealthData);
 	        this.authStatus = this.convertValues(source["authStatus"], AuthStatus);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -556,11 +556,11 @@ export namespace main {
 	    records: string[];
 	    hint: string;
 	    status: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DNSCheck(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -577,11 +577,11 @@ export namespace main {
 	    generatedAt: string;
 	    ready: boolean;
 	    checks: DNSCheck[];
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DNSHealth(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.domain = source["domain"];
@@ -589,7 +589,7 @@ export namespace main {
 	        this.ready = source["ready"];
 	        this.checks = this.convertValues(source["checks"], DNSCheck);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -611,11 +611,11 @@ export namespace main {
 	export class DNSHealthRequest {
 	    profileId: string;
 	    domain: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DNSHealthRequest(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -628,11 +628,11 @@ export namespace main {
 	    password: string;
 	    deviceLabel: string;
 	    setup: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DeviceAuthInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -645,11 +645,11 @@ export namespace main {
 	export class DeviceDeleteInput {
 	    profileId: string;
 	    deviceId: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DeviceDeleteInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -668,11 +668,11 @@ export namespace main {
 	    deviceToken: string;
 	    tokenPreview: string;
 	    enabled: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DeviceResult(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -695,11 +695,11 @@ export namespace main {
 	    label: string;
 	    scope: string;
 	    enabled?: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DeviceUpdateInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -715,11 +715,11 @@ export namespace main {
 	    r2: boolean;
 	    assets: boolean;
 	    jwtSecret: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DiagnosticBindings(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.d1 = source["d1"];
@@ -740,11 +740,11 @@ export namespace main {
 	    devices: number;
 	    auditLogs: number;
 	    users: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DiagnosticCounts(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.domains = source["domains"];
@@ -767,11 +767,11 @@ export namespace main {
 	    fromEmail: string;
 	    subject: string;
 	    receivedAt: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new LatestInboundMessage(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -785,17 +785,17 @@ export namespace main {
 	export class DiagnosticLatest {
 	    inbound?: LatestInboundMessage;
 	    audit?: AuditLog;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DiagnosticLatest(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.inbound = this.convertValues(source["inbound"], LatestInboundMessage);
 	        this.audit = this.convertValues(source["audit"], AuditLog);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -820,11 +820,11 @@ export namespace main {
 	    required: boolean;
 	    complete: boolean;
 	    hint: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DiagnosticStep(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -842,11 +842,11 @@ export namespace main {
 	    totalRequired: number;
 	    nextStep?: DiagnosticStep;
 	    steps: DiagnosticStep[];
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DiagnosticProgress(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.ready = source["ready"];
@@ -857,7 +857,7 @@ export namespace main {
 	        this.nextStep = this.convertValues(source["nextStep"], DiagnosticStep);
 	        this.steps = this.convertValues(source["steps"], DiagnosticStep);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -876,15 +876,15 @@ export namespace main {
 		    return a;
 		}
 	}
-
+	
 	export class DomainInput {
 	    profileId: string;
 	    domain: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DomainInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -895,11 +895,11 @@ export namespace main {
 	    domain: string;
 	    kind: string;
 	    enabled: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DomainRecord(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.domain = source["domain"];
@@ -911,11 +911,11 @@ export namespace main {
 	    profileId: string;
 	    attachmentId: string;
 	    filename: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DownloadAttachmentInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -926,11 +926,11 @@ export namespace main {
 	export class DownloadResult {
 	    path: string;
 	    size: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new DownloadResult(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.path = source["path"];
@@ -947,11 +947,11 @@ export namespace main {
 	    counts: DiagnosticCounts;
 	    latest: DiagnosticLatest;
 	    setup?: DiagnosticProgress;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new EndpointDiagnostics(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.service = source["service"];
@@ -964,7 +964,7 @@ export namespace main {
 	        this.latest = this.convertValues(source["latest"], DiagnosticLatest);
 	        this.setup = this.convertValues(source["setup"], DiagnosticProgress);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -989,11 +989,11 @@ export namespace main {
 	    connection?: ConnectionStatus;
 	    diagnostics?: EndpointDiagnostics;
 	    error: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new EndpointHealth(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -1002,7 +1002,7 @@ export namespace main {
 	        this.diagnostics = this.convertValues(source["diagnostics"], EndpointDiagnostics);
 	        this.error = source["error"];
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -1021,7 +1021,7 @@ export namespace main {
 		    return a;
 		}
 	}
-
+	
 	export class Profile {
 	    id: string;
 	    name: string;
@@ -1037,11 +1037,11 @@ export namespace main {
 	    createdAt: string;
 	    updatedAt: string;
 	    lastUsedAt: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new Profile(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -1064,18 +1064,18 @@ export namespace main {
 	    profiles: Profile[];
 	    selectedProfileId: string;
 	    storagePath: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new InitialState(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profiles = this.convertValues(source["profiles"], Profile);
 	        this.selectedProfileId = source["selectedProfileId"];
 	        this.storagePath = source["storagePath"];
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -1094,7 +1094,7 @@ export namespace main {
 		    return a;
 		}
 	}
-
+	
 	export class Message {
 	    id: string;
 	    accountId: string;
@@ -1110,11 +1110,11 @@ export namespace main {
 	    archivedAt: string;
 	    deletedAt: string;
 	    attachments: Attachment[];
-
+	
 	    static createFrom(source: any = {}) {
 	        return new Message(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -1132,7 +1132,7 @@ export namespace main {
 	        this.deletedAt = source["deletedAt"];
 	        this.attachments = this.convertValues(source["attachments"], Attachment);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -1162,11 +1162,11 @@ export namespace main {
 	    messageOffset: number;
 	    hasMoreMessages: boolean;
 	    totalMessages: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new MailboxPayload(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profile = this.convertValues(source["profile"], Profile);
@@ -1180,7 +1180,7 @@ export namespace main {
 	        this.hasMoreMessages = source["hasMoreMessages"];
 	        this.totalMessages = source["totalMessages"];
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -1205,11 +1205,11 @@ export namespace main {
 	    accountId: string;
 	    messageLimit: number;
 	    messageOffset: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new MailboxRequest(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -1219,15 +1219,15 @@ export namespace main {
 	        this.messageOffset = source["messageOffset"];
 	    }
 	}
-
+	
 	export class MessageActionInput {
 	    profileId: string;
 	    messageId: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new MessageActionInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -1239,11 +1239,11 @@ export namespace main {
 	    messageId: string;
 	    read?: boolean;
 	    starred?: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new MessageStatusInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -1252,14 +1252,14 @@ export namespace main {
 	        this.starred = source["starred"];
 	    }
 	}
-
+	
 	export class ProfileActionInput {
 	    profileId: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new ProfileActionInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -1269,11 +1269,11 @@ export namespace main {
 	    id: string;
 	    name: string;
 	    baseUrl: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new ProfileInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -1289,11 +1289,11 @@ export namespace main {
 	    bcc: string;
 	    subject: string;
 	    text: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new SendMessageInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -1309,11 +1309,11 @@ export namespace main {
 	    queued: boolean;
 	    provider: string;
 	    messageId: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new SendResult(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.queued = source["queued"];
@@ -1325,11 +1325,11 @@ export namespace main {
 	    profileId: string;
 	    deviceToken: string;
 	    deviceLabel: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new TokenInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -1345,11 +1345,11 @@ export namespace main {
 	    displayName: string;
 	    avatarColor: string;
 	    enabled?: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new UserInput(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profileId = source["profileId"];
@@ -1363,3 +1363,4 @@ export namespace main {
 	}
 
 }
+
