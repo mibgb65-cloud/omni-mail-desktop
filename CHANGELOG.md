@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [v1.0.10] - 2026-07-04
+
+### Added
+
+- Add global update state with left-sidebar update badges, shared settings-page update status, download progress, cancel support, retry flow, and verified installer cache reuse.
+
 ## [v1.0.9] - 2026-07-04
 
 ### Added

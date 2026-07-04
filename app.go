@@ -15,6 +15,8 @@ type App struct {
 	initErr      error
 	logMu        sync.Mutex
 	logPath      string
+	updateMu     sync.Mutex
+	updateCancel context.CancelFunc
 	previewMu    sync.Mutex
 	previewSeq   uint64
 	previewFiles map[string]attachmentPreviewFile

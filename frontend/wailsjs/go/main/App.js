@@ -14,6 +14,10 @@ export function AuthorizeProfile(arg1) {
   return window['go']['main']['App']['AuthorizeProfile'](arg1);
 }
 
+export function CancelUpdateDownload() {
+  return window['go']['main']['App']['CancelUpdateDownload']();
+}
+
 export function ChangePassword(arg1) {
   return window['go']['main']['App']['ChangePassword'](arg1);
 }

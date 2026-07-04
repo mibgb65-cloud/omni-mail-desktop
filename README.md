@@ -11,6 +11,7 @@ Windows desktop client for OmniMail Worker deployments.
 - Load domains, mailboxes, and messages through the selected endpoint.
 - Review a workspace overview with mailbox metrics, priority messages, recent mail, and common actions.
 - Inspect endpoint activity with diagnostics, deployment progress, recent mailbox activity, and audit logs.
+- Install desktop updates with global update notifications, visible update badges, download progress, cancel support, SHA256 verification, and verified installer cache reuse.
 
 Each profile maps to one deployed OmniMail Worker base URL. One profile can still expose many mail domains through the OmniMail API.
 
@@ -52,7 +53,7 @@ The Windows installer is built with Inno Setup from:
 build/windows/OmniMailDesktop.iss
 ```
 
-The installer supports English and Simplified Chinese, custom install location, custom data storage location, and in-place updates that preserve user data. The app can check GitHub Releases from the workspace settings page, download the newer installer, verify its `.sha256` checksum, launch the installer, and quit the running app so the update can replace files cleanly.
+The installer supports English and Simplified Chinese, custom install location, custom data storage location, and in-place updates that preserve user data. The app checks GitHub Releases on startup, keeps update state visible in the workspace, can download the newer installer with progress and cancellation, verifies its `.sha256` checksum, reuses a verified cached installer when possible, launches the installer, and quits the running app so the update can replace files cleanly.
 
 ## Release
 

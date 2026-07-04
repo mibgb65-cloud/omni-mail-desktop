@@ -1,9 +1,9 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import './App.css';
 import {WindowSetDarkTheme, WindowSetLightTheme} from '../wailsjs/runtime/runtime';
-import {CheckForUpdates} from '../wailsjs/go/main/App';
 
 import {emptyAccountForm, emptyAuthForm, emptyComposeForm, emptyDomainForm, emptyProfileForm, composeHasContent, clamp, invalidRecipients, isTypingTarget, isUnreadMessage, layoutDefaults, layoutLimits, mailboxPageSize, normalizeDomainInput, readStoredWidth, splitRecipients, upsertProfile} from './app/utils';
+import {useUpdateManager} from './app/updateManager';
 import {ContextMenu, ResizeHandle, TitleBar, Toast} from './components/Common';
 import {Sidebar} from './components/Sidebar';
 import {AccountEditorPage, AccountManagerPage, AuthPage, DomainManagerPage, ProfileEditorPage, StartPage} from './components/StartAndEditors';
@@ -199,20 +199,6 @@ function App() {
     }, []);
 
     useEffect(() => {
-        let canceled = false;
-        CheckForUpdates()
-            .then((info) => {
-                if (!canceled && info?.updateAvailable) {
-                    showToast('success', '发现新版本', `最新版本 ${info.latestVersion}`);
-                }
-            })
-            .catch(() => undefined);
-        return () => {
-            canceled = true;
-        };
-    }, []);
-
-    useEffect(() => {
         setSelectedMessageId(visibleMessages[0]?.id || '');
     }, [activeFolder, searchQuery, workspace?.selectedAccountId]);
 
@@ -305,6 +291,8 @@ function App() {
         setToast({type, title, message});
     }
 
+    const updateManager = useUpdateManager(showToast);
+
     const mailboxActions = createMailboxActions({selectedProfile, selectedProfileId, workspace, accountForm, domainForm, composeForm, composeDraftKey, mailboxRequestSeq, manualUnreadMessageRef, showToast, setBusy, setAccountForm, setDomainForm, setContentPage, setWorkspace, setProfiles, setComposeForm, setComposeOptionsOpen, setHasSavedDraft, setComposerOpen, setContextMenu});
     const {handleAccountSubmit, handleDomainSubmit, handleUpdateAccount, handleDeleteAccount, handleCopyText, loadMailbox, reloadCurrentMailbox, loadMoreMessages, handleSendMessage, handleArchiveMessage, handleDeleteMessage, handleSetMessageStatus, handleDownloadAttachment, handlePreviewAttachment, openContextMenu} = mailboxActions;
 
@@ -384,6 +372,7 @@ function App() {
                     status={status}
                     theme={theme}
                     toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
+                    updateInfo={updateManager.info}
                     workspace={workspace}
                 />
 
@@ -502,6 +491,7 @@ function App() {
                         onResetLayout={resetLayoutPreferences}
                         page={contentPage}
                         toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
+                        updateManager={updateManager}
                     />
                 ) : (
                     <>

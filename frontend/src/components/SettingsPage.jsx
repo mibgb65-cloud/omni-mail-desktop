@@ -1,8 +1,8 @@
 import {useEffect, useState} from 'react';
 import {Activity, ArrowLeft, ClipboardList, Download, ExternalLink, KeyRound, Mail, Moon, PanelLeftOpen, RefreshCw, ShieldCheck, Sun} from 'lucide-react';
 import {BrowserOpenURL, ClipboardSetText} from '../../wailsjs/runtime/runtime';
-import {CheckForUpdates, DownloadUpdateInstaller, LaunchUpdateInstaller, SaveDiagnosticPackage} from '../../wailsjs/go/main/App';
-import {formatCount, settingsTabs, stringifyDiagnosticReport} from '../app/utils';
+import {SaveDiagnosticPackage} from '../../wailsjs/go/main/App';
+import {formatCount, formatFileSize, settingsTabs, stringifyDiagnosticReport} from '../app/utils';
 import {EmptyState, SettingRow, StatusBadge} from './Common';
 import {AuditLogPanel, DiagnosticsPanel} from './InsightsPanels';
 import {DNSHealthPanel, DeviceManagerPanel, MaintenancePanel} from './SystemPanels';
@@ -29,17 +29,20 @@ export function SettingsPage({
     storagePath,
     theme,
     toggleTheme,
+    updateManager,
     workspace
 }) {
     const [activeTab, setActiveTab] = useState('general');
-    const [checkingUpdate, setCheckingUpdate] = useState(false);
-    const [installingUpdate, setInstallingUpdate] = useState(false);
     const [savingDiagnostics, setSavingDiagnostics] = useState(false);
-    const [updateInfo, setUpdateInfo] = useState(null);
     const insightsLoaded = Boolean(selectedProfile && insightsProfileId === selectedProfile.id && diagnostics);
     const setup = insightsLoaded ? diagnostics.setup : null;
     const auditCount = insightsLoaded ? diagnostics.counts?.auditLogs || auditLogs.length : 0;
     const canLoadInsights = Boolean(selectedProfile?.hasToken);
+    const updateInfo = updateManager?.info || null;
+    const updateProgress = updateManager?.progress || null;
+    const checkingUpdate = Boolean(updateManager?.checking);
+    const installingUpdate = Boolean(updateManager?.installing);
+    const updateBusy = checkingUpdate || installingUpdate;
     const visibleTabs = selectedProfile?.hasToken
         ? settingsTabs
         : settingsTabs.filter((tab) => tab.id === 'general');
@@ -60,23 +63,6 @@ export function SettingsPage({
         });
     }
 
-    async function handleCheckUpdates() {
-        setCheckingUpdate(true);
-        try {
-            const info = await CheckForUpdates();
-            setUpdateInfo(info);
-            if (info?.updateAvailable) {
-                onNotify?.('success', '发现新版本', `最新版本 ${info.latestVersion}`);
-            } else {
-                onNotify?.('success', '当前已是最新版本', info?.currentVersion || '');
-            }
-        } catch (error) {
-            onNotify?.('error', '检查更新失败', error.message || '无法读取 GitHub Release。');
-        } finally {
-            setCheckingUpdate(false);
-        }
-    }
-
     async function handleSaveDiagnostics() {
         const filename = `omnimail-diagnostics-${new Date().toISOString().slice(0, 10)}.json`;
         setSavingDiagnostics(true);
@@ -92,18 +78,6 @@ export function SettingsPage({
             }
         } finally {
             setSavingDiagnostics(false);
-        }
-    }
-
-    async function handleInstallUpdate() {
-        setInstallingUpdate(true);
-        try {
-            const result = await DownloadUpdateInstaller();
-            onNotify?.('success', '更新安装包已校验', `版本 ${result?.version || updateInfo?.latestVersion || ''}`);
-            await LaunchUpdateInstaller(result.path);
-        } catch (error) {
-            onNotify?.('error', '更新安装失败', error.message || '无法下载或启动更新安装包。');
-            setInstallingUpdate(false);
         }
     }
 
@@ -219,24 +193,23 @@ export function SettingsPage({
                             <SettingRow
                                 icon={RefreshCw}
                                 title="版本更新"
-                                body={updateInfo
-                                    ? updateInfo.updateAvailable
-                                        ? `当前 ${updateInfo.currentVersion}，最新 ${updateInfo.latestVersion}。`
-                                        : `当前 ${updateInfo.currentVersion}，已是最新版本。`
-                                    : '启动后会自动检查 GitHub Release；发现新版后可下载、校验并启动更新安装器。'}
+                                body={updateBody(updateInfo, updateProgress, updateManager?.error)}
                                 action={(
-                                    <span className="setting-row-actions">
-                                        <button type="button" onClick={handleCheckUpdates} disabled={checkingUpdate}>
+                                    <span className="setting-row-actions update-actions">
+                                        <button type="button" onClick={() => updateManager?.check({notifyCurrent: true})} disabled={checkingUpdate}>
                                             {checkingUpdate ? '检查中' : '检查更新'}
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={handleInstallUpdate}
-                                            disabled={!updateInfo?.updateAvailable || installingUpdate}
+                                            onClick={() => updateManager?.install()}
+                                            disabled={!updateInfo?.updateAvailable || updateBusy}
                                         >
                                             <Download size={15} />
                                             {installingUpdate ? '处理中' : '下载并安装'}
                                         </button>
+                                        {installingUpdate && updateProgress?.status === 'downloading' ? (
+                                            <button type="button" onClick={() => updateManager?.cancel()}>取消</button>
+                                        ) : null}
                                         <button
                                             type="button"
                                             onClick={() => BrowserOpenURL(updateInfo?.releaseUrl || updateInfo?.downloadUrl || '')}
@@ -245,6 +218,7 @@ export function SettingsPage({
                                             <ExternalLink size={15} />
                                             详情
                                         </button>
+                                        {updateProgress?.status === 'downloading' ? <UpdateProgressBar progress={updateProgress} /> : null}
                                     </span>
                                 )}
                             />
@@ -342,6 +316,41 @@ export function SettingsPage({
                 ) : null}
             </div>
         </main>
+    );
+}
+
+function updateBody(updateInfo, progress, error) {
+    if (progress?.status === 'downloading') {
+        const total = progress.totalBytes ? ` / ${formatFileSize(progress.totalBytes)}` : '';
+        return `正在下载 ${formatFileSize(progress.bytesReceived)}${total}${progress.percent ? ` (${progress.percent}%)` : ''}`;
+    }
+    if (progress?.status === 'cached') {
+        return `已复用缓存安装包，版本 ${progress.version}。`;
+    }
+    if (progress?.status === 'verified') {
+        return `安装包已校验，版本 ${progress.version}。`;
+    }
+    if (progress?.status === 'canceled') {
+        return '下载已取消，可以重新下载并安装。';
+    }
+    if (error) {
+        return `更新失败：${error}`;
+    }
+    if (updateInfo) {
+        return updateInfo.updateAvailable
+            ? `当前 ${updateInfo.currentVersion}，最新 ${updateInfo.latestVersion}。`
+            : `当前 ${updateInfo.currentVersion}，已是最新版本。`;
+    }
+    return '启动后会自动检查 GitHub Release；发现新版后可下载、校验并启动更新安装器。';
+}
+
+function UpdateProgressBar({progress}) {
+    const width = `${Math.max(0, Math.min(progress.percent || 0, 100))}%`;
+
+    return (
+        <span className="update-progress" aria-label="更新下载进度">
+            <span style={{width}} />
+        </span>
     );
 }
 

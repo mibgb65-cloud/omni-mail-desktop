@@ -8,6 +8,8 @@ export function AuthorizeAdminSession(arg1:main.DeviceAuthInput):Promise<main.Pr
 
 export function AuthorizeProfile(arg1:main.DeviceAuthInput):Promise<main.Profile>;
 
+export function CancelUpdateDownload():Promise<void>;
+
 export function ChangePassword(arg1:main.ChangePasswordInput):Promise<main.AuthResult>;
 
 export function CheckEndpointHealth(arg1:string):Promise<main.EndpointHealth>;

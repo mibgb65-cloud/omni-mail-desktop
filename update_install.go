@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -34,6 +35,7 @@ func (a *App) DownloadUpdateInstaller() (*UpdateInstallResult, error) {
 	if info.ChecksumURL == "" {
 		return nil, errors.New("release does not include an installer checksum")
 	}
+	a.emitUpdateProgress(UpdateDownloadProgress{Version: info.LatestVersion, Status: "preparing"})
 
 	dir, err := updateInstallerDirectory(info.LatestVersion)
 	if err != nil {
@@ -44,16 +46,6 @@ func (a *App) DownloadUpdateInstaller() (*UpdateInstallResult, error) {
 	}
 
 	installerPath := filepath.Join(dir, safeDownloadName(info.InstallerName))
-	size, err := a.downloadURLToFile(info.DownloadURL, installerPath, maxUpdateInstallerBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	actualHash, err := fileSHA256(installerPath)
-	if err != nil {
-		return nil, err
-	}
-
 	checksumContent, err := a.downloadURL(info.ChecksumURL, 64*1024)
 	if err != nil {
 		return nil, err
@@ -62,8 +54,35 @@ func (a *App) DownloadUpdateInstaller() (*UpdateInstallResult, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if result, ok := a.cachedUpdateInstaller(installerPath, info.LatestVersion, expectedHash); ok {
+		return result, nil
+	}
+
+	ctx, _, err := a.beginUpdateDownload()
+	if err != nil {
+		return nil, err
+	}
+	defer a.finishUpdateDownload()
+
+	size, err := a.downloadURLToFileWithProgress(ctx, info.DownloadURL, installerPath, maxUpdateInstallerBytes, info.LatestVersion)
+	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			a.emitUpdateProgress(UpdateDownloadProgress{Version: info.LatestVersion, Status: "canceled"})
+			return nil, errors.New("update download canceled")
+		}
+		a.emitUpdateProgress(UpdateDownloadProgress{Version: info.LatestVersion, Status: "error", Error: err.Error()})
+		return nil, err
+	}
+
+	a.emitUpdateProgress(UpdateDownloadProgress{Version: info.LatestVersion, Status: "verifying", BytesReceived: size, TotalBytes: size, Percent: 100, Path: installerPath})
+	actualHash, err := fileSHA256(installerPath)
+	if err != nil {
+		return nil, err
+	}
 	if !strings.EqualFold(actualHash, expectedHash) {
 		_ = os.Remove(installerPath)
+		a.emitUpdateProgress(UpdateDownloadProgress{Version: info.LatestVersion, Status: "error", Error: "checksum mismatch"})
 		return nil, errors.New("downloaded installer checksum did not match the release checksum")
 	}
 
@@ -73,6 +92,7 @@ func (a *App) DownloadUpdateInstaller() (*UpdateInstallResult, error) {
 		"sha256":  actualHash,
 		"size":    size,
 	})
+	a.emitUpdateProgress(UpdateDownloadProgress{Version: info.LatestVersion, Status: "verified", BytesReceived: size, TotalBytes: size, Percent: 100, Path: installerPath})
 
 	return &UpdateInstallResult{
 		Version: info.LatestVersion,
@@ -80,6 +100,17 @@ func (a *App) DownloadUpdateInstaller() (*UpdateInstallResult, error) {
 		Size:    size,
 		SHA256:  actualHash,
 	}, nil
+}
+
+func (a *App) CancelUpdateDownload() {
+	a.updateMu.Lock()
+	cancel := a.updateCancel
+	a.updateCancel = nil
+	a.updateMu.Unlock()
+
+	if cancel != nil {
+		cancel()
+	}
 }
 
 func (a *App) LaunchUpdateInstaller(path string) error {
@@ -99,6 +130,57 @@ func (a *App) LaunchUpdateInstaller(path string) error {
 		wailsruntime.Quit(a.appContext())
 	}()
 	return nil
+}
+
+func (a *App) beginUpdateDownload() (context.Context, context.CancelFunc, error) {
+	a.updateMu.Lock()
+	defer a.updateMu.Unlock()
+
+	if a.updateCancel != nil {
+		return nil, nil, errors.New("update download is already running")
+	}
+
+	ctx, cancel := context.WithCancel(a.appContext())
+	a.updateCancel = cancel
+	return ctx, cancel, nil
+}
+
+func (a *App) finishUpdateDownload() {
+	a.updateMu.Lock()
+	a.updateCancel = nil
+	a.updateMu.Unlock()
+}
+
+func (a *App) cachedUpdateInstaller(path string, version string, expectedHash string) (*UpdateInstallResult, bool) {
+	info, err := os.Stat(path)
+	if err != nil || info.IsDir() {
+		return nil, false
+	}
+
+	actualHash, err := fileSHA256(path)
+	if err != nil || !strings.EqualFold(actualHash, expectedHash) {
+		_ = os.Remove(path)
+		return nil, false
+	}
+
+	a.logEvent("info", "cached update installer verified", map[string]any{
+		"version": version,
+		"path":    path,
+		"sha256":  actualHash,
+		"size":    info.Size(),
+	})
+	a.emitUpdateProgress(UpdateDownloadProgress{Version: version, Status: "cached", BytesReceived: info.Size(), TotalBytes: info.Size(), Percent: 100, Path: path})
+
+	return &UpdateInstallResult{
+		Version: version,
+		Path:    path,
+		Size:    info.Size(),
+		SHA256:  actualHash,
+	}, true
+}
+
+func (a *App) emitUpdateProgress(progress UpdateDownloadProgress) {
+	wailsruntime.EventsEmit(a.appContext(), "omnimail:update-download-progress", progress)
 }
 
 func updateInstallerDirectory(version string) (string, error) {
@@ -159,7 +241,11 @@ func (a *App) downloadURL(url string, maxBytes int64) ([]byte, error) {
 }
 
 func (a *App) downloadURLToFile(url string, targetPath string, maxBytes int64) (int64, error) {
-	request, err := http.NewRequestWithContext(a.appContext(), http.MethodGet, url, nil)
+	return a.downloadURLToFileWithProgress(a.appContext(), url, targetPath, maxBytes, "")
+}
+
+func (a *App) downloadURLToFileWithProgress(ctx context.Context, url string, targetPath string, maxBytes int64, version string) (int64, error) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -194,6 +280,22 @@ func (a *App) downloadURLToFile(url string, targetPath string, maxBytes int64) (
 	if maxBytes > 0 {
 		reader = io.LimitReader(response.Body, maxBytes+1)
 	}
+	totalBytes := response.ContentLength
+	if totalBytes < 0 {
+		totalBytes = 0
+	}
+	if version != "" {
+		reader = newUpdateProgressReader(reader, totalBytes, func(bytesReceived int64, total int64) {
+			a.emitUpdateProgress(UpdateDownloadProgress{
+				Version:       version,
+				Status:        "downloading",
+				BytesReceived: bytesReceived,
+				TotalBytes:    total,
+				Percent:       updateDownloadPercent(bytesReceived, total),
+				Path:          targetPath,
+			})
+		})
+	}
 	size, copyErr := io.Copy(tempFile, reader)
 	closeErr := tempFile.Close()
 	if copyErr != nil {
@@ -211,6 +313,46 @@ func (a *App) downloadURLToFile(url string, targetPath string, maxBytes int64) (
 	}
 	keepTempFile = true
 	return size, nil
+}
+
+type updateProgressReader struct {
+	reader     io.Reader
+	total      int64
+	read       int64
+	lastEmit   time.Time
+	onProgress func(bytesReceived int64, totalBytes int64)
+}
+
+func newUpdateProgressReader(reader io.Reader, total int64, onProgress func(bytesReceived int64, totalBytes int64)) *updateProgressReader {
+	return &updateProgressReader{
+		reader:     reader,
+		total:      total,
+		onProgress: onProgress,
+	}
+}
+
+func (reader *updateProgressReader) Read(buffer []byte) (int, error) {
+	n, err := reader.reader.Read(buffer)
+	if n > 0 {
+		reader.read += int64(n)
+		now := time.Now()
+		if reader.lastEmit.IsZero() || now.Sub(reader.lastEmit) >= 120*time.Millisecond || (reader.total > 0 && reader.read >= reader.total) {
+			reader.lastEmit = now
+			reader.onProgress(reader.read, reader.total)
+		}
+	}
+	return n, err
+}
+
+func updateDownloadPercent(bytesReceived int64, totalBytes int64) int {
+	if totalBytes <= 0 || bytesReceived <= 0 {
+		return 0
+	}
+	percent := int(bytesReceived * 100 / totalBytes)
+	if percent > 100 {
+		return 100
+	}
+	return percent
 }
 
 func fileSHA256(path string) (string, error) {

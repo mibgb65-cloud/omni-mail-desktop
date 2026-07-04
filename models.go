@@ -272,6 +272,16 @@ type UpdateInstallResult struct {
 	SHA256  string `json:"sha256"`
 }
 
+type UpdateDownloadProgress struct {
+	Version       string `json:"version"`
+	Status        string `json:"status"`
+	BytesReceived int64  `json:"bytesReceived"`
+	TotalBytes    int64  `json:"totalBytes"`
+	Percent       int    `json:"percent"`
+	Path          string `json:"path"`
+	Error         string `json:"error"`
+}
+
 type AttachmentPreview struct {
 	Filename      string `json:"filename"`
 	MimeType      string `json:"mimeType"`

@@ -82,3 +82,25 @@ func TestValidateUpdateInstallerPath(t *testing.T) {
 		t.Fatal("expected non-OmniMail installer name to be rejected")
 	}
 }
+
+func TestUpdateDownloadPercent(t *testing.T) {
+	tests := []struct {
+		name          string
+		bytesReceived int64
+		totalBytes    int64
+		want          int
+	}{
+		{name: "unknown total", bytesReceived: 10, totalBytes: 0, want: 0},
+		{name: "half", bytesReceived: 50, totalBytes: 100, want: 50},
+		{name: "clamped", bytesReceived: 120, totalBytes: 100, want: 100},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := updateDownloadPercent(tt.bytesReceived, tt.totalBytes)
+			if got != tt.want {
+				t.Fatalf("updateDownloadPercent(%d, %d) = %d, want %d", tt.bytesReceived, tt.totalBytes, got, tt.want)
+			}
+		})
+	}
+}

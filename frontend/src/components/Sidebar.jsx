@@ -35,12 +35,14 @@ export function Sidebar({
     status,
     theme,
     toggleTheme,
+    updateInfo,
     workspace
 }) {
     const domains = workspace?.domains || [];
     const accounts = workspace?.accounts || [];
     const mailboxLoading = Boolean(selectedProfile?.hasToken) && busy === 'mailbox' && !workspace;
     const isProfilePage = sidebarPage === 'profiles';
+    const updateAvailable = Boolean(updateInfo?.updateAvailable);
 
     if (isProfilePage) {
         return (
@@ -90,9 +92,10 @@ export function Sidebar({
                         {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
                         <span>{theme === 'dark' ? '浅色模式' : '深色模式'}</span>
                     </button>
-                    <button type="button" onClick={onOpenSettings}>
+                    <button className={updateAvailable ? 'has-update' : ''} type="button" onClick={onOpenSettings}>
                         <Settings size={16} />
                         <span>工作台设置</span>
+                        {updateAvailable ? <small>更新</small> : null}
                     </button>
                     <button type="button" onClick={onManageProfiles}>
                         <ShieldCheck size={16} />
@@ -140,6 +143,7 @@ export function Sidebar({
                 />
                 <NavItem
                     active={activeWorkspacePage === 'settings'}
+                    count={updateAvailable ? '更新' : undefined}
                     icon={Settings}
                     label="工作台设置"
                     onClick={onOpenSettings}

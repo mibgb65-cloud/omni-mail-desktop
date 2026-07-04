@@ -62,6 +62,7 @@ export function WorkspacePageRouter({
     storagePath,
     theme,
     toggleTheme,
+    updateManager,
     workspace
 }) {
     if (page === 'dashboard') {
@@ -121,6 +122,7 @@ export function WorkspacePageRouter({
             storagePath={storagePath}
             theme={theme}
             toggleTheme={toggleTheme}
+            updateManager={updateManager}
             workspace={workspace}
         />
     );

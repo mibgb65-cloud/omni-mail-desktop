@@ -367,6 +367,7 @@ body.is-resizing-panels * {
 .sidebar-collapsed .workspace-heading,
 .sidebar-collapsed .profile-picker-intro,
 .sidebar-collapsed .profile-picker-actions span,
+.sidebar-collapsed .profile-picker-actions small,
 .sidebar-collapsed .mailbox-context-heading,
 .sidebar-collapsed .compose-primary span,
 .sidebar-collapsed .nav-item span,
@@ -484,6 +485,20 @@ body.is-resizing-panels * {
     min-height: 36px;
     padding: 0 var(--space-2);
     text-align: left;
+}
+
+.profile-picker-actions button small {
+    margin-left: auto;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 2px 7px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.profile-picker-actions button.has-update {
+    color: var(--text-primary);
 }
 
 .profile-picker-actions button:hover,
