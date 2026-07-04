@@ -109,7 +109,7 @@ export function SettingsLocalPanel({onNotify}) {
                     kicker="隐私"
                     title="本机隐私状态"
                 />
-                <div className="settings-card-list">
+                <div className="settings-card-list privacy-status-grid">
                     {privacyStatus.map((item) => (
                         <article className="settings-item-card" key={item.id}>
                             <span>

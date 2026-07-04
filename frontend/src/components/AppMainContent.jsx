@@ -1,11 +1,10 @@
 import {upsertProfile} from '../app/utils';
 import {EndpointManagerPage} from './EndpointManager';
 import {MailWorkspace} from './MailWorkspace';
+import {AccountManagerPage, DomainManagerPage} from './ResourceManagerPages';
 import {
     AccountEditorPage,
-    AccountManagerPage,
     AuthPage,
-    DomainManagerPage,
     ProfileEditorPage,
     StartPage
 } from './StartAndEditors';

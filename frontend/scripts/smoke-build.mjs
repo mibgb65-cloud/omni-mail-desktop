@@ -30,4 +30,39 @@ for (const assetPath of assetPaths) {
     assert(statSync(assetPath).size > 0, `referenced asset is empty: ${path.relative(root, assetPath)}`);
 }
 
-console.log(`Frontend smoke check passed: ${assetPaths.length} assets referenced by dist/index.html.`);
+const jsBundle = assetPaths
+    .filter((assetPath) => assetPath.endsWith('.js'))
+    .map((assetPath) => readFileSync(assetPath, 'utf8'))
+    .join('\n');
+const cssBundle = assetPaths
+    .filter((assetPath) => assetPath.endsWith('.css'))
+    .map((assetPath) => readFileSync(assetPath, 'utf8'))
+    .join('\n');
+
+const requiredUiMarkers = [
+    '工作台设置',
+    '搜索中心',
+    '联系人中心',
+    '附件中心',
+    '操作队列',
+    '本机隐私状态',
+    '版本更新',
+    '更新策略'
+];
+const requiredStyleMarkers = [
+    'workspace-search-page',
+    'workspace-queue-page',
+    'search-scope-panel',
+    'queue-task-item',
+    'privacy-status-grid'
+];
+
+for (const marker of requiredUiMarkers) {
+    assert(jsBundle.includes(marker), `production JS is missing UI marker: ${marker}`);
+}
+
+for (const marker of requiredStyleMarkers) {
+    assert(cssBundle.includes(marker), `production CSS is missing style marker: ${marker}`);
+}
+
+console.log(`Frontend smoke check passed: ${assetPaths.length} assets and ${requiredUiMarkers.length} UI markers.`);

@@ -19,7 +19,16 @@ import {
 } from './utils.js';
 import {collectContacts, contactStats, filterContacts, normalizeContactEmail, sortContacts} from './contactCenter.js';
 import {searchMessages, searchMessageStats} from './messageSearch.js';
-import {createQueueItems, filterQueueCandidates, operationQueueStats, queueActionLabel} from './operationQueue.js';
+import {
+    createQueueItems,
+    filterQueueCandidates,
+    operationQueueStats,
+    operationQueueStorageKey,
+    queueActionLabel,
+    readOperationQueue,
+    serializeOperationQueue,
+    writeOperationQueue
+} from './operationQueue.js';
 import {buildPrivacyStatus} from './privacyStatus.js';
 
 test('splitRecipients normalizes display names and separators', () => {
@@ -222,6 +231,38 @@ test('operation queue helpers filter candidates and summarize queue states', () 
         success: 1,
         error: 1
     });
+});
+
+test('operation queue persistence keeps compact recoverable tasks', () => {
+    const key = operationQueueStorageKey('profile-1', 'mail.example.com', 'account-1');
+    const store = new Map();
+    const storage = {
+        getItem: (name) => store.get(name) || '',
+        setItem: (name, value) => store.set(name, value)
+    };
+    const queue = [{
+        id: 'task-1',
+        action: 'archive',
+        status: 'running',
+        error: 'old',
+        message: {
+            id: 'm1',
+            accountId: 'account-1',
+            subject: 'Invoice',
+            body: 'large body should not persist',
+            attachments: [{id: 'a1', filename: 'invoice.pdf', size: 9000}]
+        }
+    }];
+
+    assert.equal(writeOperationQueue(storage, key, queue), true);
+
+    const restored = readOperationQueue(storage, key);
+    assert.equal(restored.length, 1);
+    assert.equal(restored[0].status, 'pending');
+    assert.equal(restored[0].message.subject, 'Invoice');
+    assert.equal(restored[0].message.body, undefined);
+    assert.deepEqual(restored[0].message.attachments, [{id: 'a1', filename: 'invoice.pdf'}]);
+    assert.equal(serializeOperationQueue([{id: '', action: 'read', message: {id: 'm2'}}]).length, 0);
 });
 
 test('privacy status flags active previews and update cache', () => {

@@ -50,6 +50,70 @@ export function createQueueItems(messages = [], selectedIds = [], action = 'read
         }));
 }
 
+export function operationQueueStorageKey(profileId, domain, accountId) {
+    if (!profileId || !accountId) {
+        return '';
+    }
+    return `omnimail_operation_queue:${profileId}:${domain || 'default'}:${accountId}`;
+}
+
+export function compactQueueMessage(message = {}) {
+    return {
+        id: message.id || '',
+        accountId: message.accountId || '',
+        archivedAt: message.archivedAt || '',
+        attachments: (message.attachments || []).map((attachment) => ({
+            id: attachment.id || '',
+            filename: attachment.filename || ''
+        })).filter((attachment) => attachment.id || attachment.filename),
+        author: message.author || '',
+        deletedAt: message.deletedAt || '',
+        direction: message.direction || '',
+        email: message.email || '',
+        readAt: message.readAt || '',
+        starredAt: message.starredAt || '',
+        subject: message.subject || '',
+        time: message.time || ''
+    };
+}
+
+export function serializeOperationQueue(items = []) {
+    return (Array.isArray(items) ? items : [])
+        .filter((item) => item?.id && item?.action && item?.message?.id)
+        .map((item) => ({
+            id: item.id,
+            action: item.action,
+            status: item.status === 'running' ? 'pending' : item.status || 'pending',
+            error: item.error || '',
+            message: compactQueueMessage(item.message)
+        }));
+}
+
+export function readOperationQueue(storage, key) {
+    if (!storage || !key) {
+        return [];
+    }
+
+    try {
+        return serializeOperationQueue(JSON.parse(storage.getItem(key) || '[]'));
+    } catch {
+        return [];
+    }
+}
+
+export function writeOperationQueue(storage, key, items = []) {
+    if (!storage || !key) {
+        return false;
+    }
+
+    try {
+        storage.setItem(key, JSON.stringify(serializeOperationQueue(items)));
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export function operationQueueStats(items = []) {
     const queue = Array.isArray(items) ? items : [];
 

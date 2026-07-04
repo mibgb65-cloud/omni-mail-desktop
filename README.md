@@ -14,7 +14,7 @@ Windows desktop client for OmniMail Worker deployments.
 - Search the current loaded mailbox from a dedicated center with keyword matching, status filters, relevance/time sorting, jump-to-message actions, and optional endpoint-scope expansion across domains and accounts.
 - Review current-mailbox contacts from a dedicated center with aggregation, filters, copy-email, compose, and jump-to-message actions.
 - Browse current-mailbox attachments from a dedicated center with metrics, type filters, search, sorting, preview, download, and jump-to-message actions.
-- Queue visible mailbox actions for batch read/unread, star/unstar, archive, and restore processing.
+- Queue visible mailbox actions for batch read/unread, star/unstar, archive, and restore processing, with pending queues recovered per endpoint, domain, and account.
 - Install desktop updates with global update notifications, update badges, release notes, automatic-check preferences, remind-later and skip-version controls, download progress, cancel support, SHA256 verification, and verified installer cache reuse.
 - Inspect local app information, privacy status, recent application logs, update cache usage, and clear update or preview caches from the settings page.
 
@@ -39,6 +39,8 @@ npm test
 npm run build
 npm run smoke
 ```
+
+The frontend smoke check reads the production build output and verifies that core workspace routes, settings views, and route-specific styles are present in the generated assets.
 
 ## Build
 

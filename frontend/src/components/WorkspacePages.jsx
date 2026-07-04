@@ -154,6 +154,7 @@ export function WorkspacePageRouter({
                 onBack={onBack}
                 onLoadMore={onLoadMoreMessages}
                 onOpenMessage={onOpenMessage}
+                onReloadMailbox={onReloadMailbox}
                 onRunMessageAction={onRunMessageAction}
                 selectedProfile={selectedProfile}
                 workspace={workspace}

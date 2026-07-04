@@ -1,11 +1,14 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {ArrowLeft, CheckSquare, Inbox, ListChecks, Mail, Play, RefreshCw, Trash2} from 'lucide-react';
 import {
     createQueueItems,
     filterQueueCandidates,
     operationQueueStats,
+    operationQueueStorageKey,
     queueActionLabel,
-    queueActionOptions
+    queueActionOptions,
+    readOperationQueue,
+    writeOperationQueue
 } from '../app/operationQueue';
 import {formatCount, formatMessageTime} from '../app/utils';
 import {EmptyState, StatusBadge} from './Common';
@@ -37,6 +40,7 @@ export function OperationQueuePage({
     onBack,
     onLoadMore,
     onOpenMessage,
+    onReloadMailbox,
     onRunMessageAction,
     selectedProfile,
     workspace
@@ -45,12 +49,30 @@ export function OperationQueuePage({
     const [selectedIds, setSelectedIds] = useState([]);
     const [queueAction, setQueueAction] = useState('read');
     const [queue, setQueue] = useState([]);
+    const [hydratedQueueKey, setHydratedQueueKey] = useState('');
     const [running, setRunning] = useState(false);
     const messages = workspace?.messages || [];
     const candidates = useMemo(() => filterQueueCandidates(messages, filter), [filter, messages]);
     const stats = useMemo(() => operationQueueStats(queue), [queue]);
     const loadingMore = busy === 'mailbox-more';
+    const queueKey = operationQueueStorageKey(selectedProfile?.id, workspace?.selectedDomain, workspace?.selectedAccountId);
     const allVisibleSelected = candidates.length > 0 && candidates.every((message) => selectedIds.includes(message.id));
+
+    useEffect(() => {
+        const storage = typeof window === 'undefined' ? null : window.localStorage;
+        setQueue(readOperationQueue(storage, queueKey));
+        setSelectedIds([]);
+        setHydratedQueueKey(queueKey);
+    }, [queueKey]);
+
+    useEffect(() => {
+        if (!queueKey || hydratedQueueKey !== queueKey) {
+            return;
+        }
+
+        const storage = typeof window === 'undefined' ? null : window.localStorage;
+        writeOperationQueue(storage, queueKey, queue);
+    }, [hydratedQueueKey, queue, queueKey]);
 
     function toggleMessage(messageId) {
         setSelectedIds((current) => (
@@ -85,6 +107,7 @@ export function OperationQueuePage({
         }
 
         setRunning(true);
+        let changedMessages = false;
 
         for (const item of queue) {
             if (item.status !== 'pending' && item.status !== 'error') {
@@ -97,6 +120,7 @@ export function OperationQueuePage({
 
             try {
                 await onRunMessageAction(item.message, item.action);
+                changedMessages = true;
                 setQueue((current) => current.map((entry) => (
                     entry.id === item.id ? {...entry, status: 'success', error: ''} : entry
                 )));
@@ -110,6 +134,9 @@ export function OperationQueuePage({
         }
 
         setRunning(false);
+        if (changedMessages) {
+            await onReloadMailbox?.();
+        }
     }
 
     return (

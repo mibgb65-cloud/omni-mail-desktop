@@ -360,11 +360,11 @@ function App() {
             return;
         }
         if (action === 'archive' && !message.archivedAt) {
-            await handleArchiveMessage(message, {silent: true, throwOnError: true});
+            await handleArchiveMessage(message, {silent: true, throwOnError: true, skipRefresh: true});
             return;
         }
         if (action === 'unarchive' && message.archivedAt) {
-            await handleArchiveMessage(message, {silent: true, throwOnError: true});
+            await handleArchiveMessage(message, {silent: true, throwOnError: true, skipRefresh: true});
         }
     };
 

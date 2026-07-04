@@ -319,7 +319,9 @@ export function createMailboxActions({selectedProfile, selectedProfileId, worksp
                     showToast('success', '已归档');
                 }
             }
-            await reloadCurrentMailbox();
+            if (!options.skipRefresh) {
+                await reloadCurrentMailbox();
+            }
         } catch (actionError) {
             if (!options.silent) {
                 showToast('error', '更新邮件失败', actionError.message || '请稍后重试。');

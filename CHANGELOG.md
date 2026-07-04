@@ -5,6 +5,7 @@
 ### Added
 
 - Add a mailbox operation queue for batching read/unread, star/unstar, archive, and restore actions against visible message sets.
+- Persist mailbox operation queues per endpoint, domain, and account so pending work can recover after leaving the page.
 - Add a current-mailbox search center with keyword search, status filters, relevance/time sorting, load-more support, and jump-to-message actions.
 - Add opt-in search expansion across the selected endpoint's loaded domains, accounts, sender/account metadata, and recent messages.
 - Add message search helpers and tests for field matching, filters, sorting, and summary counts.
@@ -15,8 +16,10 @@
 ### Changed
 
 - Extract the mailbox list, reader, and composer workspace into a dedicated component to keep `App.jsx` below the line limit as more workspace pages are added.
+- Extract account and domain management pages into a dedicated component module to keep editor pages focused.
 - Split shared overlay, skeleton, empty-state, and responsive CSS into a separate style module to keep style files below the line limit.
 - Route compose actions from workspace pages back to the mailbox composer so contact prefill and dashboard compose actions open the expected view.
+- Expand the frontend smoke check to verify production UI routes and styles are present in built assets.
 
 ## [v1.0.13] - 2026-07-04
 
