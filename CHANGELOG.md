@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add a current-mailbox search center with keyword search, status filters, relevance/time sorting, load-more support, and jump-to-message actions.
+- Add message search helpers and tests for field matching, filters, sorting, and summary counts.
+
+### Changed
+
+- Extract the mailbox list, reader, and composer workspace into a dedicated component to keep `App.jsx` below the line limit as more workspace pages are added.
+
 ## [v1.0.13] - 2026-07-04
 
 ### Added

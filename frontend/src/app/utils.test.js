@@ -17,6 +17,7 @@ import {
     splitRecipients,
     upsertProfile
 } from './utils.js';
+import {searchMessages, searchMessageStats} from './messageSearch.js';
 
 test('splitRecipients normalizes display names and separators', () => {
     assert.deepEqual(
@@ -96,6 +97,50 @@ test('attachment center helpers enrich, filter, sort, and summarize attachments'
         previewable: 2,
         downloadable: 2
     });
+});
+
+test('search helpers match message fields, filters, and sort results', () => {
+    const messages = [
+        {
+            id: 'm1',
+            subject: 'Invoice report',
+            author: 'Alice',
+            preview: 'Quarterly finance note',
+            time: '2026-07-04T10:00:00Z',
+            readAt: '',
+            attachments: [{filename: 'invoice.pdf', mimeType: 'application/pdf'}]
+        },
+        {
+            id: 'm2',
+            subject: 'Travel photos',
+            email: 'bob@example.com',
+            body: 'Beach files attached',
+            time: '2026-07-04T11:00:00Z',
+            readAt: '2026-07-04T11:05:00Z',
+            starredAt: '2026-07-04T11:06:00Z',
+            attachments: [{filename: 'beach.png', mimeType: 'image/png'}]
+        },
+        {
+            id: 'm3',
+            subject: 'Sent note',
+            direction: 'outbound',
+            body: 'invoice follow up',
+            time: '2026-07-04T12:00:00Z',
+            readAt: '2026-07-04T12:05:00Z',
+            attachments: []
+        }
+    ];
+
+    assert.deepEqual(searchMessageStats(messages), {
+        total: 3,
+        unread: 1,
+        starred: 1,
+        attachments: 2
+    });
+    assert.equal(searchMessages(messages, {query: 'beach'}).at(0).message.id, 'm2');
+    assert.equal(searchMessages(messages, {query: 'invoice', filter: 'attachments'}).length, 1);
+    assert.equal(searchMessages(messages, {filter: 'sent'}).at(0).message.id, 'm3');
+    assert.equal(searchMessages(messages, {query: 'invoice', sort: 'newest'}).at(0).message.id, 'm3');
 });
 
 test('formatFileSize keeps compact labels', () => {

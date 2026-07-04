@@ -1,4 +1,4 @@
-import {Activity, ArrowLeft, Globe2, KeyRound, LayoutDashboard, Mail, MailPlus, Moon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Plus, Settings, ShieldCheck, Sun, Trash2} from 'lucide-react';
+import {Activity, ArrowLeft, Globe2, KeyRound, LayoutDashboard, Mail, MailPlus, Moon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Plus, Search, Settings, ShieldCheck, Sun, Trash2} from 'lucide-react';
 import {folders} from '../app/utils';
 import {IconButton, MutedLine, NavItem, SectionLabel, SidebarNotice} from './Common';
 
@@ -24,6 +24,7 @@ export function Sidebar({
     onOpenActivity,
     onOpenAttachments,
     onOpenDashboard,
+    onOpenSearch,
     onOpenSettings,
     onProfileSelect,
     onToggle,
@@ -149,6 +150,12 @@ export function Sidebar({
                     icon={Paperclip}
                     label="附件"
                     onClick={onOpenAttachments}
+                />
+                <NavItem
+                    active={activeWorkspacePage === 'search'}
+                    icon={Search}
+                    label="搜索"
+                    onClick={onOpenSearch}
                 />
                 <NavItem
                     active={activeWorkspacePage === 'settings'}

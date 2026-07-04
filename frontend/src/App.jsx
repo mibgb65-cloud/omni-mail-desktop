@@ -9,9 +9,7 @@ import {Sidebar} from './components/Sidebar';
 import {AccountEditorPage, AccountManagerPage, AuthPage, DomainManagerPage, ProfileEditorPage, StartPage} from './components/StartAndEditors';
 import {EndpointManagerPage} from './components/EndpointManager';
 import {WorkspacePageRouter} from './components/WorkspacePages';
-import {EmailListPanel, ReaderToolbar} from './components/MailList';
-import {ReadingView} from './components/ReadingView';
-import {Composer} from './components/Composer';
+import {MailWorkspace} from './components/MailWorkspace';
 
 import {createLayoutActions} from './app/layoutActions';
 import {createProfileActions} from './app/profileActions';
@@ -307,7 +305,7 @@ function App() {
     const showAccountPage = contentPage === 'account';
     const showAccountManagerPage = contentPage === 'accounts';
     const showDomainManagerPage = contentPage === 'domains';
-    const showWorkspacePage = ['dashboard', 'activity', 'attachments', 'settings'].includes(contentPage);
+    const showWorkspacePage = ['dashboard', 'activity', 'attachments', 'search', 'settings'].includes(contentPage);
     const showStartPage = contentPage === 'start' || (!selectedProfile && !showEndpointPage && !showProfilePage && !showWorkspacePage);
     const openWorkspacePage = (page) => {
         setContentPage(page);
@@ -359,6 +357,7 @@ function App() {
                     onOpenActivity={() => openWorkspacePage('activity')}
                     onOpenAttachments={() => openWorkspacePage('attachments')}
                     onOpenDashboard={() => openWorkspacePage('dashboard')}
+                    onOpenSearch={() => openWorkspacePage('search')}
                     onOpenSettings={openSettingsPage}
                     onCompose={() => setComposerOpen(true)}
                     onProfileSelect={handleSelectProfile}
@@ -489,6 +488,7 @@ function App() {
                         onOpenMessage={openMessageFromWorkspace}
                         onNotify={showToast}
                         onOpenProfiles={handleOpenProfileManager}
+                        onOpenSearch={() => openWorkspacePage('search')}
                         onOpenSettings={openSettingsPage}
                         onPreviewAttachment={handlePreviewAttachment}
                         onProfileUpdate={(profile) => setProfiles((current) => upsertProfile(current, profile))}
@@ -499,76 +499,43 @@ function App() {
                         updateManager={updateManager}
                     />
                 ) : (
-                    <>
-                        <EmailListPanel
-                            activeFolder={activeFolder}
-                            busy={busy}
-                            messages={visibleMessages}
-                            onCompose={() => setComposerOpen(true)}
-                            onContextMenu={openContextMenu}
-                            onMessageSelect={setSelectedMessageId}
-                            onLoadMore={loadMoreMessages}
-                            onReload={reloadCurrentMailbox}
-                            searchInputRef={searchInputRef}
-                            searchQuery={searchQuery}
-                            selectedMessageId={selectedMessage?.id || ''}
-                            selectedProfile={selectedProfile}
-                            setSearchQuery={setSearchQuery}
-                            workspace={workspace}
-                        />
-
-                        <ResizeHandle
-                            active={resizingPanel === 'list'}
-                            label="调整邮件列表宽度"
-                            max={layoutLimits.list.max}
-                            min={layoutLimits.list.min}
-                            onDoubleClick={() => resetLayoutWidth('list')}
-                            onKeyDown={(event) => handleResizeKey('list', event)}
-                            onPointerDown={(event) => startPanelResize('list', event)}
-                            value={listWidth}
-                        />
-
-                        <main id="reader" className={`reader-panel ${composerOpen ? 'composing' : ''}`}>
-                            {composerOpen ? (
-                                <Composer
-                                    account={selectedAccount}
-                                    busy={busy}
-                                    form={composeForm}
-                                    hasSavedDraft={hasSavedDraft}
-                                    optionsOpen={composeOptionsOpen}
-                                    onChange={setComposeForm}
-                                    onClearDraft={clearCurrentDraft}
-                                    onClose={() => setComposerOpen(false)}
-                                    onSubmit={handleSendMessage}
-                                    onToggleOptions={() => setComposeOptionsOpen((value) => !value)}
-                                />
-                            ) : (
-                                <>
-                                    <ReaderToolbar
-                                        busy={busy}
-                                        onArchive={() => handleArchiveMessage(selectedMessage)}
-                                        onDelete={() => handleDeleteMessage(selectedMessage)}
-                                        onOpenSettings={openSettingsPage}
-                                        onReload={reloadCurrentMailbox}
-                                        onSetStatus={handleSetMessageStatus}
-                                        selectedMessage={selectedMessage}
-                                        selectedProfile={selectedProfile}
-                                    />
-
-                                    <ReadingView
-                                        busy={busy}
-                                        message={selectedMessage}
-                                        onArchive={handleArchiveMessage}
-                                        onDelete={handleDeleteMessage}
-                                        onDownload={handleDownloadAttachment}
-                                        onPreview={handlePreviewAttachment}
-                                        onSetStatus={handleSetMessageStatus}
-                                        selectedProfile={selectedProfile}
-                                    />
-                                </>
-                            )}
-                        </main>
-                    </>
+                    <MailWorkspace
+                        activeFolder={activeFolder}
+                        busy={busy}
+                        composerOpen={composerOpen}
+                        composeForm={composeForm}
+                        composeOptionsOpen={composeOptionsOpen}
+                        hasSavedDraft={hasSavedDraft}
+                        listWidth={listWidth}
+                        onArchiveMessage={handleArchiveMessage}
+                        onClearCurrentDraft={clearCurrentDraft}
+                        onCloseComposer={() => setComposerOpen(false)}
+                        onCompose={() => setComposerOpen(true)}
+                        onContextMenu={openContextMenu}
+                        onDeleteMessage={handleDeleteMessage}
+                        onDownloadAttachment={handleDownloadAttachment}
+                        onLoadMoreMessages={loadMoreMessages}
+                        onOpenSettings={openSettingsPage}
+                        onPreviewAttachment={handlePreviewAttachment}
+                        onReloadMailbox={reloadCurrentMailbox}
+                        onResizeKey={handleResizeKey}
+                        onResizePointerDown={startPanelResize}
+                        onResetListWidth={() => resetLayoutWidth('list')}
+                        onSelectMessage={setSelectedMessageId}
+                        onSendMessage={handleSendMessage}
+                        onSetComposeForm={setComposeForm}
+                        onSetMessageStatus={handleSetMessageStatus}
+                        onToggleComposeOptions={() => setComposeOptionsOpen((value) => !value)}
+                        resizingPanel={resizingPanel}
+                        searchInputRef={searchInputRef}
+                        searchQuery={searchQuery}
+                        selectedAccount={selectedAccount}
+                        selectedMessage={selectedMessage}
+                        selectedProfile={selectedProfile}
+                        setSearchQuery={setSearchQuery}
+                        visibleMessages={visibleMessages}
+                        workspace={workspace}
+                    />
                 )}
 
                 {contextMenu ? (

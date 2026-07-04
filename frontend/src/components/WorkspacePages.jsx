@@ -1,8 +1,9 @@
-import {Activity, ArrowLeft, BarChart3, Clock3, Globe2, Inbox, Mail, MailPlus, Paperclip, RefreshCw, Settings, ShieldCheck, Star, Users} from 'lucide-react';
+import {Activity, ArrowLeft, BarChart3, Clock3, Globe2, Inbox, Mail, MailPlus, Paperclip, RefreshCw, Search, Settings, ShieldCheck, Star, Users} from 'lucide-react';
 import {formatCount, formatMessageTime, isStarredMessage, isUnreadMessage} from '../app/utils';
 import {EmptyState, StatusBadge} from './Common';
 import {AttachmentCenterPage} from './AttachmentCenterPage';
 import {AuditLogPanel, DiagnosticsPanel} from './InsightsPanels';
+import {SearchCenterPage} from './SearchCenterPage';
 import {SettingsPage} from './SettingsPage';
 
 function workspaceMetrics({folderCounts, messages, workspace}) {
@@ -54,6 +55,7 @@ export function WorkspacePageRouter({
     onOpenAttachments,
     onOpenMessage,
     onOpenProfiles,
+    onOpenSearch,
     onOpenSettings,
     onPreviewAttachment,
     onProfileUpdate,
@@ -82,6 +84,7 @@ export function WorkspacePageRouter({
                 onOpenActivity={onOpenActivity}
                 onOpenAttachments={onOpenAttachments}
                 onOpenMessage={onOpenMessage}
+                onOpenSearch={onOpenSearch}
                 onOpenSettings={onOpenSettings}
                 onReloadMailbox={onReloadMailbox}
                 profiles={profiles}
@@ -101,6 +104,19 @@ export function WorkspacePageRouter({
                 onLoadMore={onLoadMoreMessages}
                 onOpenMessage={onOpenMessage}
                 onPreview={onPreviewAttachment}
+                selectedProfile={selectedProfile}
+                workspace={workspace}
+            />
+        );
+    }
+
+    if (page === 'search') {
+        return (
+            <SearchCenterPage
+                busy={busy}
+                onBack={onBack}
+                onLoadMore={onLoadMoreMessages}
+                onOpenMessage={onOpenMessage}
                 selectedProfile={selectedProfile}
                 workspace={workspace}
             />
@@ -159,6 +175,7 @@ export function DashboardPage({
     onOpenActivity,
     onOpenAttachments,
     onOpenMessage,
+    onOpenSearch,
     onOpenSettings,
     onReloadMailbox,
     profiles,
@@ -242,6 +259,10 @@ export function DashboardPage({
                         <button type="button" onClick={onOpenAttachments} disabled={!selectedProfile?.hasToken || !workspace?.selectedAccountId}>
                             <Paperclip size={16} />
                             附件中心
+                        </button>
+                        <button type="button" onClick={onOpenSearch} disabled={!selectedProfile?.hasToken || !workspace?.selectedAccountId}>
+                            <Search size={16} />
+                            搜索中心
                         </button>
                         <button type="button" onClick={onOpenSettings}>
                             <Settings size={16} />
