@@ -1,5 +1,5 @@
-import {ArrowLeft, Globe2, MailPlus, Moon, PanelLeftClose, PanelLeftOpen, Plus, Settings, ShieldCheck, Sun} from 'lucide-react';
-import {folders, isAccountEnabled} from '../app/utils';
+import {ArrowLeft, Globe2, KeyRound, Mail, MailPlus, Moon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plus, Settings, ShieldCheck, Sun, Trash2} from 'lucide-react';
+import {folders} from '../app/utils';
 import {IconButton, MutedLine, NavItem, SectionLabel, SidebarNotice} from './Common';
 
 export function Sidebar({
@@ -69,6 +69,7 @@ export function Sidebar({
                             className={`endpoint-card ${profile.id === selectedProfileId ? 'active' : ''}`}
                             key={profile.id}
                             type="button"
+                            title={`${profile.name}\n${profile.baseUrl}`}
                             onClick={() => onProfileSelect(profile)}
                         >
                             <span>{profile.name}</span>
@@ -153,6 +154,7 @@ export function Sidebar({
                                     className={`domain-item ${domain === workspace?.selectedDomain ? 'active' : ''}`}
                                     key={domain}
                                     type="button"
+                                    title={domain}
                                     onClick={() => onDomainChange(domain)}
                                 >
                                     <span>{domain}</span>

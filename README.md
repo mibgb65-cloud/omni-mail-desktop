@@ -14,8 +14,21 @@ Each profile maps to one deployed OmniMail Worker base URL. One profile can stil
 
 ## Development
 
+Requires Go 1.26.4 or newer, Wails, and Node.js 20.19 or newer.
+
 ```bash
 wails dev
+```
+
+Run the local quality checks before committing:
+
+```bash
+powershell -ExecutionPolicy Bypass -File ./scripts/check-go.ps1 -Command test
+powershell -ExecutionPolicy Bypass -File ./scripts/check-go.ps1 -Command vet
+cd frontend
+npm run check
+npm test
+npm run build
 ```
 
 ## Build
@@ -57,7 +70,9 @@ git push origin main
 git push origin v1.0.4
 ```
 
-The tag version and `wails.json` `productVersion` should match. The workflow builds `build/bin/OmniMailDesktop.exe`, builds `build/installer/OmniMailDesktop-Setup-*.exe`, and attaches the installer to the GitHub Release.
+The tag version and `wails.json` `productVersion` must match. CI enforces that match and checks that `CHANGELOG.md` contains the matching release section.
+
+The workflow builds `build/bin/OmniMailDesktop.exe`, builds `build/installer/OmniMailDesktop-Setup-*.exe`, generates a SHA256 checksum, and attaches the installer plus checksum to the GitHub Release. Release notes are extracted from the matching `CHANGELOG.md` section.
 
 ## Local Data
 

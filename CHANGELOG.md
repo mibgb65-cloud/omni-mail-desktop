@@ -1,5 +1,28 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Add CI checks for release metadata, frontend linting, frontend unit tests, production npm audit, Go vet, Go vulnerability scanning, and installer SHA256 checksums.
+- Add Dependabot update monitoring for npm, Go modules, and GitHub Actions.
+- Add frontend unit tests for shared utility behavior and diagnostic report redaction.
+- Add a settings action to copy a redacted diagnostic JSON report.
+- Add a shared Go check script that excludes `frontend/node_modules` from package discovery.
+
+### Changed
+
+- Upgrade the Vite development toolchain to remove npm audit findings.
+- Pin CI to Go 1.26.4 and Node.js 20.19.x for current security fixes and toolchain compatibility.
+- Show compact whole-number attachment sizes such as `1 KB` instead of `1.0 KB`.
+- Extract GitHub Release notes from the matching changelog version instead of publishing the full changelog.
+
+### Fixed
+
+- Fix missing frontend imports that could cause settings, resource manager, and sidebar menu views to fail at runtime.
+- Preserve the correct return page when adding or editing endpoint profiles after the frontend action split.
+- Add full hover titles for long endpoint and domain names in the left sidebar.
+
 ## [v1.0.4] - 2026-07-04
 
 ### Added

@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {KeyRound, Plus, RefreshCw} from 'lucide-react';
+import {CircleCheck, KeyRound, Plus, Power, RefreshCw} from 'lucide-react';
 import {AuthorizeAdminSession, ChangePassword, ClearAdminSession, CreateUser, ListUsers, RevokeSessions, UpdateUser, ValidateAdminSession} from '../../wailsjs/go/main/App';
 import {emptyAdminSessionForm, emptyPasswordForm, emptyUserForm, formatDateTime} from '../app/utils';
 import {StatusBadge} from './Common';

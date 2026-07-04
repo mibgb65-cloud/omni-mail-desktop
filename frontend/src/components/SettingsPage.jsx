@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
-import {ArrowLeft, ClipboardList, Database, KeyRound, ListChecks, Moon, PanelLeftOpen, ShieldCheck, Sun} from 'lucide-react';
-import {settingsTabs} from '../app/utils';
+import {Activity, ArrowLeft, ClipboardList, KeyRound, Mail, Moon, PanelLeftOpen, ShieldCheck, Sun} from 'lucide-react';
+import {ClipboardSetText} from '../../wailsjs/runtime/runtime';
+import {formatCount, settingsTabs, stringifyDiagnosticReport} from '../app/utils';
 import {EmptyState, SettingRow, StatusBadge} from './Common';
 import {AuditLogPanel, DiagnosticsPanel} from './InsightsPanels';
 import {DNSHealthPanel, DeviceManagerPanel, MaintenancePanel} from './SystemPanels';
@@ -43,6 +44,32 @@ export function SettingsPage({
             setActiveTab('general');
         }
     }, [activeTab, visibleTabs]);
+
+    async function handleCopyDiagnostics() {
+        if (!selectedProfile) {
+            return;
+        }
+
+        const report = stringifyDiagnosticReport({
+            auditLogs,
+            diagnostics,
+            profile: selectedProfile,
+            status,
+            storagePath
+        });
+
+        try {
+            await ClipboardSetText(report);
+            onNotify?.('success', '诊断信息已复制', selectedProfile.baseUrl);
+        } catch (copyError) {
+            try {
+                await navigator.clipboard.writeText(report);
+                onNotify?.('success', '诊断信息已复制', selectedProfile.baseUrl);
+            } catch {
+                onNotify?.('error', '复制诊断信息失败', copyError.message || '当前系统不允许访问剪贴板。');
+            }
+        }
+    }
 
     return (
         <main id="reader" className="workspace-page settings-page" aria-label="设置">
@@ -118,6 +145,12 @@ export function SettingsPage({
                                     ? `已加载最近 ${auditLogs.length} 条，接入点累计 ${formatCount(auditCount)} 条。`
                                     : '读取当前接入点最近的授权、邮件和配置变更记录。'}
                                 action={<StatusBadge ok={insightsLoaded} label={insightsLoaded ? '已加载' : '未读取'} />}
+                            />
+                            <SettingRow
+                                icon={ClipboardList}
+                                title="诊断导出"
+                                body={selectedProfile ? '复制当前接入点的脱敏诊断 JSON。' : '选择接入点后可复制诊断 JSON。'}
+                                action={<button type="button" onClick={handleCopyDiagnostics} disabled={!selectedProfile}>复制 JSON</button>}
                             />
                             <SettingRow
                                 icon={Mail}

@@ -1,4 +1,4 @@
-import {ClipboardList} from 'lucide-react';
+import {CircleAlert, CircleCheck, Database, ListChecks} from 'lucide-react';
 import {formatAuditAction, formatCount, formatDateTime, metadataSummary} from '../app/utils';
 import {StatusBadge} from './Common';
 

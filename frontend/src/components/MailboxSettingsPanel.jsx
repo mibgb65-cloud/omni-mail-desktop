@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
-import {Mail} from 'lucide-react';
+import {CircleCheck, Mail, RefreshCw} from 'lucide-react';
 import {GetAccountSettings, SaveAccountSettings} from '../../wailsjs/go/main/App';
-import {defaultMailboxSettings, normalizeMailboxSettings} from '../app/utils';
+import {defaultMailboxSettings, formatCount, formatDateTime, invalidRecipients, normalizeMailboxSettings} from '../app/utils';
 import {StatusBadge} from './Common';
 import {SettingsPanelHeader} from './SettingsCommon';
 

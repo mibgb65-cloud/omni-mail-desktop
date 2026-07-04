@@ -225,7 +225,46 @@ export function formatFileSize(value) {
         unitIndex += 1;
     }
 
-    return `${size >= 10 || unitIndex === 0 ? Math.round(size) : size.toFixed(1)} ${units[unitIndex]}`;
+    const displaySize = size >= 10 || unitIndex === 0
+        ? String(Math.round(size))
+        : String(Number(size.toFixed(1)));
+    return `${displaySize} ${units[unitIndex]}`;
+}
+
+export function buildDiagnosticReport({
+    auditLogs = [],
+    diagnostics = null,
+    generatedAt = new Date().toISOString(),
+    profile = null,
+    status = null,
+    storagePath = ''
+} = {}) {
+    const safeProfile = profile ? {
+        id: profile.id || '',
+        name: profile.name || '',
+        baseUrl: profile.baseUrl || '',
+        hasToken: Boolean(profile.hasToken),
+        tokenPreview: profile.tokenPreview || '',
+        hasAdminSession: Boolean(profile.hasAdminSession),
+        adminEmail: profile.adminEmail || '',
+        adminTokenPreview: profile.adminTokenPreview || '',
+        deviceId: profile.deviceId || '',
+        secretError: profile.secretError || '',
+        lastUsedAt: profile.lastUsedAt || ''
+    } : null;
+
+    return {
+        generatedAt,
+        storagePath: storagePath || '',
+        profile: safeProfile,
+        status: status || null,
+        diagnostics: diagnostics || null,
+        auditLogs: Array.isArray(auditLogs) ? auditLogs.slice(0, 30) : []
+    };
+}
+
+export function stringifyDiagnosticReport(input) {
+    return JSON.stringify(buildDiagnosticReport(input), null, 2);
 }
 
 export function normalizeMailboxSettings(settings = {}) {

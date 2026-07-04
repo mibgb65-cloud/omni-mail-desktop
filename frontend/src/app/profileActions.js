@@ -1,7 +1,7 @@
 import {AuthorizeProfile, DeleteProfile, GetEndpointDiagnostics, GetInitialState, ListAuditLogs, SaveProfile, SaveProfileToken, SelectProfile, TestBaseURL} from '../../wailsjs/go/main/App';
 import {emptyAccountForm, emptyAuthForm, emptyProfileForm, upsertProfile} from './utils';
 
-export function createProfileActions({selectedProfile, selectedProfileId, profileForm, contentPage, profileReturnPage, authReturnPage, authForm, manualToken, workspace, loadMailbox, showToast, setBusy, setProfiles, setStoragePath, setSelectedProfileId, setSidebarPage, setContentPage, setWorkspace, setProfileForm, setStatus, setContextMenu, setAuthReturnPage, setProfileMenuOpen, setManualToken, setEndpointDiagnostics, setAuditLogs, setInsightsProfileId, setAccountForm, setAuthForm}) {
+export function createProfileActions({selectedProfile, selectedProfileId, profileForm, contentPage, profileReturnPage, authReturnPage, authForm, manualToken, workspace, loadMailbox, showToast, setBusy, setProfiles, setStoragePath, setSelectedProfileId, setSidebarPage, setContentPage, setWorkspace, setProfileForm, setStatus, setContextMenu, setProfileReturnPage, setAuthReturnPage, setProfileMenuOpen, setManualToken, setEndpointDiagnostics, setAuditLogs, setInsightsProfileId, setAccountForm, setAuthForm}) {
     async function loadInitialState() {
         setBusy('initial');
 

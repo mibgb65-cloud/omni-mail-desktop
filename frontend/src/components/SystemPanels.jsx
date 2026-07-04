@@ -1,7 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
-import {Database, Globe2, RefreshCw, ShieldCheck} from 'lucide-react';
+import {CircleAlert, CircleCheck, Database, Eye, Globe2, RefreshCw, ShieldCheck, Trash2} from 'lucide-react';
 import {GetDomainDNSHealth, ListDevices, RevokeDevice, RunSystemCleanup, UpdateDevice} from '../../wailsjs/go/main/App';
-import {formatDateTime} from '../app/utils';
+import {formatCount, formatDateTime, normalizeDomainInput} from '../app/utils';
 import {StatusBadge} from './Common';
 import {SettingsPanelHeader} from './SettingsCommon';
 

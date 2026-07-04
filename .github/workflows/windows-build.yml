@@ -13,6 +13,10 @@ on:
       - master
   workflow_dispatch:
 
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -25,16 +29,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check release metadata
+        shell: pwsh
+        run: ./scripts/check-release-version.ps1 -Tag "${{ github.ref_name }}"
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23.x"
+          go-version: "1.26.4"
           cache: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "20.19.x"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -42,12 +50,36 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Check frontend code
+        working-directory: frontend
+        run: npm run check
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Audit production frontend dependencies
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Build frontend
         working-directory: frontend
         run: npm run build
 
+      - name: Run Go vet
+        shell: pwsh
+        run: ./scripts/check-go.ps1 -Command vet
+
       - name: Run Go tests
-        run: go test ./...
+        shell: pwsh
+        run: ./scripts/check-go.ps1 -Command test
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run Go vulnerability check
+        shell: pwsh
+        run: ./scripts/check-go.ps1 -Command govulncheck
 
       - name: Check source file line limits
         shell: pwsh
@@ -68,13 +100,19 @@ jobs:
           $version = (Get-Content wails.json | ConvertFrom-Json).info.productVersion
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$version" build\windows\OmniMailDesktop.iss
 
+      - name: Generate installer checksum
+        shell: pwsh
+        run: ./scripts/write-installer-checksum.ps1
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: OmniMailDesktop-windows
+          retention-days: 14
           path: |
             build/bin/OmniMailDesktop.exe
             build/installer/OmniMailDesktop-Setup-*.exe
+            build/installer/OmniMailDesktop-Setup-*.exe.sha256
           if-no-files-found: error
 
   release:
@@ -95,9 +133,15 @@ jobs:
           name: OmniMailDesktop-windows
           path: artifacts
 
+      - name: Prepare release notes
+        shell: pwsh
+        run: ./scripts/write-release-notes.ps1 -Tag "${{ github.ref_name }}" -OutputPath release-notes.md
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: OmniMail Desktop ${{ github.ref_name }}
-          body_path: CHANGELOG.md
-          files: artifacts/**/OmniMailDesktop-Setup-*.exe
+          body_path: release-notes.md
+          files: |
+            artifacts/**/OmniMailDesktop-Setup-*.exe
+            artifacts/**/OmniMailDesktop-Setup-*.exe.sha256
