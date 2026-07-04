@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [v1.0.5] - 2026-07-04
+
 ### Added
 
 - Add CI checks for release metadata, frontend linting, frontend unit tests, production npm audit, Go vet, Go vulnerability scanning, and installer SHA256 checksums.
