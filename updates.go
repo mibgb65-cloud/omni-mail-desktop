@@ -23,6 +23,7 @@ type githubRelease struct {
 type githubReleaseAsset struct {
 	Name               string `json:"name"`
 	BrowserDownloadURL string `json:"browser_download_url"`
+	Size               int64  `json:"size"`
 }
 
 func (a *App) CheckForUpdates() (*UpdateInfo, error) {
@@ -31,11 +32,12 @@ func (a *App) CheckForUpdates() (*UpdateInfo, error) {
 		return nil, err
 	}
 
-	info := release.updateInfo(currentAppVersion())
+	info := a.updateInfoFromRelease(release, currentAppVersion())
 	a.logEvent("info", "update check completed", map[string]any{
 		"currentVersion":  info.CurrentVersion,
 		"latestVersion":   info.LatestVersion,
 		"updateAvailable": info.UpdateAvailable,
+		"channel":         info.Channel,
 	})
 	return info, nil
 }
@@ -85,10 +87,12 @@ func (release githubRelease) updateInfo(currentVersion string) *UpdateInfo {
 		PublishedAt:    release.PublishedAt,
 		Name:           release.Name,
 		Body:           truncateReleaseBody(release.Body),
+		Channel:        "stable",
 	}
 	if installer != nil {
 		info.DownloadURL = installer.BrowserDownloadURL
 		info.InstallerName = installer.Name
+		info.InstallerSize = installer.Size
 	}
 	if checksum != nil {
 		info.ChecksumURL = checksum.BrowserDownloadURL

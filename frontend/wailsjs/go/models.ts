@@ -1373,6 +1373,11 @@ export namespace main {
 	    downloadUrl: string;
 	    checksumUrl: string;
 	    installerName: string;
+	    installerSize: number;
+	    sha256: string;
+	    channel: string;
+	    minVersion: string;
+	    mandatory: boolean;
 	    publishedAt: string;
 	    name: string;
 	    body: string;
@@ -1390,6 +1395,11 @@ export namespace main {
 	        this.downloadUrl = source["downloadUrl"];
 	        this.checksumUrl = source["checksumUrl"];
 	        this.installerName = source["installerName"];
+	        this.installerSize = source["installerSize"];
+	        this.sha256 = source["sha256"];
+	        this.channel = source["channel"];
+	        this.minVersion = source["minVersion"];
+	        this.mandatory = source["mandatory"];
 	        this.publishedAt = source["publishedAt"];
 	        this.name = source["name"];
 	        this.body = source["body"];

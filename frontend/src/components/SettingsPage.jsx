@@ -193,7 +193,7 @@ export function SettingsPage({
                             <SettingRow
                                 icon={RefreshCw}
                                 title="版本更新"
-                                body={updateBody(updateInfo, updateProgress, updateManager?.error)}
+                                body={updateBody(updateInfo, updateProgress, updateManager?.error, updateManager?.updateDeferred)}
                                 action={(
                                     <span className="setting-row-actions update-actions">
                                         <button type="button" onClick={() => updateManager?.check({notifyCurrent: true})} disabled={checkingUpdate}>
@@ -210,6 +210,15 @@ export function SettingsPage({
                                         {installingUpdate && updateProgress?.status === 'downloading' ? (
                                             <button type="button" onClick={() => updateManager?.cancel()}>取消</button>
                                         ) : null}
+                                        {updateInfo?.updateAvailable && !updateInfo.mandatory && !updateManager?.updateDeferred ? (
+                                            <>
+                                                <button type="button" onClick={() => updateManager?.remindLater()} disabled={updateBusy}>稍后提醒</button>
+                                                <button type="button" onClick={() => updateManager?.skipVersion()} disabled={updateBusy}>跳过此版本</button>
+                                            </>
+                                        ) : null}
+                                        {updateInfo?.updateAvailable && updateManager?.updateDeferred ? (
+                                            <button type="button" onClick={() => updateManager?.clearUpdatePreference()}>恢复提醒</button>
+                                        ) : null}
                                         <button
                                             type="button"
                                             onClick={() => BrowserOpenURL(updateInfo?.releaseUrl || updateInfo?.downloadUrl || '')}
@@ -218,6 +227,7 @@ export function SettingsPage({
                                             <ExternalLink size={15} />
                                             详情
                                         </button>
+                                        {updateInfo?.body ? <span className="update-notes">{releaseNoteSummary(updateInfo.body)}</span> : null}
                                         {updateProgress?.status === 'downloading' ? <UpdateProgressBar progress={updateProgress} /> : null}
                                     </span>
                                 )}
@@ -319,7 +329,7 @@ export function SettingsPage({
     );
 }
 
-function updateBody(updateInfo, progress, error) {
+function updateBody(updateInfo, progress, error, deferred) {
     if (progress?.status === 'downloading') {
         const total = progress.totalBytes ? ` / ${formatFileSize(progress.totalBytes)}` : '';
         return `正在下载 ${formatFileSize(progress.bytesReceived)}${total}${progress.percent ? ` (${progress.percent}%)` : ''}`;
@@ -337,11 +347,21 @@ function updateBody(updateInfo, progress, error) {
         return `更新失败：${error}`;
     }
     if (updateInfo) {
+        const size = updateInfo.installerSize ? `，安装包 ${formatFileSize(updateInfo.installerSize)}` : '';
+        const policy = updateInfo.mandatory ? '，必须更新' : deferred ? '，已暂不提醒' : '';
         return updateInfo.updateAvailable
-            ? `当前 ${updateInfo.currentVersion}，最新 ${updateInfo.latestVersion}。`
+            ? `当前 ${updateInfo.currentVersion}，最新 ${updateInfo.latestVersion}${size}${policy}。`
             : `当前 ${updateInfo.currentVersion}，已是最新版本。`;
     }
     return '启动后会自动检查 GitHub Release；发现新版后可下载、校验并启动更新安装器。';
+}
+
+function releaseNoteSummary(body) {
+    return String(body || '')
+        .replace(/^#+\s+/gm, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 180);
 }
 
 function UpdateProgressBar({progress}) {

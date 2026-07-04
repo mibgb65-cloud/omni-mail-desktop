@@ -372,7 +372,7 @@ function App() {
                     status={status}
                     theme={theme}
                     toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
-                    updateInfo={updateManager.info}
+                    updateInfo={updateManager.visibleUpdateAvailable ? updateManager.info : null}
                     workspace={workspace}
                 />
 

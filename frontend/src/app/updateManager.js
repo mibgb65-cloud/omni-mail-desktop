@@ -3,6 +3,9 @@ import {CancelUpdateDownload, CheckForUpdates, DownloadUpdateInstaller, LaunchUp
 import {EventsOn} from '../../wailsjs/runtime/runtime';
 
 const updateProgressEvent = 'omnimail:update-download-progress';
+const skippedVersionKey = 'omnimail_update_skipped_version';
+const remindLaterUntilKey = 'omnimail_update_remind_later_until';
+const remindLaterMs = 24 * 60 * 60 * 1000;
 
 export function useUpdateManager(showToast) {
     const notifyRef = useRef(showToast);
@@ -11,6 +14,8 @@ export function useUpdateManager(showToast) {
     const [installing, setInstalling] = useState(false);
     const [error, setError] = useState('');
     const [progress, setProgress] = useState(null);
+    const [skippedVersion, setSkippedVersion] = useState(() => localStorage.getItem(skippedVersionKey) || '');
+    const [remindLaterUntil, setRemindLaterUntil] = useState(() => Number(localStorage.getItem(remindLaterUntilKey)) || 0);
 
     useEffect(() => {
         notifyRef.current = showToast;
@@ -27,16 +32,23 @@ export function useUpdateManager(showToast) {
         check({announceAvailable: true, notifyCurrent: false, notifyError: false});
     }, []);
 
+    const updateDeferred = isUpdateDeferred(info, skippedVersion, remindLaterUntil);
+    const visibleUpdateAvailable = Boolean(info?.updateAvailable && !updateDeferred);
+
     async function check({announceAvailable = false, notifyCurrent = true, notifyError = notifyCurrent} = {}) {
         setChecking(true);
         setError('');
         try {
             const nextInfo = await CheckForUpdates();
             setInfo(nextInfo);
-            if (nextInfo?.updateAvailable && announceAvailable) {
+            const nextDeferred = isUpdateDeferred(nextInfo, skippedVersion, remindLaterUntil);
+            if (nextInfo?.updateAvailable && announceAvailable && !nextDeferred) {
                 notifyRef.current?.('success', '发现新版本', `最新版本 ${nextInfo.latestVersion}`);
             } else if (notifyCurrent) {
-                notifyRef.current?.('success', nextInfo?.updateAvailable ? '发现新版本' : '当前已是最新版本', nextInfo?.latestVersion || nextInfo?.currentVersion || '');
+                const title = nextInfo?.updateAvailable
+                    ? nextDeferred ? '新版本已暂不提醒' : '发现新版本'
+                    : '当前已是最新版本';
+                notifyRef.current?.('success', title, nextInfo?.latestVersion || nextInfo?.currentVersion || '');
             }
             return nextInfo;
         } catch (checkError) {
@@ -57,6 +69,10 @@ export function useUpdateManager(showToast) {
         try {
             const result = await DownloadUpdateInstaller();
             notifyRef.current?.('success', '更新安装包已校验', `版本 ${result?.version || info?.latestVersion || ''}`);
+            const confirmed = window.confirm('安装包已校验。现在将启动安装器并退出 OmniMail Desktop，继续吗？');
+            if (!confirmed) {
+                return result;
+            }
             await LaunchUpdateInstaller(result.path);
             return result;
         } catch (installError) {
@@ -72,6 +88,35 @@ export function useUpdateManager(showToast) {
         }
     }
 
+    function remindLater() {
+        const nextUntil = Date.now() + remindLaterMs;
+        localStorage.setItem(remindLaterUntilKey, String(nextUntil));
+        localStorage.removeItem(skippedVersionKey);
+        setRemindLaterUntil(nextUntil);
+        setSkippedVersion('');
+        notifyRef.current?.('success', '稍后提醒', '24 小时内不会自动提示这个更新。');
+    }
+
+    function skipVersion() {
+        if (!info?.latestVersion) {
+            return;
+        }
+
+        localStorage.setItem(skippedVersionKey, info.latestVersion);
+        localStorage.removeItem(remindLaterUntilKey);
+        setSkippedVersion(info.latestVersion);
+        setRemindLaterUntil(0);
+        notifyRef.current?.('success', '已跳过此版本', `版本 ${info.latestVersion}`);
+    }
+
+    function clearUpdatePreference() {
+        localStorage.removeItem(skippedVersionKey);
+        localStorage.removeItem(remindLaterUntilKey);
+        setSkippedVersion('');
+        setRemindLaterUntil(0);
+        notifyRef.current?.('success', '更新提醒已恢复', info?.latestVersion || '');
+    }
+
     async function cancel() {
         try {
             await CancelUpdateDownload();
@@ -80,5 +125,32 @@ export function useUpdateManager(showToast) {
         }
     }
 
-    return {cancel, check, checking, error, info, install, installing, progress};
+    return {
+        cancel,
+        check,
+        checking,
+        clearUpdatePreference,
+        error,
+        info,
+        install,
+        installing,
+        progress,
+        remindLater,
+        remindLaterUntil,
+        skipVersion,
+        skippedVersion,
+        updateDeferred,
+        visibleUpdateAvailable
+    };
+}
+
+function isUpdateDeferred(info, skippedVersion, remindLaterUntil) {
+    if (!info?.updateAvailable || info?.mandatory) {
+        return false;
+    }
+
+    if (skippedVersion && skippedVersion === info.latestVersion) {
+        return true;
+    }
+    return Number(remindLaterUntil) > Date.now();
 }

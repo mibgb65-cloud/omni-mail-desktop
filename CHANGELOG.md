@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [v1.0.11] - 2026-07-04
+
+### Added
+
+- Add a release `update-manifest.json` asset with installer URL, size, SHA256, channel, minimum version policy, and release notes for in-app updates.
+- Add in-app update deferral controls for "remind later", "skip this version", and restoring update reminders.
+- Show update package size and release-note summary in the settings page.
+
+### Changed
+
+- Prefer manifest SHA256 metadata for installer verification while keeping `.sha256` assets as a fallback.
+- Clean old cached update installers after a verified download or cache reuse.
+- Ask for confirmation before launching the installer and quitting the app.
+
 ## [v1.0.10] - 2026-07-04
 
 ### Added

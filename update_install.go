@@ -11,13 +11,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-const maxUpdateInstallerBytes = 250 * 1024 * 1024
+const (
+	maxUpdateInstallerBytes     = 250 * 1024 * 1024
+	retainedUpdateCacheVersions = 2
+)
 
 func (a *App) DownloadUpdateInstaller() (*UpdateInstallResult, error) {
 	release, err := a.fetchLatestRelease()
@@ -25,15 +29,12 @@ func (a *App) DownloadUpdateInstaller() (*UpdateInstallResult, error) {
 		return nil, err
 	}
 
-	info := release.updateInfo(currentAppVersion())
+	info := a.updateInfoFromRelease(release, currentAppVersion())
 	if !info.UpdateAvailable {
 		return nil, errors.New("no update is available")
 	}
 	if info.DownloadURL == "" || info.InstallerName == "" {
 		return nil, errors.New("release does not include a Windows installer")
-	}
-	if info.ChecksumURL == "" {
-		return nil, errors.New("release does not include an installer checksum")
 	}
 	a.emitUpdateProgress(UpdateDownloadProgress{Version: info.LatestVersion, Status: "preparing"})
 
@@ -46,16 +47,13 @@ func (a *App) DownloadUpdateInstaller() (*UpdateInstallResult, error) {
 	}
 
 	installerPath := filepath.Join(dir, safeDownloadName(info.InstallerName))
-	checksumContent, err := a.downloadURL(info.ChecksumURL, 64*1024)
-	if err != nil {
-		return nil, err
-	}
-	expectedHash, err := parseSHA256Checksum(string(checksumContent))
+	expectedHash, err := a.expectedInstallerHash(info)
 	if err != nil {
 		return nil, err
 	}
 
 	if result, ok := a.cachedUpdateInstaller(installerPath, info.LatestVersion, expectedHash); ok {
+		a.cleanupOldUpdateInstallers(info.LatestVersion)
 		return result, nil
 	}
 
@@ -93,6 +91,7 @@ func (a *App) DownloadUpdateInstaller() (*UpdateInstallResult, error) {
 		"size":    size,
 	})
 	a.emitUpdateProgress(UpdateDownloadProgress{Version: info.LatestVersion, Status: "verified", BytesReceived: size, TotalBytes: size, Percent: 100, Path: installerPath})
+	a.cleanupOldUpdateInstallers(info.LatestVersion)
 
 	return &UpdateInstallResult{
 		Version: info.LatestVersion,
@@ -151,6 +150,21 @@ func (a *App) finishUpdateDownload() {
 	a.updateMu.Unlock()
 }
 
+func (a *App) expectedInstallerHash(info *UpdateInfo) (string, error) {
+	if hash := normalizeSHA256(info.SHA256); hash != "" {
+		return hash, nil
+	}
+	if info.ChecksumURL == "" {
+		return "", errors.New("release does not include an installer checksum")
+	}
+
+	checksumContent, err := a.downloadURL(info.ChecksumURL, 64*1024)
+	if err != nil {
+		return "", err
+	}
+	return parseSHA256Checksum(string(checksumContent))
+}
+
 func (a *App) cachedUpdateInstaller(path string, version string, expectedHash string) (*UpdateInstallResult, bool) {
 	info, err := os.Stat(path)
 	if err != nil || info.IsDir() {
@@ -183,7 +197,7 @@ func (a *App) emitUpdateProgress(progress UpdateDownloadProgress) {
 	wailsruntime.EventsEmit(a.appContext(), "omnimail:update-download-progress", progress)
 }
 
-func updateInstallerDirectory(version string) (string, error) {
+func updateInstallerRoot() (string, error) {
 	baseDir, err := os.UserCacheDir()
 	if err != nil || strings.TrimSpace(baseDir) == "" {
 		baseDir = os.TempDir()
@@ -192,7 +206,16 @@ func updateInstallerDirectory(version string) (string, error) {
 		return "", errors.New("update cache directory is not available")
 	}
 
-	return filepath.Join(baseDir, "OmniMailDesktop", "updates", safeDownloadName(version)), nil
+	return filepath.Join(baseDir, "OmniMailDesktop", "updates"), nil
+}
+
+func updateInstallerDirectory(version string) (string, error) {
+	root, err := updateInstallerRoot()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(root, safeDownloadName(version)), nil
 }
 
 func validateUpdateInstallerPath(path string) error {
@@ -204,11 +227,11 @@ func validateUpdateInstallerPath(path string) error {
 	if err != nil {
 		return err
 	}
-	cacheRoot, err := updateInstallerDirectory("")
+	root, err := updateInstallerRoot()
 	if err != nil {
 		return err
 	}
-	root := filepath.Clean(filepath.Dir(cacheRoot))
+	root = filepath.Clean(root)
 	relativePath, err := filepath.Rel(root, absPath)
 	if err != nil || strings.HasPrefix(relativePath, "..") || filepath.IsAbs(relativePath) {
 		return errors.New("installer path is outside the update cache")
@@ -217,6 +240,68 @@ func validateUpdateInstallerPath(path string) error {
 	name := strings.ToLower(filepath.Base(absPath))
 	if !strings.HasPrefix(name, "omnimaildesktop-setup-") || !strings.HasSuffix(name, ".exe") {
 		return errors.New("installer path is not an OmniMail Desktop setup executable")
+	}
+	return nil
+}
+
+func (a *App) cleanupOldUpdateInstallers(keepVersion string) {
+	if err := cleanupUpdateInstallerCache(keepVersion, retainedUpdateCacheVersions); err != nil {
+		a.logEvent("warn", "update cache cleanup failed", map[string]any{"error": err.Error()})
+	}
+}
+
+func cleanupUpdateInstallerCache(keepVersion string, keepRecent int) error {
+	root, err := updateInstallerRoot()
+	if err != nil {
+		return err
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+
+	type cacheDir struct {
+		name     string
+		path     string
+		modified time.Time
+	}
+	dirs := make([]cacheDir, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		dirs = append(dirs, cacheDir{
+			name:     entry.Name(),
+			path:     filepath.Join(root, entry.Name()),
+			modified: info.ModTime(),
+		})
+	}
+
+	sort.Slice(dirs, func(left int, right int) bool {
+		return dirs[left].modified.After(dirs[right].modified)
+	})
+
+	keep := map[string]bool{}
+	if strings.TrimSpace(keepVersion) != "" {
+		keep[safeDownloadName(keepVersion)] = true
+	}
+	for index := 0; index < len(dirs) && index < keepRecent; index++ {
+		keep[dirs[index].name] = true
+	}
+	for _, dir := range dirs {
+		if keep[dir.name] {
+			continue
+		}
+		if err := os.RemoveAll(dir.path); err != nil {
+			return err
+		}
 	}
 	return nil
 }

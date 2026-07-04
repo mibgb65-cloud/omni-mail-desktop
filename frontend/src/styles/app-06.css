@@ -193,6 +193,15 @@
     min-width: min(360px, 42vw);
 }
 
+.update-notes {
+    flex-basis: 100%;
+    max-width: min(480px, 48vw);
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: right;
+}
+
 .update-progress {
     display: block;
     flex-basis: 100%;

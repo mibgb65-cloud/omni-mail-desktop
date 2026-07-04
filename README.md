@@ -11,7 +11,7 @@ Windows desktop client for OmniMail Worker deployments.
 - Load domains, mailboxes, and messages through the selected endpoint.
 - Review a workspace overview with mailbox metrics, priority messages, recent mail, and common actions.
 - Inspect endpoint activity with diagnostics, deployment progress, recent mailbox activity, and audit logs.
-- Install desktop updates with global update notifications, visible update badges, download progress, cancel support, SHA256 verification, and verified installer cache reuse.
+- Install desktop updates with global update notifications, update badges, release notes, remind-later and skip-version controls, download progress, cancel support, SHA256 verification, and verified installer cache reuse.
 
 Each profile maps to one deployed OmniMail Worker base URL. One profile can still expose many mail domains through the OmniMail API.
 
@@ -53,7 +53,7 @@ The Windows installer is built with Inno Setup from:
 build/windows/OmniMailDesktop.iss
 ```
 
-The installer supports English and Simplified Chinese, custom install location, custom data storage location, and in-place updates that preserve user data. The app checks GitHub Releases on startup, keeps update state visible in the workspace, can download the newer installer with progress and cancellation, verifies its `.sha256` checksum, reuses a verified cached installer when possible, launches the installer, and quits the running app so the update can replace files cleanly.
+The installer supports English and Simplified Chinese, custom install location, custom data storage location, and in-place updates that preserve user data. The app checks GitHub Releases on startup, prefers the release `update-manifest.json` when available, keeps update state visible in the workspace, can defer or skip optional versions, downloads the newer installer with progress and cancellation, verifies the manifest SHA256 or `.sha256` checksum, reuses a verified cached installer when possible, asks before launching the installer, and quits the running app so the update can replace files cleanly.
 
 ## Release
 
@@ -69,14 +69,14 @@ Before tagging a release:
 For example:
 
 ```bash
-git tag v1.0.4
+git tag v1.0.11
 git push origin main
-git push origin v1.0.4
+git push origin v1.0.11
 ```
 
 The tag version and `wails.json` `productVersion` must match. CI enforces that match and checks that `CHANGELOG.md` contains the matching release section.
 
-The workflow builds `build/bin/OmniMailDesktop.exe`, builds `build/installer/OmniMailDesktop-Setup-*.exe`, generates a SHA256 checksum, and attaches the installer plus checksum to the GitHub Release. Release notes are extracted from the matching `CHANGELOG.md` section.
+The workflow builds `build/bin/OmniMailDesktop.exe`, builds `build/installer/OmniMailDesktop-Setup-*.exe`, generates a SHA256 checksum and `build/installer/update-manifest.json`, and attaches the installer, checksum, and update manifest to the GitHub Release. Release notes are extracted from the matching `CHANGELOG.md` section.
 
 Release builds also generate a CycloneDX SBOM at `build/installer/OmniMailDesktop-Setup-*.sbom.json` and attach it to the GitHub Release.
 

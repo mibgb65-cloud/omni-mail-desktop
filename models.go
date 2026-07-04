@@ -260,6 +260,11 @@ type UpdateInfo struct {
 	DownloadURL     string `json:"downloadUrl"`
 	ChecksumURL     string `json:"checksumUrl"`
 	InstallerName   string `json:"installerName"`
+	InstallerSize   int64  `json:"installerSize"`
+	SHA256          string `json:"sha256"`
+	Channel         string `json:"channel"`
+	MinVersion      string `json:"minVersion"`
+	Mandatory       bool   `json:"mandatory"`
 	PublishedAt     string `json:"publishedAt"`
 	Name            string `json:"name"`
 	Body            string `json:"body"`

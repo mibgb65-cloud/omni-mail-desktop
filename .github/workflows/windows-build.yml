@@ -124,6 +124,10 @@ jobs:
         shell: pwsh
         run: ./scripts/write-installer-checksum.ps1
 
+      - name: Generate update manifest
+        shell: pwsh
+        run: ./scripts/write-update-manifest.ps1
+
       - name: Generate SBOM
         shell: pwsh
         run: ./scripts/write-sbom.ps1
@@ -137,6 +141,7 @@ jobs:
             build/bin/OmniMailDesktop.exe
             build/installer/OmniMailDesktop-Setup-*.exe
             build/installer/OmniMailDesktop-Setup-*.exe.sha256
+            build/installer/update-manifest.json
             build/installer/OmniMailDesktop-Setup-*.sbom.json
           if-no-files-found: error
 
@@ -170,4 +175,5 @@ jobs:
           files: |
             artifacts/**/OmniMailDesktop-Setup-*.exe
             artifacts/**/OmniMailDesktop-Setup-*.exe.sha256
+            artifacts/**/update-manifest.json
             artifacts/**/OmniMailDesktop-Setup-*.sbom.json
