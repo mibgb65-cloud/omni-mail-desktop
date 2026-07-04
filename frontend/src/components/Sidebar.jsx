@@ -1,4 +1,4 @@
-import {ArrowLeft, Globe2, KeyRound, Mail, MailPlus, Moon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plus, Settings, ShieldCheck, Sun, Trash2} from 'lucide-react';
+import {Activity, ArrowLeft, Globe2, KeyRound, LayoutDashboard, Mail, MailPlus, Moon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plus, Settings, ShieldCheck, Sun, Trash2} from 'lucide-react';
 import {folders} from '../app/utils';
 import {IconButton, MutedLine, NavItem, SectionLabel, SidebarNotice} from './Common';
 
@@ -7,6 +7,7 @@ export function Sidebar({
     busy,
     collapsed,
     folderCounts,
+    activeWorkspacePage,
     onAccountChange,
     onAddAccount,
     onAddProfile,
@@ -20,6 +21,8 @@ export function Sidebar({
     onManageAccounts,
     onManageDomains,
     onManageProfiles,
+    onOpenActivity,
+    onOpenDashboard,
     onOpenSettings,
     onProfileSelect,
     onToggle,
@@ -29,7 +32,6 @@ export function Sidebar({
     selectedProfile,
     selectedProfileId,
     setProfileMenuOpen,
-    settingsActive,
     status,
     theme,
     toggleTheme,
@@ -125,7 +127,19 @@ export function Sidebar({
 
             <nav className="nav-section workspace-actions-section" aria-label="工作台">
                 <NavItem
-                    active={settingsActive}
+                    active={activeWorkspacePage === 'dashboard'}
+                    icon={LayoutDashboard}
+                    label="总览"
+                    onClick={onOpenDashboard}
+                />
+                <NavItem
+                    active={activeWorkspacePage === 'activity'}
+                    icon={Activity}
+                    label="活动"
+                    onClick={onOpenActivity}
+                />
+                <NavItem
+                    active={activeWorkspacePage === 'settings'}
                     icon={Settings}
                     label="工作台设置"
                     onClick={onOpenSettings}

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [v1.0.9] - 2026-07-04
+
+### Added
+
+- Add left-sidebar workspace overview and activity center pages with mailbox metrics, priority mail, recent messages, endpoint diagnostics, and audit logs.
+
 ## [v1.0.8] - 2026-07-04
 
 ### Added

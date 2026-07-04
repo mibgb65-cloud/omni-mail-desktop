@@ -1,0 +1,314 @@
+.workspace-dashboard-page,
+.workspace-activity-page {
+    padding: var(--space-6);
+}
+
+.workspace-page-header,
+.workspace-page-body {
+    width: min(1040px, 100%);
+    margin-inline: auto;
+}
+
+.workspace-page-header {
+    display: grid;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+}
+
+.workspace-page-header > div {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+}
+
+.workspace-page-header p,
+.workspace-page-header h1,
+.workspace-page-header small {
+    margin: 0;
+}
+
+.workspace-page-header p {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.workspace-page-header h1 {
+    color: var(--text-primary);
+    font-size: 32px;
+    line-height: 1.08;
+}
+
+.workspace-page-header small {
+    color: var(--text-tertiary);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.workspace-page-header-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+}
+
+.workspace-header-action,
+.dashboard-actions button {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 0 var(--space-3);
+    font-weight: 620;
+    transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+}
+
+.workspace-header-action:hover:not(:disabled),
+.dashboard-actions button:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+}
+
+.dashboard-layout,
+.activity-layout {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.dashboard-hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-5);
+}
+
+.dashboard-hero p,
+.dashboard-hero h2,
+.dashboard-hero small {
+    margin: 0;
+}
+
+.dashboard-hero p {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.dashboard-hero h2 {
+    margin-top: 3px;
+    color: var(--text-primary);
+    font-size: 24px;
+    line-height: 1.15;
+}
+
+.dashboard-hero small {
+    display: block;
+    margin-top: 5px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.dashboard-metrics,
+.activity-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+.dashboard-metrics article,
+.activity-metrics article,
+.dashboard-profile-grid article {
+    min-width: 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel);
+    padding: var(--space-4);
+}
+
+.dashboard-metrics article {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.dashboard-metrics svg {
+    color: var(--text-tertiary);
+}
+
+.dashboard-metrics strong,
+.activity-metrics strong,
+.dashboard-profile-grid strong {
+    color: var(--text-primary);
+    font-size: 24px;
+    line-height: 1;
+}
+
+.dashboard-metrics small,
+.activity-metrics small,
+.dashboard-profile-grid small {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.dashboard-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.dashboard-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+
+.dashboard-message-card {
+    display: grid;
+    align-content: start;
+    gap: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-4);
+}
+
+.dashboard-message-card header,
+.dashboard-message-card header span,
+.dashboard-profile-grid span {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.dashboard-message-card header {
+    justify-content: space-between;
+}
+
+.dashboard-message-card header span,
+.dashboard-profile-grid span {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.dashboard-message-list,
+.activity-feed-list {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.dashboard-message-list button,
+.activity-feed-list article {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: var(--space-3);
+    text-align: left;
+}
+
+.dashboard-message-list button:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+}
+
+.dashboard-message-list span,
+.activity-feed-list span {
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.dashboard-message-list strong,
+.activity-feed-list strong {
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dashboard-message-list small,
+.activity-feed-list small,
+.dashboard-message-card p {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.dashboard-message-card p {
+    margin: 0;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    padding: var(--space-4);
+    text-align: center;
+}
+
+.dashboard-profile-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+.dashboard-profile-grid article {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.activity-metrics article {
+    display: grid;
+    gap: 4px;
+}
+
+.activity-feed {
+    margin-top: 0;
+}
+
+@media (max-width: 920px) {
+    .workspace-page-header-row,
+    .dashboard-columns,
+    .dashboard-profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .workspace-header-action {
+        justify-self: start;
+    }
+
+    .dashboard-metrics,
+    .activity-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .workspace-dashboard-page,
+    .workspace-activity-page {
+        padding: var(--space-5);
+    }
+
+    .dashboard-hero {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .dashboard-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-metrics,
+    .activity-metrics {
+        grid-template-columns: 1fr;
+    }
+}

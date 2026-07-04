@@ -1,9 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import './App.css';
-import {
-    WindowSetDarkTheme,
-    WindowSetLightTheme
-} from '../wailsjs/runtime/runtime';
+import {WindowSetDarkTheme, WindowSetLightTheme} from '../wailsjs/runtime/runtime';
 import {CheckForUpdates} from '../wailsjs/go/main/App';
 
 import {emptyAccountForm, emptyAuthForm, emptyComposeForm, emptyDomainForm, emptyProfileForm, composeHasContent, clamp, invalidRecipients, isTypingTarget, isUnreadMessage, layoutDefaults, layoutLimits, mailboxPageSize, normalizeDomainInput, readStoredWidth, splitRecipients, upsertProfile} from './app/utils';
@@ -11,7 +8,7 @@ import {ContextMenu, ResizeHandle, TitleBar, Toast} from './components/Common';
 import {Sidebar} from './components/Sidebar';
 import {AccountEditorPage, AccountManagerPage, AuthPage, DomainManagerPage, ProfileEditorPage, StartPage} from './components/StartAndEditors';
 import {EndpointManagerPage} from './components/EndpointManager';
-import {SettingsPage} from './components/SettingsPage';
+import {WorkspacePageRouter} from './components/WorkspacePages';
 import {EmailListPanel, ReaderToolbar} from './components/MailList';
 import {ReadingView} from './components/ReadingView';
 import {Composer} from './components/Composer';
@@ -322,11 +319,18 @@ function App() {
     const showAccountPage = contentPage === 'account';
     const showAccountManagerPage = contentPage === 'accounts';
     const showDomainManagerPage = contentPage === 'domains';
-    const showStartPage = contentPage === 'start' || (!selectedProfile && !showEndpointPage && !showProfilePage);
-    const showSettingsPage = contentPage === 'settings';
-    const openSettingsPage = () => {
-        setContentPage('settings');
+    const showWorkspacePage = ['dashboard', 'activity', 'settings'].includes(contentPage);
+    const showStartPage = contentPage === 'start' || (!selectedProfile && !showEndpointPage && !showProfilePage && !showWorkspacePage);
+    const openWorkspacePage = (page) => {
+        setContentPage(page);
         setProfileMenuOpen(false);
+        setContextMenu(null);
+    };
+    const openSettingsPage = () => openWorkspacePage('settings');
+    const openMessageFromWorkspace = (message) => {
+        setActiveFolder(message.archivedAt ? 'archive' : message.direction === 'outbound' ? 'sent' : 'inbox');
+        setSelectedMessageId(message.id);
+        setContentPage('mail');
     };
 
     return (
@@ -364,6 +368,8 @@ function App() {
                     onManageAccounts={handleOpenAccountManager}
                     onManageDomains={handleOpenDomainManager}
                     onManageProfiles={handleOpenProfileManager}
+                    onOpenActivity={() => openWorkspacePage('activity')}
+                    onOpenDashboard={() => openWorkspacePage('dashboard')}
                     onOpenSettings={openSettingsPage}
                     onCompose={() => setComposerOpen(true)}
                     onProfileSelect={handleSelectProfile}
@@ -374,7 +380,7 @@ function App() {
                     selectedProfile={selectedProfile}
                     selectedProfileId={selectedProfileId}
                     setProfileMenuOpen={setProfileMenuOpen}
-                    settingsActive={showSettingsPage}
+                    activeWorkspacePage={showWorkspacePage ? contentPage : ''}
                     status={status}
                     theme={theme}
                     toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
@@ -476,28 +482,26 @@ function App() {
                         selectedDomain={workspace?.selectedDomain || ''}
                         selectedProfile={selectedProfile}
                     />
-                ) : showSettingsPage ? (
-                    <SettingsPage
-                        auditLogs={auditLogs}
-                        busy={busy}
-                        canClearCurrentDraft={canClearCurrentDraft}
+                ) : showWorkspacePage ? (
+                    <WorkspacePageRouter
+                        {...{auditLogs, busy, canClearCurrentDraft, folderCounts, insightsProfileId, profiles, selectedAccount, selectedProfile, status, storagePath, theme, workspace}}
                         diagnostics={endpointDiagnostics}
-                        insightsProfileId={insightsProfileId}
                         onBack={() => setContentPage('mail')}
+                        onCompose={() => setComposerOpen(true)}
                         onClearCurrentDraft={clearCurrentDraft}
                         onLoadInsights={loadEndpointInsights}
+                        onManageAccounts={handleOpenAccountManager}
+                        onManageDomains={handleOpenDomainManager}
+                        onOpenActivity={() => openWorkspacePage('activity')}
+                        onOpenMessage={openMessageFromWorkspace}
                         onNotify={showToast}
                         onOpenProfiles={handleOpenProfileManager}
+                        onOpenSettings={openSettingsPage}
                         onProfileUpdate={(profile) => setProfiles((current) => upsertProfile(current, profile))}
                         onReloadMailbox={reloadCurrentMailbox}
                         onResetLayout={resetLayoutPreferences}
-                        selectedAccount={selectedAccount}
-                        selectedProfile={selectedProfile}
-                        status={status}
-                        storagePath={storagePath}
-                        theme={theme}
+                        page={contentPage}
                         toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
-                        workspace={workspace}
                     />
                 ) : (
                     <>

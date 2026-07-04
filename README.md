@@ -9,6 +9,8 @@ Windows desktop client for OmniMail Worker deployments.
 - Login or first-time setup with an admin account, then register a desktop device token.
 - Store profile metadata locally and protect device tokens with Windows DPAPI.
 - Load domains, mailboxes, and messages through the selected endpoint.
+- Review a workspace overview with mailbox metrics, priority messages, recent mail, and common actions.
+- Inspect endpoint activity with diagnostics, deployment progress, recent mailbox activity, and audit logs.
 
 Each profile maps to one deployed OmniMail Worker base URL. One profile can still expose many mail domains through the OmniMail API.
 
@@ -50,7 +52,7 @@ The Windows installer is built with Inno Setup from:
 build/windows/OmniMailDesktop.iss
 ```
 
-The installer supports English and Simplified Chinese, custom install location, custom data storage location, and in-place updates that preserve user data. The app can check GitHub Releases from the settings page, download the newer installer, verify its `.sha256` checksum, launch the installer, and quit the running app so the update can replace files cleanly.
+The installer supports English and Simplified Chinese, custom install location, custom data storage location, and in-place updates that preserve user data. The app can check GitHub Releases from the workspace settings page, download the newer installer, verify its `.sha256` checksum, launch the installer, and quit the running app so the update can replace files cleanly.
 
 ## Release
 
@@ -89,4 +91,4 @@ When the signing certificate secret is not present, the release workflow skips s
 
 Profiles are stored in the user config directory under `OmniMailDesktop/profiles.json`.
 If that directory is not writable during local development, the app falls back to `.omnimail-desktop/profiles.json` in the project directory.
-The app also writes a small local JSONL log next to `profiles.json` as `omnimail-desktop.log`. The settings page can export a diagnostic package that includes the redacted endpoint report and recent local log lines.
+The app also writes a small local JSONL log next to `profiles.json` as `omnimail-desktop.log`. The workspace settings page can export a diagnostic package that includes the redacted endpoint report and recent local log lines.

@@ -158,11 +158,13 @@ export function ReadingSkeleton() {
 }
 
 export function NavItem({active, count, icon: Icon, label, onClick}) {
+    const hasCount = count !== undefined && count !== null;
+
     return (
-        <button className={`nav-item ${active ? 'active' : ''}`} type="button" aria-current={active ? 'page' : undefined} onClick={onClick}>
+        <button className={`nav-item ${active ? 'active' : ''} ${hasCount ? '' : 'no-count'}`} type="button" aria-current={active ? 'page' : undefined} onClick={onClick}>
             <Icon size={17} />
             <span>{label}</span>
-            <small>{count}</small>
+            {hasCount ? <small>{count}</small> : null}
         </button>
     );
 }
