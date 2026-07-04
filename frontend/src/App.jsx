@@ -324,6 +324,10 @@ function App() {
     const showDomainManagerPage = contentPage === 'domains';
     const showStartPage = contentPage === 'start' || (!selectedProfile && !showEndpointPage && !showProfilePage);
     const showSettingsPage = contentPage === 'settings';
+    const openSettingsPage = () => {
+        setContentPage('settings');
+        setProfileMenuOpen(false);
+    };
 
     return (
         <div className="window-shell">
@@ -360,6 +364,7 @@ function App() {
                     onManageAccounts={handleOpenAccountManager}
                     onManageDomains={handleOpenDomainManager}
                     onManageProfiles={handleOpenProfileManager}
+                    onOpenSettings={openSettingsPage}
                     onCompose={() => setComposerOpen(true)}
                     onProfileSelect={handleSelectProfile}
                     onToggle={() => setSidebarCollapsed((value) => !value)}
@@ -369,6 +374,7 @@ function App() {
                     selectedProfile={selectedProfile}
                     selectedProfileId={selectedProfileId}
                     setProfileMenuOpen={setProfileMenuOpen}
+                    settingsActive={showSettingsPage}
                     status={status}
                     theme={theme}
                     toggleTheme={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')}
@@ -543,7 +549,7 @@ function App() {
                                         busy={busy}
                                         onArchive={() => handleArchiveMessage(selectedMessage)}
                                         onDelete={() => handleDeleteMessage(selectedMessage)}
-                                        onOpenSettings={() => setContentPage('settings')}
+                                        onOpenSettings={openSettingsPage}
                                         onReload={reloadCurrentMailbox}
                                         onSetStatus={handleSetMessageStatus}
                                         selectedMessage={selectedMessage}

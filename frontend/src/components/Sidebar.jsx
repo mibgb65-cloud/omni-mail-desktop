@@ -20,6 +20,7 @@ export function Sidebar({
     onManageAccounts,
     onManageDomains,
     onManageProfiles,
+    onOpenSettings,
     onProfileSelect,
     onToggle,
     profiles,
@@ -28,6 +29,7 @@ export function Sidebar({
     selectedProfile,
     selectedProfileId,
     setProfileMenuOpen,
+    settingsActive,
     status,
     theme,
     toggleTheme,
@@ -86,6 +88,10 @@ export function Sidebar({
                         {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
                         <span>{theme === 'dark' ? '浅色模式' : '深色模式'}</span>
                     </button>
+                    <button type="button" onClick={onOpenSettings}>
+                        <Settings size={16} />
+                        <span>工作台设置</span>
+                    </button>
                     <button type="button" onClick={onManageProfiles}>
                         <ShieldCheck size={16} />
                         <span>管理接入点</span>
@@ -116,6 +122,15 @@ export function Sidebar({
                 <MailPlus size={17} />
                 <span>写邮件</span>
             </button>
+
+            <nav className="nav-section workspace-actions-section" aria-label="工作台">
+                <NavItem
+                    active={settingsActive}
+                    icon={Settings}
+                    label="工作台设置"
+                    onClick={onOpenSettings}
+                />
+            </nav>
 
             {!selectedProfile ? (
                 <SidebarNotice
@@ -231,6 +246,10 @@ export function Sidebar({
                         <button type="button" role="menuitem" onClick={onManageProfiles}>
                             <ShieldCheck size={16} />
                             管理接入点
+                        </button>
+                        <button type="button" role="menuitem" onClick={onOpenSettings}>
+                            <Settings size={16} />
+                            工作台设置
                         </button>
                         <button type="button" role="menuitem" onClick={onManageDomains} disabled={!selectedProfile?.hasToken}>
                             <Globe2 size={16} />

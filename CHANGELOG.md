@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [v1.0.8] - 2026-07-04
+
+### Added
+
+- Add a visible left-sidebar workspace settings entry on both the endpoint picker and mailbox views.
+
 ## [v1.0.7] - 2026-07-04
 
 ### Added
