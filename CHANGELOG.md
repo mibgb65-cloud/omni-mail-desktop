@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [v1.0.14] - 2026-07-04
+
 ### Added
 
 - Add a mailbox operation queue for batching read/unread, star/unstar, archive, and restore actions against visible message sets.

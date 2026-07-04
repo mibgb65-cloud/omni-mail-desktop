@@ -76,9 +76,9 @@ Before tagging a release:
 For example:
 
 ```bash
-git tag v1.0.13
+git tag v1.0.14
 git push origin main
-git push origin v1.0.13
+git push origin v1.0.14
 ```
 
 The tag version and `wails.json` `productVersion` must match. CI enforces that match and checks that `CHANGELOG.md` contains the matching release section.
