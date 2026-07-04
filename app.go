@@ -3,8 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -24,7 +25,12 @@ type App struct {
 	initErr      error
 	previewMu    sync.Mutex
 	previewSeq   uint64
-	previewFiles map[string]string
+	previewFiles map[string]attachmentPreviewFile
+}
+
+type attachmentPreviewFile struct {
+	path        string
+	contentType string
 }
 
 func NewApp() *App {
@@ -34,7 +40,7 @@ func NewApp() *App {
 		client:       &http.Client{Timeout: 20 * time.Second},
 		store:        store,
 		initErr:      err,
-		previewFiles: map[string]string{},
+		previewFiles: map[string]attachmentPreviewFile{},
 	}
 }
 
@@ -67,15 +73,19 @@ func (a *App) assetHandler() http.Handler {
 			return
 		}
 
-		path, ok := a.attachmentPreviewPath(previewID)
+		file, ok := a.attachmentPreviewFile(previewID)
 		if !ok {
 			http.NotFound(writer, request)
 			return
 		}
 
-		writer.Header().Set("Content-Type", "application/pdf")
+		contentType := file.contentType
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+		writer.Header().Set("Content-Type", contentType)
 		writer.Header().Set("X-Content-Type-Options", "nosniff")
-		http.ServeFile(writer, request, path)
+		http.ServeFile(writer, request, file.path)
 	})
 }
 
@@ -323,6 +333,13 @@ func (a *App) LoadMailbox(input MailboxRequest) (*MailboxPayload, error) {
 	payload := &MailboxPayload{
 		Profile: profile.public(),
 	}
+	messageLimit := normalizeMessageLimit(input.MessageLimit)
+	messageOffset := input.MessageOffset
+	if messageOffset < 0 {
+		messageOffset = 0
+	}
+	payload.MessageLimit = messageLimit
+	payload.MessageOffset = messageOffset
 
 	var domains []string
 	if err := a.apiRequest(profile.BaseURL, profile.Token, http.MethodGet, "/api/v1/domains", nil, &domains); err != nil {
@@ -354,13 +371,28 @@ func (a *App) LoadMailbox(input MailboxRequest) (*MailboxPayload, error) {
 	payload.SelectedAccountID = selectedAccountID
 
 	if selectedAccountID != "" {
-		var messages []Message
-		path := "/api/v1/messages?accountId=" + queryEscape(selectedAccountID)
-		if err := a.apiRequest(profile.BaseURL, profile.Token, http.MethodGet, path, nil, &messages); err != nil {
+		query := url.Values{}
+		query.Set("accountId", selectedAccountID)
+		query.Set("limit", strconv.Itoa(messageLimit))
+		query.Set("offset", strconv.Itoa(messageOffset))
+		data, err := a.apiRequestData(
+			profile.BaseURL,
+			profile.Token,
+			http.MethodGet,
+			"/api/v1/messages?"+query.Encode(),
+			nil,
+		)
+		if err != nil {
 			return nil, err
 		}
 
+		messages, total, hasMore, err := decodeMessagesPayload(data, messageLimit, messageOffset)
+		if err != nil {
+			return nil, err
+		}
 		payload.Messages = messages
+		payload.TotalMessages = total
+		payload.HasMoreMessages = hasMore
 	}
 
 	if err := a.store.markUsed(profile.ID); err != nil {
@@ -403,6 +435,69 @@ func (a *App) CreateAccount(input AccountInput) (*Account, error) {
 	}
 
 	return &account, nil
+}
+
+func normalizeMessageLimit(value int) int {
+	switch {
+	case value <= 0:
+		return 50
+	case value > 200:
+		return 200
+	default:
+		return value
+	}
+}
+
+type messagesPagePayload struct {
+	Messages      []Message `json:"messages"`
+	Items         []Message `json:"items"`
+	Total         int       `json:"total"`
+	TotalMessages int       `json:"totalMessages"`
+	HasMore       *bool     `json:"hasMore"`
+	NextOffset    int       `json:"nextOffset"`
+}
+
+func decodeMessagesPayload(data json.RawMessage, limit int, offset int) ([]Message, int, bool, error) {
+	if len(data) == 0 || string(data) == "null" {
+		return []Message{}, 0, false, nil
+	}
+
+	var messages []Message
+	if err := json.Unmarshal(data, &messages); err == nil {
+		return messages, len(messages), false, nil
+	}
+
+	var page messagesPagePayload
+	if err := json.Unmarshal(data, &page); err != nil {
+		return nil, 0, false, err
+	}
+
+	messages = page.Messages
+	if messages == nil {
+		messages = page.Items
+	}
+	if messages == nil {
+		messages = []Message{}
+	}
+
+	total := page.TotalMessages
+	if total == 0 {
+		total = page.Total
+	}
+	if total == 0 {
+		total = offset + len(messages)
+	}
+
+	hasMore := false
+	if page.HasMore != nil {
+		hasMore = *page.HasMore
+	} else if total > offset+len(messages) {
+		hasMore = true
+	} else if limit > 0 && page.NextOffset > offset+len(messages) {
+		hasMore = true
+	}
+
+	return messages, total, hasMore, nil
 }
 
 func (a *App) CreateDomain(input DomainInput) (*DomainRecord, error) {
@@ -1179,6 +1274,7 @@ func (a *App) PreviewAttachment(input DownloadAttachmentInput) (*AttachmentPrevi
 		PreviewType: previewType,
 	}
 	tempPreviewPath := ""
+	tempPreviewContentType := mimeType
 
 	switch previewType {
 	case "pdf":
@@ -1191,15 +1287,15 @@ func (a *App) PreviewAttachment(input DownloadAttachmentInput) (*AttachmentPrevi
 
 		preview.Encrypted = pdfFileHasEncryptionDictionary(tempPath)
 		tempPreviewPath = tempPath
-	case "image", "text":
-		content, err := os.ReadFile(tempPath)
+	case "image":
+		tempPreviewPath = tempPath
+	case "text":
+		text, truncated, err := readTextPreview(tempPath, 512*1024)
 		if err != nil {
 			return nil, err
 		}
-		preview.DataURL = "data:" + mimeType + ";base64," + base64.StdEncoding.EncodeToString(content)
-		if previewType == "text" {
-			preview.Text = string(content)
-		}
+		preview.Text = text
+		preview.TextTruncated = truncated
 	}
 
 	if err := a.store.markUsed(profile.ID); err != nil {
@@ -1207,7 +1303,7 @@ func (a *App) PreviewAttachment(input DownloadAttachmentInput) (*AttachmentPrevi
 	}
 
 	if tempPreviewPath != "" {
-		preview.PreviewID = a.registerAttachmentPreview(tempPreviewPath)
+		preview.PreviewID = a.registerAttachmentPreview(tempPreviewPath, tempPreviewContentType)
 		preview.PreviewURL = attachmentPreviewURL(preview.PreviewID, preview.Filename)
 		keepTempFile = true
 	}
@@ -1221,7 +1317,7 @@ func (a *App) ReleaseAttachmentPreview(previewID string) error {
 	}
 
 	a.previewMu.Lock()
-	path, ok := a.previewFiles[previewID]
+	file, ok := a.previewFiles[previewID]
 	if ok {
 		delete(a.previewFiles, previewID)
 	}
@@ -1231,7 +1327,7 @@ func (a *App) ReleaseAttachmentPreview(previewID string) error {
 		return nil
 	}
 
-	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err := os.Remove(file.path); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 
@@ -1241,8 +1337,8 @@ func (a *App) ReleaseAttachmentPreview(previewID string) error {
 func (a *App) releaseAllAttachmentPreviews() {
 	a.previewMu.Lock()
 	paths := make([]string, 0, len(a.previewFiles))
-	for previewID, path := range a.previewFiles {
-		paths = append(paths, path)
+	for previewID, file := range a.previewFiles {
+		paths = append(paths, file.path)
 		delete(a.previewFiles, previewID)
 	}
 	a.previewMu.Unlock()
@@ -1416,26 +1512,50 @@ func replaceFile(sourcePath string, targetPath string) error {
 	return nil
 }
 
-func (a *App) attachmentPreviewPath(previewID string) (string, bool) {
+func (a *App) attachmentPreviewFile(previewID string) (attachmentPreviewFile, bool) {
 	a.previewMu.Lock()
 	defer a.previewMu.Unlock()
 
-	path, ok := a.previewFiles[previewID]
-	return path, ok
+	file, ok := a.previewFiles[previewID]
+	return file, ok
 }
 
-func (a *App) registerAttachmentPreview(path string) string {
+func (a *App) registerAttachmentPreview(path string, contentType string) string {
 	a.previewMu.Lock()
 	defer a.previewMu.Unlock()
 
 	if a.previewFiles == nil {
-		a.previewFiles = map[string]string{}
+		a.previewFiles = map[string]attachmentPreviewFile{}
 	}
 
 	a.previewSeq++
 	previewID := strconv.FormatUint(a.previewSeq, 10)
-	a.previewFiles[previewID] = path
+	a.previewFiles[previewID] = attachmentPreviewFile{
+		path:        path,
+		contentType: contentType,
+	}
 	return previewID
+}
+
+func readTextPreview(path string, maxBytes int64) (string, bool, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", false, err
+	}
+	defer file.Close()
+
+	content, err := io.ReadAll(io.LimitReader(file, maxBytes+1))
+	if err != nil {
+		return "", false, err
+	}
+
+	truncated := int64(len(content)) > maxBytes
+	if truncated {
+		content = content[:maxBytes]
+	}
+
+	text := strings.ToValidUTF8(string(content), "\uFFFD")
+	return text, truncated, nil
 }
 
 func pdfFileHasEncryptionDictionary(path string) bool {

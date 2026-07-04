@@ -1630,6 +1630,25 @@ body.is-resizing-panels * {
     line-height: 1.45;
 }
 
+.load-more-messages {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    margin: var(--space-2) var(--space-2) 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.load-more-messages:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
 .reader-panel {
     display: flex;
     flex-direction: column;
@@ -1908,6 +1927,10 @@ body.is-resizing-panels * {
     background: var(--bg-panel);
 }
 
+.attachment-preview-body.pdf {
+    overflow: hidden;
+}
+
 .attachment-preview-body.image {
     place-items: center;
     padding: var(--space-4);
@@ -1951,6 +1974,184 @@ body.is-resizing-panels * {
 
 .attachment-preview-state.error {
     color: var(--danger);
+}
+
+.attachment-preview-state.error button {
+    margin-left: var(--space-2);
+}
+
+.pdf-password-form {
+    display: grid;
+    width: min(420px, calc(100% - 48px));
+    align-self: center;
+    justify-self: center;
+    justify-items: center;
+    gap: var(--space-3);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel);
+    padding: var(--space-6);
+    text-align: center;
+}
+
+.pdf-password-icon {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    color: var(--text-secondary);
+}
+
+.pdf-password-form strong {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pdf-password-form span {
+    color: var(--text-tertiary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.pdf-password-form label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.pdf-password-form input {
+    width: 100%;
+    min-height: 40px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 0 var(--space-3);
+    font: inherit;
+    outline: none;
+}
+
+.pdf-password-form input:focus {
+    border-color: var(--accent);
+    box-shadow: var(--focus);
+}
+
+.pdf-password-form button,
+.pdf-preview-secondary {
+    min-height: 36px;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--accent);
+    color: var(--text-inverse);
+    padding: 0 var(--space-4);
+    font: inherit;
+    font-weight: 650;
+}
+
+.pdf-password-form button:hover,
+.pdf-preview-secondary:hover {
+    background: var(--accent-strong);
+}
+
+.pdf-preview {
+    display: grid;
+    min-width: 0;
+    min-height: min(72vh, 760px);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    overflow: hidden;
+}
+
+.pdf-preview-toolbar {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    padding: var(--space-2) var(--space-3);
+}
+
+.pdf-preview-page-controls {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.pdf-preview-page-controls button {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+}
+
+.pdf-preview-page-controls button:hover:not(:disabled) {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.pdf-preview-page-controls button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.pdf-preview-page-controls span {
+    min-width: 64px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 650;
+    text-align: center;
+}
+
+.pdf-preview-render-error {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    border-bottom: 1px solid rgba(194, 65, 58, 0.18);
+    background: var(--danger-soft);
+    color: var(--danger);
+    padding: var(--space-3);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.pdf-preview-canvas-region {
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    background: var(--bg-panel-soft);
+    padding: var(--space-4);
+}
+
+.pdf-preview-canvas-frame {
+    width: max-content;
+    max-width: none;
+    margin: 0 auto;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: #ffffff;
+    padding: var(--space-2);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+}
+
+.pdf-preview-canvas-frame canvas {
+    display: block;
+    background: #ffffff;
 }
 
 .composer-card {

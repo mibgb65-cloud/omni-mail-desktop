@@ -1,4 +1,4 @@
-module OmniMailDesktop
+module github.com/mibgb65-cloud/omni-mail-desktop
 
 go 1.23.0
 

@@ -17,6 +17,7 @@ type Profile struct {
 	HasAdminSession   bool   `json:"hasAdminSession"`
 	AdminEmail        string `json:"adminEmail"`
 	AdminTokenPreview string `json:"adminTokenPreview"`
+	SecretError       string `json:"secretError"`
 	CreatedAt         string `json:"createdAt"`
 	UpdatedAt         string `json:"updatedAt"`
 	LastUsedAt        string `json:"lastUsedAt"`
@@ -43,9 +44,11 @@ type DeviceAuthInput struct {
 }
 
 type MailboxRequest struct {
-	ProfileID string `json:"profileId"`
-	Domain    string `json:"domain"`
-	AccountID string `json:"accountId"`
+	ProfileID     string `json:"profileId"`
+	Domain        string `json:"domain"`
+	AccountID     string `json:"accountId"`
+	MessageLimit  int    `json:"messageLimit"`
+	MessageOffset int    `json:"messageOffset"`
 }
 
 type AccountInput struct {
@@ -240,15 +243,16 @@ type DownloadResult struct {
 }
 
 type AttachmentPreview struct {
-	Filename    string `json:"filename"`
-	MimeType    string `json:"mimeType"`
-	Size        int64  `json:"size"`
-	PreviewType string `json:"previewType"`
-	DataURL     string `json:"dataUrl"`
-	PreviewURL  string `json:"previewUrl"`
-	PreviewID   string `json:"previewId"`
-	Text        string `json:"text"`
-	Encrypted   bool   `json:"encrypted"`
+	Filename      string `json:"filename"`
+	MimeType      string `json:"mimeType"`
+	Size          int64  `json:"size"`
+	PreviewType   string `json:"previewType"`
+	DataURL       string `json:"dataUrl"`
+	PreviewURL    string `json:"previewUrl"`
+	PreviewID     string `json:"previewId"`
+	Text          string `json:"text"`
+	TextTruncated bool   `json:"textTruncated"`
+	Encrypted     bool   `json:"encrypted"`
 }
 
 type MailboxPayload struct {
@@ -258,6 +262,10 @@ type MailboxPayload struct {
 	Messages          []Message `json:"messages"`
 	SelectedDomain    string    `json:"selectedDomain"`
 	SelectedAccountID string    `json:"selectedAccountId"`
+	MessageLimit      int       `json:"messageLimit"`
+	MessageOffset     int       `json:"messageOffset"`
+	HasMoreMessages   bool      `json:"hasMoreMessages"`
+	TotalMessages     int       `json:"totalMessages"`
 }
 
 type ConnectionStatus struct {

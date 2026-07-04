@@ -305,6 +305,7 @@ export namespace main {
 	    previewUrl: string;
 	    previewId: string;
 	    text: string;
+	    textTruncated: boolean;
 	    encrypted: boolean;
 
 	    static createFrom(source: any = {}) {
@@ -321,6 +322,7 @@ export namespace main {
 	        this.previewUrl = source["previewUrl"];
 	        this.previewId = source["previewId"];
 	        this.text = source["text"];
+	        this.textTruncated = source["textTruncated"];
 	        this.encrypted = source["encrypted"];
 	    }
 	}
@@ -1031,6 +1033,7 @@ export namespace main {
 	    hasAdminSession: boolean;
 	    adminEmail: string;
 	    adminTokenPreview: string;
+	    secretError: string;
 	    createdAt: string;
 	    updatedAt: string;
 	    lastUsedAt: string;
@@ -1051,6 +1054,7 @@ export namespace main {
 	        this.hasAdminSession = source["hasAdminSession"];
 	        this.adminEmail = source["adminEmail"];
 	        this.adminTokenPreview = source["adminTokenPreview"];
+	        this.secretError = source["secretError"];
 	        this.createdAt = source["createdAt"];
 	        this.updatedAt = source["updatedAt"];
 	        this.lastUsedAt = source["lastUsedAt"];
@@ -1154,6 +1158,10 @@ export namespace main {
 	    messages: Message[];
 	    selectedDomain: string;
 	    selectedAccountId: string;
+	    messageLimit: number;
+	    messageOffset: number;
+	    hasMoreMessages: boolean;
+	    totalMessages: number;
 
 	    static createFrom(source: any = {}) {
 	        return new MailboxPayload(source);
@@ -1167,6 +1175,10 @@ export namespace main {
 	        this.messages = this.convertValues(source["messages"], Message);
 	        this.selectedDomain = source["selectedDomain"];
 	        this.selectedAccountId = source["selectedAccountId"];
+	        this.messageLimit = source["messageLimit"];
+	        this.messageOffset = source["messageOffset"];
+	        this.hasMoreMessages = source["hasMoreMessages"];
+	        this.totalMessages = source["totalMessages"];
 	    }
 
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -1191,6 +1203,8 @@ export namespace main {
 	    profileId: string;
 	    domain: string;
 	    accountId: string;
+	    messageLimit: number;
+	    messageOffset: number;
 
 	    static createFrom(source: any = {}) {
 	        return new MailboxRequest(source);
@@ -1201,6 +1215,8 @@ export namespace main {
 	        this.profileId = source["profileId"];
 	        this.domain = source["domain"];
 	        this.accountId = source["accountId"];
+	        this.messageLimit = source["messageLimit"];
+	        this.messageOffset = source["messageOffset"];
 	    }
 	}
 

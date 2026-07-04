@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestNormalizeBaseURL(t *testing.T) {
@@ -107,8 +109,8 @@ func TestAttachmentPreviewHandlerServesRegisteredFile(t *testing.T) {
 		t.Fatalf("write PDF: %v", err)
 	}
 
-	app := &App{previewFiles: map[string]string{}}
-	previewID := app.registerAttachmentPreview(path)
+	app := &App{previewFiles: map[string]attachmentPreviewFile{}}
+	previewID := app.registerAttachmentPreview(path, "application/pdf")
 	request := httptest.NewRequest(http.MethodGet, attachmentPreviewURL(previewID, "invoice.pdf"), nil)
 	response := httptest.NewRecorder()
 
@@ -118,6 +120,9 @@ func TestAttachmentPreviewHandlerServesRegisteredFile(t *testing.T) {
 	}
 	if got := response.Body.String(); got != "%PDF-1.7" {
 		t.Fatalf("body = %q, want PDF bytes", got)
+	}
+	if got := response.Header().Get("Content-Type"); got != "application/pdf" {
+		t.Fatalf("content type = %q, want application/pdf", got)
 	}
 }
 
@@ -161,5 +166,174 @@ func TestReplaceFileOverwritesTarget(t *testing.T) {
 	}
 	if _, err := os.Stat(sourcePath); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("source still exists after replace: %v", err)
+	}
+}
+
+func TestSafeDownloadNamePreservesExtensionAndAvoidsReservedNames(t *testing.T) {
+	name := strings.Repeat("发", 200) + ".pdf"
+	got := safeDownloadName(name)
+	if !strings.HasSuffix(got, ".pdf") {
+		t.Fatalf("safeDownloadName() = %q, want .pdf suffix", got)
+	}
+	if len([]rune(got)) > 160 {
+		t.Fatalf("safeDownloadName() rune length = %d, want <= 160", len([]rune(got)))
+	}
+
+	if got := safeDownloadName("CON.txt"); got != "_CON.txt" {
+		t.Fatalf("safeDownloadName(CON.txt) = %q, want _CON.txt", got)
+	}
+}
+
+func TestDecodeMessagesPayloadSupportsArrayAndPagedObject(t *testing.T) {
+	arrayPayload := json.RawMessage(`[{"id":"m1"},{"id":"m2"}]`)
+	messages, total, hasMore, err := decodeMessagesPayload(arrayPayload, 50, 0)
+	if err != nil {
+		t.Fatalf("decode array: %v", err)
+	}
+	if len(messages) != 2 || total != 2 || hasMore {
+		t.Fatalf("array decode = len %d total %d hasMore %v", len(messages), total, hasMore)
+	}
+
+	pagePayload := json.RawMessage(`{"messages":[{"id":"m3"}],"total":3}`)
+	messages, total, hasMore, err = decodeMessagesPayload(pagePayload, 1, 1)
+	if err != nil {
+		t.Fatalf("decode page: %v", err)
+	}
+	if len(messages) != 1 || total != 3 || !hasMore {
+		t.Fatalf("page decode = len %d total %d hasMore %v", len(messages), total, hasMore)
+	}
+}
+
+func TestLoadMailboxSendsPagination(t *testing.T) {
+	var messageQuery string
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		switch request.URL.Path {
+		case "/api/v1/domains":
+			writeAPIData(t, writer, []string{"example.com"})
+		case "/api/v1/accounts":
+			writeAPIData(t, writer, []Account{{ID: "account-1", Address: "inbox@example.com", Domain: "example.com"}})
+		case "/api/v1/messages":
+			messageQuery = request.URL.RawQuery
+			writeAPIData(t, writer, map[string]any{
+				"messages": []Message{{ID: "message-1", Subject: "Hello"}},
+				"total":    75,
+			})
+		default:
+			http.NotFound(writer, request)
+		}
+	}))
+	defer server.Close()
+
+	app := &App{
+		client: server.Client(),
+		store: &profileStore{
+			path: filepath.Join(t.TempDir(), "profiles.json"),
+			profiles: []storedProfile{{
+				ID:      "profile-1",
+				BaseURL: server.URL,
+				Token:   "token",
+			}},
+		},
+	}
+
+	mailbox, err := app.LoadMailbox(MailboxRequest{
+		ProfileID:     "profile-1",
+		MessageLimit:  25,
+		MessageOffset: 50,
+	})
+	if err != nil {
+		t.Fatalf("LoadMailbox returned error: %v", err)
+	}
+	if messageQuery != "accountId=account-1&limit=25&offset=50" {
+		t.Fatalf("message query = %q, want pagination params", messageQuery)
+	}
+	if len(mailbox.Messages) != 1 || mailbox.TotalMessages != 75 || !mailbox.HasMoreMessages {
+		t.Fatalf("unexpected mailbox page: %#v", mailbox)
+	}
+}
+
+func TestPreviewAttachmentImageUsesPreviewURL(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/api/v1/attachments/attachment-1" {
+			http.NotFound(writer, request)
+			return
+		}
+
+		writer.Header().Set("Content-Type", "image/png")
+		_, _ = writer.Write([]byte("png-bytes"))
+	}))
+	defer server.Close()
+
+	app := &App{
+		client:       server.Client(),
+		previewFiles: map[string]attachmentPreviewFile{},
+		store: &profileStore{
+			path: filepath.Join(t.TempDir(), "profiles.json"),
+			profiles: []storedProfile{{
+				ID:      "profile-1",
+				BaseURL: server.URL,
+				Token:   "token",
+			}},
+		},
+	}
+
+	preview, err := app.PreviewAttachment(DownloadAttachmentInput{
+		ProfileID:    "profile-1",
+		AttachmentID: "attachment-1",
+		Filename:     "image.png",
+	})
+	if err != nil {
+		t.Fatalf("PreviewAttachment returned error: %v", err)
+	}
+	defer app.ReleaseAttachmentPreview(preview.PreviewID)
+
+	if preview.PreviewType != "image" || preview.PreviewURL == "" || preview.PreviewID == "" {
+		t.Fatalf("unexpected image preview: %#v", preview)
+	}
+	if preview.DataURL != "" {
+		t.Fatalf("DataURL = %q, want empty", preview.DataURL)
+	}
+}
+
+func TestMarkUsedSkipsRecentWrite(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "profiles.json")
+	if err := os.WriteFile(path, []byte("sentinel"), 0o600); err != nil {
+		t.Fatalf("write sentinel: %v", err)
+	}
+
+	store := &profileStore{
+		path:              path,
+		selectedProfileID: "profile-1",
+		profiles: []storedProfile{{
+			ID:         "profile-1",
+			LastUsedAt: time.Now().Format(time.RFC3339),
+		}},
+	}
+	if err := store.markUsed("profile-1"); err != nil {
+		t.Fatalf("markUsed returned error: %v", err)
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read sentinel: %v", err)
+	}
+	if string(content) != "sentinel" {
+		t.Fatalf("markUsed rewrote recent profile file: %q", content)
+	}
+}
+
+func writeAPIData(t *testing.T, writer http.ResponseWriter, data any) {
+	t.Helper()
+
+	content, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal data: %v", err)
+	}
+	if err := json.NewEncoder(writer).Encode(apiEnvelope{
+		Code: 200,
+		Data: content,
+	}); err != nil {
+		t.Fatalf("write API envelope: %v", err)
 	}
 }

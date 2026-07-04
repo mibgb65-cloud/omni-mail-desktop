@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -21,12 +22,29 @@ type apiEnvelope struct {
 var errDownloadExceedsSizeLimit = errors.New("download exceeds size limit")
 
 func (a *App) apiRequest(baseURL string, token string, method string, path string, body any, target any) error {
+	data, err := a.apiRequestData(baseURL, token, method, path, body)
+	if err != nil {
+		return err
+	}
+
+	if target == nil || len(data) == 0 || string(data) == "null" {
+		return nil
+	}
+
+	if err := json.Unmarshal(data, target); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) apiRequestData(baseURL string, token string, method string, path string, body any) (json.RawMessage, error) {
 	var requestBody io.Reader
 
 	if body != nil {
 		content, err := json.Marshal(body)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		requestBody = bytes.NewReader(content)
@@ -34,7 +52,7 @@ func (a *App) apiRequest(baseURL string, token string, method string, path strin
 
 	request, err := http.NewRequestWithContext(a.appContext(), method, apiURL(baseURL, path), requestBody)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	request.Header.Set("Accept", "application/json")
@@ -48,18 +66,18 @@ func (a *App) apiRequest(baseURL string, token string, method string, path strin
 
 	response, err := a.client.Do(request)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer response.Body.Close()
 
-	content, err := io.ReadAll(io.LimitReader(response.Body, 10*1024*1024))
+	content, err := readLimited(response.Body, 10*1024*1024)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var envelope apiEnvelope
 	if err := json.Unmarshal(content, &envelope); err != nil {
-		return fmt.Errorf("API response was not JSON: HTTP %d", response.StatusCode)
+		return nil, fmt.Errorf("API response was not JSON: HTTP %d", response.StatusCode)
 	}
 
 	if response.StatusCode >= 400 || envelope.Code >= 400 {
@@ -67,18 +85,10 @@ func (a *App) apiRequest(baseURL string, token string, method string, path strin
 		if message == "" {
 			message = response.Status
 		}
-		return errors.New(message)
+		return nil, errors.New(message)
 	}
 
-	if target == nil || len(envelope.Data) == 0 || string(envelope.Data) == "null" {
-		return nil
-	}
-
-	if err := json.Unmarshal(envelope.Data, target); err != nil {
-		return err
-	}
-
-	return nil
+	return envelope.Data, nil
 }
 
 func (a *App) apiDownload(baseURL string, token string, path string) ([]byte, string, error) {
@@ -109,7 +119,7 @@ func (a *App) apiDownloadTo(baseURL string, token string, path string, target io
 	defer response.Body.Close()
 
 	if response.StatusCode >= 400 {
-		content, err := io.ReadAll(io.LimitReader(response.Body, 1024*1024))
+		content, err := readLimited(response.Body, 1024*1024)
 		if err != nil {
 			return "", 0, err
 		}
@@ -198,6 +208,30 @@ func hostLabel(baseURL string) string {
 }
 
 var unsafeFilenamePattern = regexp.MustCompile(`[<>:"/\\|?*\x00-\x1f]+`)
+var reservedWindowsFilenames = []string{
+	"CON",
+	"PRN",
+	"AUX",
+	"NUL",
+	"COM1",
+	"COM2",
+	"COM3",
+	"COM4",
+	"COM5",
+	"COM6",
+	"COM7",
+	"COM8",
+	"COM9",
+	"LPT1",
+	"LPT2",
+	"LPT3",
+	"LPT4",
+	"LPT5",
+	"LPT6",
+	"LPT7",
+	"LPT8",
+	"LPT9",
+}
 
 func safeDownloadName(value string) string {
 	value = strings.TrimSpace(value)
@@ -211,9 +245,59 @@ func safeDownloadName(value string) string {
 		return "attachment"
 	}
 
-	if len(value) > 160 {
-		value = value[:160]
+	value = avoidReservedWindowsFilename(value)
+	value = truncateFilenameRunes(value, 160)
+	if value == "" {
+		return "attachment"
 	}
 
 	return value
+}
+
+func readLimited(reader io.Reader, maxBytes int64) ([]byte, error) {
+	content, err := io.ReadAll(io.LimitReader(reader, maxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(content)) > maxBytes {
+		return nil, fmt.Errorf("API response exceeded %d bytes", maxBytes)
+	}
+
+	return content, nil
+}
+
+func avoidReservedWindowsFilename(value string) string {
+	name := value
+	if dot := strings.LastIndex(name, "."); dot > 0 {
+		name = name[:dot]
+	}
+	name = strings.Trim(name, ". ")
+	if slices.Contains(reservedWindowsFilenames, strings.ToUpper(name)) {
+		return "_" + value
+	}
+
+	return value
+}
+
+func truncateFilenameRunes(value string, maxRunes int) string {
+	if maxRunes <= 0 {
+		return ""
+	}
+
+	runes := []rune(value)
+	if len(runes) <= maxRunes {
+		return value
+	}
+
+	extension := ""
+	if dot := strings.LastIndex(value, "."); dot > 0 && dot < len(value)-1 {
+		extension = value[dot:]
+	}
+	extensionRunes := []rune(extension)
+	if len(extensionRunes) > 0 && len(extensionRunes) < maxRunes-8 {
+		baseRunes := []rune(value[:len(value)-len(extension)])
+		return strings.Trim(string(baseRunes[:maxRunes-len(extensionRunes)]), ". ") + extension
+	}
+
+	return strings.Trim(string(runes[:maxRunes]), ". ")
 }

@@ -20,17 +20,19 @@ type profileStore struct {
 }
 
 type storedProfile struct {
-	ID          string
-	Name        string
-	BaseURL     string
-	DeviceLabel string
-	DeviceID    string
-	Token       string
-	AdminToken  string
-	AdminEmail  string
-	CreatedAt   string
-	UpdatedAt   string
-	LastUsedAt  string
+	ID              string
+	Name            string
+	BaseURL         string
+	DeviceLabel     string
+	DeviceID        string
+	Token           string
+	TokenError      string
+	AdminToken      string
+	AdminTokenError string
+	AdminEmail      string
+	CreatedAt       string
+	UpdatedAt       string
+	LastUsedAt      string
 }
 
 type profileFile struct {
@@ -119,18 +121,23 @@ func (s *profileStore) load() error {
 	s.selectedProfileID = file.SelectedProfileID
 	s.profiles = make([]storedProfile, 0, len(file.Profiles))
 	for _, record := range file.Profiles {
+		token, tokenErr := unprotectSecret(record.Token, record.TokenProtected)
+		adminToken, adminTokenErr := unprotectSecret(record.AdminToken, record.AdminProtected)
+
 		s.profiles = append(s.profiles, storedProfile{
-			ID:          record.ID,
-			Name:        record.Name,
-			BaseURL:     record.BaseURL,
-			DeviceLabel: record.DeviceLabel,
-			DeviceID:    record.DeviceID,
-			Token:       unprotectSecret(record.Token, record.TokenProtected),
-			AdminToken:  unprotectSecret(record.AdminToken, record.AdminProtected),
-			AdminEmail:  record.AdminEmail,
-			CreatedAt:   record.CreatedAt,
-			UpdatedAt:   record.UpdatedAt,
-			LastUsedAt:  record.LastUsedAt,
+			ID:              record.ID,
+			Name:            record.Name,
+			BaseURL:         record.BaseURL,
+			DeviceLabel:     record.DeviceLabel,
+			DeviceID:        record.DeviceID,
+			Token:           token,
+			TokenError:      errorString(tokenErr),
+			AdminToken:      adminToken,
+			AdminTokenError: errorString(adminTokenErr),
+			AdminEmail:      record.AdminEmail,
+			CreatedAt:       record.CreatedAt,
+			UpdatedAt:       record.UpdatedAt,
+			LastUsedAt:      record.LastUsedAt,
 		})
 	}
 
@@ -148,8 +155,14 @@ func (s *profileStore) saveLocked() error {
 	}
 
 	for _, profile := range s.profiles {
-		token, protected := protectSecret(profile.Token)
-		adminToken, adminProtected := protectSecret(profile.AdminToken)
+		token, protected, err := protectSecret(profile.Token)
+		if err != nil {
+			return err
+		}
+		adminToken, adminProtected, err := protectSecret(profile.AdminToken)
+		if err != nil {
+			return err
+		}
 		file.Profiles = append(file.Profiles, profileRecord{
 			ID:             profile.ID,
 			Name:           profile.Name,
@@ -172,7 +185,7 @@ func (s *profileStore) saveLocked() error {
 		return err
 	}
 
-	return os.WriteFile(s.path, content, 0o600)
+	return writeFileAtomic(s.path, content, 0o600)
 }
 
 func (s *profileStore) selectedID() string {
@@ -230,9 +243,11 @@ func (s *profileStore) upsert(input ProfileInput) (storedProfile, error) {
 
 		if profile.BaseURL != baseURL {
 			profile.Token = ""
+			profile.TokenError = ""
 			profile.DeviceLabel = ""
 			profile.DeviceID = ""
 			profile.AdminToken = ""
+			profile.AdminTokenError = ""
 			profile.AdminEmail = ""
 		}
 
@@ -275,6 +290,7 @@ func (s *profileStore) updateToken(id string, token string, label string, device
 		}
 
 		profile.Token = token
+		profile.TokenError = ""
 		profile.DeviceLabel = strings.TrimSpace(label)
 		profile.DeviceID = strings.TrimSpace(deviceID)
 		profile.UpdatedAt = now
@@ -308,6 +324,7 @@ func (s *profileStore) updateAdminSession(id string, token string, user *APIUser
 		}
 
 		profile.AdminToken = token
+		profile.AdminTokenError = ""
 		profile.AdminEmail = adminEmail
 		profile.UpdatedAt = now
 		profile.LastUsedAt = now
@@ -331,6 +348,7 @@ func (s *profileStore) clearAdminSession(id string) (storedProfile, error) {
 		}
 
 		profile.AdminToken = ""
+		profile.AdminTokenError = ""
 		profile.AdminEmail = ""
 		profile.UpdatedAt = now
 		s.profiles[index] = profile
@@ -342,7 +360,8 @@ func (s *profileStore) clearAdminSession(id string) (storedProfile, error) {
 }
 
 func (s *profileStore) markUsed(id string) error {
-	now := time.Now().Format(time.RFC3339)
+	nowTime := time.Now()
+	now := nowTime.Format(time.RFC3339)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -350,6 +369,10 @@ func (s *profileStore) markUsed(id string) error {
 	for index, profile := range s.profiles {
 		if profile.ID != id {
 			continue
+		}
+
+		if s.selectedProfileID == id && recentlyMarkedUsed(profile.LastUsedAt, nowTime) {
+			return nil
 		}
 
 		profile.LastUsedAt = now
@@ -421,10 +444,78 @@ func (p storedProfile) public() Profile {
 		HasAdminSession:   p.AdminToken != "",
 		AdminEmail:        p.AdminEmail,
 		AdminTokenPreview: tokenPreview(p.AdminToken),
+		SecretError:       p.secretError(),
 		CreatedAt:         p.CreatedAt,
 		UpdatedAt:         p.UpdatedAt,
 		LastUsedAt:        p.LastUsedAt,
 	}
+}
+
+func (p storedProfile) secretError() string {
+	switch {
+	case p.TokenError != "" && p.AdminTokenError != "":
+		return "device token and admin session could not be decrypted; reauthorize this endpoint"
+	case p.TokenError != "":
+		return "device token could not be decrypted; reauthorize this endpoint"
+	case p.AdminTokenError != "":
+		return "admin session could not be decrypted; sign in again"
+	default:
+		return ""
+	}
+}
+
+func recentlyMarkedUsed(value string, now time.Time) bool {
+	lastUsedAt, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return false
+	}
+
+	return now.Sub(lastUsedAt) < time.Minute
+}
+
+func writeFileAtomic(path string, content []byte, perm os.FileMode) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+
+	tempFile, err := os.CreateTemp(dir, ".profiles-*.tmp")
+	if err != nil {
+		return err
+	}
+	tempPath := tempFile.Name()
+	keepTempFile := false
+	defer func() {
+		if !keepTempFile {
+			_ = os.Remove(tempPath)
+		}
+	}()
+
+	if _, err := tempFile.Write(content); err != nil {
+		_ = tempFile.Close()
+		return err
+	}
+	if err := tempFile.Chmod(perm); err != nil {
+		_ = tempFile.Close()
+		return err
+	}
+	if err := tempFile.Close(); err != nil {
+		return err
+	}
+
+	if err := replaceFile(tempPath, path); err != nil {
+		return err
+	}
+	keepTempFile = true
+	return nil
+}
+
+func errorString(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	return err.Error()
 }
 
 func newID() string {

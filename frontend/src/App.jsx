@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {lazy, Suspense, useEffect, useMemo, useRef, useState} from 'react';
 import {
     Activity,
     Archive,
@@ -87,6 +87,8 @@ import {
     ValidateAdminSession
 } from '../wailsjs/go/main/App';
 
+const PdfAttachmentPreview = lazy(() => import('./PdfAttachmentPreview.jsx'));
+
 const emptyProfileForm = {id: '', name: '', baseUrl: ''};
 const emptyAccountForm = {localPart: '', name: ''};
 const emptyDomainForm = {domain: ''};
@@ -118,6 +120,7 @@ const layoutLimits = {
     sidebar: {min: 240, max: 420},
     list: {min: 300, max: 560}
 };
+const mailboxPageSize = 50;
 
 const folders = [
     {id: 'inbox', label: '收件箱', icon: Inbox},
@@ -421,6 +424,7 @@ function App() {
     const [contextMenu, setContextMenu] = useState(null);
     const searchInputRef = useRef(null);
     const manualUnreadMessageRef = useRef('');
+    const mailboxRequestSeq = useRef(0);
 
     const selectedProfile = useMemo(
         () => profiles.find((profile) => profile.id === selectedProfileId) || null,
@@ -1203,23 +1207,65 @@ function App() {
         }
     }
 
-    async function loadMailbox(request) {
+    async function loadMailbox(request, options = {}) {
         const profileId = request.profileId || selectedProfileId;
         if (!profileId) {
-            return;
+            return null;
         }
 
-        setBusy('mailbox');
+        const append = Boolean(options.append);
+        const requestId = mailboxRequestSeq.current + 1;
+        mailboxRequestSeq.current = requestId;
+        setBusy(append ? 'mailbox-more' : 'mailbox');
 
         try {
-            const data = await LoadMailbox({...request, profileId});
-            setWorkspace(data);
+            const data = await LoadMailbox({
+                ...request,
+                profileId,
+                messageLimit: request.messageLimit || mailboxPageSize,
+                messageOffset: request.messageOffset ?? (append ? (workspace?.messages || []).length : 0)
+            });
+            if (requestId !== mailboxRequestSeq.current) {
+                return null;
+            }
+
+            if (append) {
+                setWorkspace((current) => {
+                    if (
+                        !current
+                        || current.selectedAccountId !== data.selectedAccountId
+                        || current.selectedDomain !== data.selectedDomain
+                    ) {
+                        return data;
+                    }
+
+                    return {
+                        ...data,
+                        messages: [
+                            ...(current.messages || []),
+                            ...(data.messages || [])
+                        ]
+                    };
+                });
+            } else {
+                setWorkspace(data);
+            }
             setProfiles((current) => upsertProfile(current, data.profile));
+            return data;
         } catch (mailError) {
-            setWorkspace(null);
+            if (requestId !== mailboxRequestSeq.current) {
+                return null;
+            }
+
+            if (!append) {
+                setWorkspace(null);
+            }
             showToast('error', '加载邮箱失败', mailError.message || '请检查接入点和 Token。');
+            return null;
         } finally {
-            setBusy('');
+            if (requestId === mailboxRequestSeq.current) {
+                setBusy('');
+            }
         }
     }
 
@@ -1233,6 +1279,19 @@ function App() {
             domain: workspace?.selectedDomain || '',
             accountId: workspace?.selectedAccountId || ''
         });
+    }
+
+    async function loadMoreMessages() {
+        if (!selectedProfile || !workspace?.selectedAccountId || !workspace?.hasMoreMessages) {
+            return;
+        }
+
+        await loadMailbox({
+            profileId: selectedProfile.id,
+            domain: workspace.selectedDomain || '',
+            accountId: workspace.selectedAccountId,
+            messageOffset: (workspace.messages || []).length
+        }, {append: true});
     }
 
     async function handleSendMessage(event) {
@@ -1633,6 +1692,7 @@ function App() {
                             onCompose={() => setComposerOpen(true)}
                             onContextMenu={openContextMenu}
                             onMessageSelect={setSelectedMessageId}
+                            onLoadMore={loadMoreMessages}
                             onReload={reloadCurrentMailbox}
                             searchInputRef={searchInputRef}
                             searchQuery={searchQuery}
@@ -1833,7 +1893,7 @@ function Sidebar({
                         >
                             <span>{profile.name}</span>
                             <small>{profile.baseUrl}</small>
-                            <em>{profile.hasToken ? profile.tokenPreview : '未授权'}</em>
+                            <em>{profile.secretError ? '需重新授权' : profile.hasToken ? profile.tokenPreview : '未授权'}</em>
                         </button>
                     ))}
                     {!profiles.length ? <MutedLine>添加第一个 Worker Base URL</MutedLine> : null}
@@ -2067,6 +2127,7 @@ function EmailListPanel({
     messages,
     onCompose,
     onContextMenu,
+    onLoadMore,
     onMessageSelect,
     onReload,
     searchInputRef,
@@ -2077,6 +2138,7 @@ function EmailListPanel({
     workspace
 }) {
     const folder = folders.find((item) => item.id === activeFolder);
+    const mailboxBusy = busy === 'mailbox' || busy === 'mailbox-more';
 
     return (
         <section className="list-panel" aria-label="邮件列表">
@@ -2086,7 +2148,7 @@ function EmailListPanel({
                     <h1>{folder?.label || '邮件'}</h1>
                 </div>
                 <div className="list-actions">
-                    <IconButton icon={RefreshCw} label="刷新" onClick={onReload} disabled={!selectedProfile || busy === 'mailbox'} spinning={busy === 'mailbox'} />
+                    <IconButton icon={RefreshCw} label="刷新" onClick={onReload} disabled={!selectedProfile || mailboxBusy} spinning={busy === 'mailbox'} />
                     <IconButton icon={MailPlus} label="写邮件" onClick={onCompose} disabled={!workspace?.selectedAccountId} />
                 </div>
             </header>
@@ -2107,15 +2169,27 @@ function EmailListPanel({
                 {busy === 'initial' || busy === 'mailbox' ? (
                     <LoadingList />
                 ) : messages.length > 0 ? (
-                    messages.map((message) => (
-                        <EmailListItem
-                            key={message.id}
-                            message={message}
-                            onContextMenu={(event) => onContextMenu(event, message)}
-                            onSelect={() => onMessageSelect(message.id)}
-                            selected={message.id === selectedMessageId}
-                        />
-                    ))
+                    <>
+                        {messages.map((message) => (
+                            <EmailListItem
+                                key={message.id}
+                                message={message}
+                                onContextMenu={(event) => onContextMenu(event, message)}
+                                onSelect={() => onMessageSelect(message.id)}
+                                selected={message.id === selectedMessageId}
+                            />
+                        ))}
+                        {workspace?.hasMoreMessages ? (
+                            <button
+                                className="load-more-messages"
+                                type="button"
+                                onClick={onLoadMore}
+                                disabled={busy === 'mailbox-more'}
+                            >
+                                {busy === 'mailbox-more' ? '加载中' : `加载更多${workspace.totalMessages ? `（${messages.length}/${workspace.totalMessages}）` : ''}`}
+                            </button>
+                        ) : null}
+                    </>
                 ) : (
                     <EmptyState
                         icon={Inbox}
@@ -2166,6 +2240,7 @@ function EmailListItem({message, onContextMenu, onSelect, selected}) {
 function ReaderToolbar({busy, onArchive, onDelete, onOpenSettings, onReload, onSetStatus, selectedMessage, selectedProfile}) {
     const unread = isUnreadMessage(selectedMessage);
     const starred = isStarredMessage(selectedMessage);
+    const mailboxBusy = busy === 'mailbox' || busy === 'mailbox-more';
 
     return (
         <header className="reader-toolbar">
@@ -2174,7 +2249,7 @@ function ReaderToolbar({busy, onArchive, onDelete, onOpenSettings, onReload, onS
                 <h2>{selectedMessage?.subject || '阅读区'}</h2>
             </div>
             <div className="toolbar-actions">
-                <IconButton icon={RefreshCw} label="刷新" onClick={onReload} disabled={!selectedProfile || busy === 'mailbox'} spinning={busy === 'mailbox'} />
+                <IconButton icon={RefreshCw} label="刷新" onClick={onReload} disabled={!selectedProfile || mailboxBusy} spinning={busy === 'mailbox'} />
                 <IconButton
                     icon={unread ? MailOpen : Mail}
                     label={unread ? '标记已读' : '标记未读'}
@@ -2426,6 +2501,7 @@ function AttachmentPreviewDialog({onClose, onDownload, preview}) {
     const previewType = result.previewType || '';
     const mimeType = result.mimeType || attachment.mimeType || '';
     const pdfSrc = result.previewUrl || result.dataUrl || '';
+    const imageSrc = result.previewUrl || result.dataUrl || '';
 
     useEffect(() => {
         const previewId = preview?.status === 'ready' ? result.previewId : '';
@@ -2484,12 +2560,28 @@ function AttachmentPreviewDialog({onClose, onDownload, preview}) {
                     ) : null}
 
                     {preview.status === 'ready' && previewType === 'image' ? (
-                        <img src={result.dataUrl} alt={filename} />
+                        imageSrc ? (
+                            <img src={imageSrc} alt={filename} />
+                        ) : (
+                            <div className="attachment-preview-state error">
+                                <CircleAlert size={22} />
+                                <span>图片预览文件无法读取</span>
+                            </div>
+                        )
                     ) : null}
 
                     {preview.status === 'ready' && previewType === 'pdf' ? (
                         pdfSrc ? (
-                            <iframe src={pdfSrc} title={filename} />
+                            <Suspense
+                                fallback={(
+                                    <div className="attachment-preview-state">
+                                        <RefreshCw className="spin-inline" size={20} />
+                                        <span>正在加载 PDF 预览</span>
+                                    </div>
+                                )}
+                            >
+                                <PdfAttachmentPreview fileUrl={pdfSrc} filename={filename} />
+                            </Suspense>
                         ) : (
                             <div className="attachment-preview-state error">
                                 <CircleAlert size={22} />
@@ -2499,7 +2591,7 @@ function AttachmentPreviewDialog({onClose, onDownload, preview}) {
                     ) : null}
 
                     {preview.status === 'ready' && previewType === 'text' ? (
-                        <pre>{result.text || '空文本附件'}</pre>
+                        <pre>{result.text || '空文本附件'}{result.textTruncated ? '\n\n[只显示前 512 KB]' : ''}</pre>
                     ) : null}
                 </div>
             </section>
@@ -3135,6 +3227,7 @@ function EndpointManagerPage({
 }) {
     const [endpointHealth, setEndpointHealth] = useState({});
     const [healthLoading, setHealthLoading] = useState(false);
+    const healthRequestSeq = useRef(0);
     const authorizedCount = profiles.filter((profile) => profile.hasToken).length;
     const profileSignature = profiles.map((profile) => `${profile.id}:${profile.updatedAt}:${profile.hasToken}`).join('|');
 
@@ -3153,6 +3246,8 @@ function EndpointManagerPage({
             return;
         }
 
+        const requestId = healthRequestSeq.current + 1;
+        healthRequestSeq.current = requestId;
         setHealthLoading(true);
 
         try {
@@ -3172,12 +3267,17 @@ function EndpointManagerPage({
                     }];
                 }
             }));
+            if (requestId !== healthRequestSeq.current) {
+                return;
+            }
             setEndpointHealth(Object.fromEntries(results));
             if (!options.silent) {
                 onNotify?.('success', '接入点健康状态已刷新', `${results.length} 个接入点`);
             }
         } finally {
-            setHealthLoading(false);
+            if (requestId === healthRequestSeq.current) {
+                setHealthLoading(false);
+            }
         }
     }
 
@@ -3244,7 +3344,7 @@ function EndpointManagerPage({
                                             <div className="endpoint-manager-badges">
                                                 {isSelected ? <StatusBadge ok label="当前使用" /> : null}
                                                 <StatusBadge ok={Boolean(rowStatus?.ok)} label={rowStatus?.ok ? '连接正常' : health ? '连接异常' : '未检查'} />
-                                                <StatusBadge ok={profile.hasToken} label={profile.hasToken ? '已授权' : '未授权'} />
+                                                <StatusBadge ok={profile.hasToken && !profile.secretError} label={profile.secretError ? '需重新授权' : profile.hasToken ? '已授权' : '未授权'} />
                                                 {profile.hasToken ? <StatusBadge ok={setupReady} label={setupReady ? '部署就绪' : diagnostics ? '待配置' : '未诊断'} /> : null}
                                             </div>
                                         </header>
@@ -3282,9 +3382,15 @@ function EndpointManagerPage({
                                                 {health?.error || rowStatus?.message || (rowStatus?.ok ? '连接正常' : '连接失败')}
                                             </p>
                                         ) : null}
+                                        {profile.secretError ? (
+                                            <p className="endpoint-test-result error">
+                                                <CircleAlert size={15} />
+                                                {profile.secretError}
+                                            </p>
+                                        ) : null}
 
                                         <footer className="endpoint-manager-actions">
-                                            <button type="button" onClick={() => onProfileSelect(profile)} disabled={isSelected || busy === 'mailbox'}>
+                                            <button type="button" onClick={() => onProfileSelect(profile)} disabled={isSelected || busy === 'mailbox' || busy === 'mailbox-more'}>
                                                 {isSelected ? '当前使用' : '设为当前'}
                                             </button>
                                             <button type="button" onClick={() => onTestProfile(profile)} disabled={busy === 'test'}>

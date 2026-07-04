@@ -2,10 +2,10 @@
 
 package main
 
-func protectSecret(value string) (string, bool) {
-	return value, false
+func protectSecret(value string) (string, bool, error) {
+	return value, false, nil
 }
 
-func unprotectSecret(value string, protected bool) string {
-	return value
+func unprotectSecret(value string, protected bool) (string, error) {
+	return value, nil
 }

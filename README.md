@@ -21,7 +21,7 @@ wails dev
 ## Build
 
 ```bash
-wails build -tags native_webview2loader
+wails build
 ```
 
 The Windows executable is written to:

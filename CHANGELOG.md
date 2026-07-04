@@ -1,5 +1,16 @@
 # Changelog
 
+## [v1.0.4] - 2026-06-18
+
+### Added
+
+- Add built-in PDF.js attachment preview with password prompt, page navigation, and zoom controls.
+
+### Changed
+
+- Render one PDF page at a time in the attachment preview to reduce memory use on large documents.
+- Standardize desktop release builds on the default Wails WebView2 loader.
+
 ## [v1.0.3] - 2026-06-15
 
 ### Fixed
