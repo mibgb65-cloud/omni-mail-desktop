@@ -1,4 +1,5 @@
-import {Activity, ArrowLeft, Globe2, KeyRound, LayoutDashboard, Mail, MailPlus, Moon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Plus, Search, Settings, ShieldCheck, Sun, Trash2} from 'lucide-react';
+import {Activity, ArrowLeft, Globe2, KeyRound, LayoutDashboard, Mail, MailPlus, Moon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Plus, Search, Settings, ShieldCheck, Sun, Trash2, Users} from 'lucide-react';
+import {collectContacts} from '../app/contactCenter';
 import {folders} from '../app/utils';
 import {IconButton, MutedLine, NavItem, SectionLabel, SidebarNotice} from './Common';
 
@@ -23,6 +24,7 @@ export function Sidebar({
     onManageProfiles,
     onOpenActivity,
     onOpenAttachments,
+    onOpenContacts,
     onOpenDashboard,
     onOpenSearch,
     onOpenSettings,
@@ -46,6 +48,7 @@ export function Sidebar({
     const isProfilePage = sidebarPage === 'profiles';
     const updateAvailable = Boolean(updateInfo?.updateAvailable);
     const attachmentCount = (workspace?.messages || []).reduce((total, message) => total + (message.attachments?.length || 0), 0);
+    const contactCount = collectContacts(workspace?.messages || []).length;
 
     if (isProfilePage) {
         return (
@@ -156,6 +159,13 @@ export function Sidebar({
                     icon={Search}
                     label="搜索"
                     onClick={onOpenSearch}
+                />
+                <NavItem
+                    active={activeWorkspacePage === 'contacts'}
+                    count={contactCount}
+                    icon={Users}
+                    label="联系人"
+                    onClick={onOpenContacts}
                 />
                 <NavItem
                     active={activeWorkspacePage === 'settings'}

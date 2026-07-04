@@ -17,6 +17,7 @@ import {
     splitRecipients,
     upsertProfile
 } from './utils.js';
+import {collectContacts, contactStats, filterContacts, normalizeContactEmail, sortContacts} from './contactCenter.js';
 import {searchMessages, searchMessageStats} from './messageSearch.js';
 
 test('splitRecipients normalizes display names and separators', () => {
@@ -141,6 +142,57 @@ test('search helpers match message fields, filters, and sort results', () => {
     assert.equal(searchMessages(messages, {query: 'invoice', filter: 'attachments'}).length, 1);
     assert.equal(searchMessages(messages, {filter: 'sent'}).at(0).message.id, 'm3');
     assert.equal(searchMessages(messages, {query: 'invoice', sort: 'newest'}).at(0).message.id, 'm3');
+});
+
+test('contact helpers aggregate current mailbox participants', () => {
+    const messages = [
+        {
+            id: 'm1',
+            author: 'Alice',
+            email: 'Alice@Example.com',
+            subject: 'Invoice',
+            time: '2026-07-04T10:00:00Z',
+            readAt: '',
+            attachments: [{filename: 'invoice.pdf'}]
+        },
+        {
+            id: 'm2',
+            author: 'Alice',
+            email: 'alice@example.com',
+            subject: 'Follow up',
+            time: '2026-07-04T12:00:00Z',
+            readAt: '2026-07-04T12:05:00Z',
+            starredAt: '2026-07-04T12:06:00Z',
+            attachments: []
+        },
+        {
+            id: 'm3',
+            author: 'Bob <bob@example.com>',
+            subject: 'Sent note',
+            direction: 'outbound',
+            time: '2026-07-04T11:00:00Z',
+            readAt: '2026-07-04T11:05:00Z',
+            attachments: []
+        }
+    ];
+
+    assert.equal(normalizeContactEmail('Bob <bob@example.com>'), 'bob@example.com');
+
+    const contacts = collectContacts(messages);
+    assert.equal(contacts.length, 2);
+    assert.equal(contacts[0].email, 'alice@example.com');
+    assert.equal(contacts[0].messages, 2);
+    assert.equal(contacts[0].unread, 1);
+    assert.equal(contacts[0].starred, 1);
+    assert.equal(filterContacts(contacts, {filter: 'outbound'}).at(0).email, 'bob@example.com');
+    assert.equal(filterContacts(contacts, {query: 'follow'}).at(0).email, 'alice@example.com');
+    assert.equal(sortContacts(contacts, 'messages').at(0).email, 'alice@example.com');
+    assert.deepEqual(contactStats(contacts), {
+        total: 2,
+        unread: 1,
+        starred: 1,
+        attachments: 1
+    });
 });
 
 test('formatFileSize keeps compact labels', () => {

@@ -2,6 +2,7 @@ import {Activity, ArrowLeft, BarChart3, Clock3, Globe2, Inbox, Mail, MailPlus, P
 import {formatCount, formatMessageTime, isStarredMessage, isUnreadMessage} from '../app/utils';
 import {EmptyState, StatusBadge} from './Common';
 import {AttachmentCenterPage} from './AttachmentCenterPage';
+import {ContactCenterPage} from './ContactCenterPage';
 import {AuditLogPanel, DiagnosticsPanel} from './InsightsPanels';
 import {SearchCenterPage} from './SearchCenterPage';
 import {SettingsPage} from './SettingsPage';
@@ -45,6 +46,8 @@ export function WorkspacePageRouter({
     onBack,
     onClearCurrentDraft,
     onCompose,
+    onComposeContact,
+    onCopyText,
     onDownloadAttachment,
     onLoadInsights,
     onLoadMoreMessages,
@@ -53,6 +56,7 @@ export function WorkspacePageRouter({
     onNotify,
     onOpenActivity,
     onOpenAttachments,
+    onOpenContacts,
     onOpenMessage,
     onOpenProfiles,
     onOpenSearch,
@@ -83,6 +87,7 @@ export function WorkspacePageRouter({
                 onManageDomains={onManageDomains}
                 onOpenActivity={onOpenActivity}
                 onOpenAttachments={onOpenAttachments}
+                onOpenContacts={onOpenContacts}
                 onOpenMessage={onOpenMessage}
                 onOpenSearch={onOpenSearch}
                 onOpenSettings={onOpenSettings}
@@ -115,6 +120,21 @@ export function WorkspacePageRouter({
             <SearchCenterPage
                 busy={busy}
                 onBack={onBack}
+                onLoadMore={onLoadMoreMessages}
+                onOpenMessage={onOpenMessage}
+                selectedProfile={selectedProfile}
+                workspace={workspace}
+            />
+        );
+    }
+
+    if (page === 'contacts') {
+        return (
+            <ContactCenterPage
+                busy={busy}
+                onBack={onBack}
+                onComposeContact={onComposeContact}
+                onCopy={onCopyText}
                 onLoadMore={onLoadMoreMessages}
                 onOpenMessage={onOpenMessage}
                 selectedProfile={selectedProfile}
@@ -174,6 +194,7 @@ export function DashboardPage({
     onManageDomains,
     onOpenActivity,
     onOpenAttachments,
+    onOpenContacts,
     onOpenMessage,
     onOpenSearch,
     onOpenSettings,
@@ -263,6 +284,10 @@ export function DashboardPage({
                         <button type="button" onClick={onOpenSearch} disabled={!selectedProfile?.hasToken || !workspace?.selectedAccountId}>
                             <Search size={16} />
                             搜索中心
+                        </button>
+                        <button type="button" onClick={onOpenContacts} disabled={!selectedProfile?.hasToken || !workspace?.selectedAccountId}>
+                            <Users size={16} />
+                            联系人中心
                         </button>
                         <button type="button" onClick={onOpenSettings}>
                             <Settings size={16} />

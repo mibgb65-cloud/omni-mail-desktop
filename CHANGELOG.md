@@ -6,10 +6,13 @@
 
 - Add a current-mailbox search center with keyword search, status filters, relevance/time sorting, load-more support, and jump-to-message actions.
 - Add message search helpers and tests for field matching, filters, sorting, and summary counts.
+- Add a current-mailbox contact center with contact aggregation, search, filters, sorting, copy-email, compose, and jump-to-message actions.
+- Add contact aggregation helpers and tests for participant normalization, counts, filters, and sorting.
 
 ### Changed
 
 - Extract the mailbox list, reader, and composer workspace into a dedicated component to keep `App.jsx` below the line limit as more workspace pages are added.
+- Route compose actions from workspace pages back to the mailbox composer so contact prefill and dashboard compose actions open the expected view.
 
 ## [v1.0.13] - 2026-07-04
 

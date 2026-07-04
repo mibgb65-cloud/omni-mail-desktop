@@ -12,6 +12,7 @@ Windows desktop client for OmniMail Worker deployments.
 - Review a workspace overview with mailbox metrics, priority messages, recent mail, and common actions.
 - Inspect endpoint activity with diagnostics, deployment progress, recent mailbox activity, and audit logs.
 - Search the current loaded mailbox from a dedicated center with keyword matching, status filters, relevance/time sorting, and jump-to-message actions.
+- Review current-mailbox contacts from a dedicated center with aggregation, filters, copy-email, compose, and jump-to-message actions.
 - Browse current-mailbox attachments from a dedicated center with metrics, type filters, search, sorting, preview, download, and jump-to-message actions.
 - Install desktop updates with global update notifications, update badges, release notes, automatic-check preferences, remind-later and skip-version controls, download progress, cancel support, SHA256 verification, and verified installer cache reuse.
 - Inspect local app information, recent application logs, update cache usage, and clear update or preview caches from the settings page.

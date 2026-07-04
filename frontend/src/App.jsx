@@ -277,7 +277,7 @@ function App() {
 
             if (event.key.toLowerCase() === 'n') {
                 event.preventDefault();
-                setComposerOpen(true);
+                openComposer();
             }
         }
 
@@ -305,7 +305,7 @@ function App() {
     const showAccountPage = contentPage === 'account';
     const showAccountManagerPage = contentPage === 'accounts';
     const showDomainManagerPage = contentPage === 'domains';
-    const showWorkspacePage = ['dashboard', 'activity', 'attachments', 'search', 'settings'].includes(contentPage);
+    const showWorkspacePage = ['dashboard', 'activity', 'attachments', 'contacts', 'search', 'settings'].includes(contentPage);
     const showStartPage = contentPage === 'start' || (!selectedProfile && !showEndpointPage && !showProfilePage && !showWorkspacePage);
     const openWorkspacePage = (page) => {
         setContentPage(page);
@@ -313,6 +313,21 @@ function App() {
         setContextMenu(null);
     };
     const openSettingsPage = () => openWorkspacePage('settings');
+    const openComposer = (prefill = null) => {
+        setContentPage('mail');
+        setProfileMenuOpen(false);
+        setContextMenu(null);
+        if (prefill) {
+            if (composeDraftKey) {
+                localStorage.removeItem(composeDraftKey);
+            }
+            setComposeForm({...emptyComposeForm, ...prefill});
+            setComposeOptionsOpen(Boolean(prefill.cc || prefill.bcc));
+            setHasSavedDraft(false);
+        }
+        setComposerOpen(true);
+    };
+    const openComposerForContact = (contact) => openComposer({to: contact?.email || ''});
     const openMessageFromWorkspace = (message) => {
         setActiveFolder(message.archivedAt ? 'archive' : message.direction === 'outbound' ? 'sent' : 'inbox');
         setSelectedMessageId(message.id);
@@ -356,10 +371,11 @@ function App() {
                     onManageProfiles={handleOpenProfileManager}
                     onOpenActivity={() => openWorkspacePage('activity')}
                     onOpenAttachments={() => openWorkspacePage('attachments')}
+                    onOpenContacts={() => openWorkspacePage('contacts')}
                     onOpenDashboard={() => openWorkspacePage('dashboard')}
                     onOpenSearch={() => openWorkspacePage('search')}
                     onOpenSettings={openSettingsPage}
-                    onCompose={() => setComposerOpen(true)}
+                    onCompose={() => openComposer()}
                     onProfileSelect={handleSelectProfile}
                     onToggle={() => setSidebarCollapsed((value) => !value)}
                     profiles={profiles}
@@ -476,7 +492,9 @@ function App() {
                         {...{auditLogs, busy, canClearCurrentDraft, folderCounts, insightsProfileId, profiles, selectedAccount, selectedProfile, status, storagePath, theme, workspace}}
                         diagnostics={endpointDiagnostics}
                         onBack={() => setContentPage('mail')}
-                        onCompose={() => setComposerOpen(true)}
+                        onCompose={() => openComposer()}
+                        onComposeContact={openComposerForContact}
+                        onCopyText={handleCopyText}
                         onClearCurrentDraft={clearCurrentDraft}
                         onDownloadAttachment={handleDownloadAttachment}
                         onLoadInsights={loadEndpointInsights}
@@ -485,6 +503,7 @@ function App() {
                         onManageDomains={handleOpenDomainManager}
                         onOpenActivity={() => openWorkspacePage('activity')}
                         onOpenAttachments={() => openWorkspacePage('attachments')}
+                        onOpenContacts={() => openWorkspacePage('contacts')}
                         onOpenMessage={openMessageFromWorkspace}
                         onNotify={showToast}
                         onOpenProfiles={handleOpenProfileManager}
@@ -510,7 +529,7 @@ function App() {
                         onArchiveMessage={handleArchiveMessage}
                         onClearCurrentDraft={clearCurrentDraft}
                         onCloseComposer={() => setComposerOpen(false)}
-                        onCompose={() => setComposerOpen(true)}
+                        onCompose={() => openComposer()}
                         onContextMenu={openContextMenu}
                         onDeleteMessage={handleDeleteMessage}
                         onDownloadAttachment={handleDownloadAttachment}
