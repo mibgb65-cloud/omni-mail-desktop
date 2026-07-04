@@ -13,6 +13,8 @@ type App struct {
 	client       *http.Client
 	store        *profileStore
 	initErr      error
+	logMu        sync.Mutex
+	logPath      string
 	previewMu    sync.Mutex
 	previewSeq   uint64
 	previewFiles map[string]attachmentPreviewFile
@@ -36,6 +38,7 @@ func NewApp() *App {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.configureLocalLog()
 }
 
 func (a *App) shutdown(context.Context) {

@@ -29,6 +29,7 @@ cd frontend
 npm run check
 npm test
 npm run build
+npm run smoke
 ```
 
 ## Build
@@ -74,7 +75,18 @@ The tag version and `wails.json` `productVersion` must match. CI enforces that m
 
 The workflow builds `build/bin/OmniMailDesktop.exe`, builds `build/installer/OmniMailDesktop-Setup-*.exe`, generates a SHA256 checksum, and attaches the installer plus checksum to the GitHub Release. Release notes are extracted from the matching `CHANGELOG.md` section.
 
+Release builds also generate a CycloneDX SBOM at `build/installer/OmniMailDesktop-Setup-*.sbom.json` and attach it to the GitHub Release.
+
+Code signing is optional. To enable it in GitHub Actions, add these repository settings:
+
+- Secret `WINDOWS_SIGNING_CERT_BASE64`: base64-encoded `.pfx` certificate.
+- Secret `WINDOWS_SIGNING_CERT_PASSWORD`: certificate password, if required.
+- Variable `WINDOWS_SIGNING_TIMESTAMP_URL`: timestamp server URL. If omitted, the workflow uses DigiCert's timestamp server.
+
+When the signing certificate secret is not present, the release workflow skips signing and still builds the installer, checksum, and SBOM.
+
 ## Local Data
 
 Profiles are stored in the user config directory under `OmniMailDesktop/profiles.json`.
 If that directory is not writable during local development, the app falls back to `.omnimail-desktop/profiles.json` in the project directory.
+The app also writes a small local JSONL log next to `profiles.json` as `omnimail-desktop.log`. The settings page can export a diagnostic package that includes the redacted endpoint report and recent local log lines.

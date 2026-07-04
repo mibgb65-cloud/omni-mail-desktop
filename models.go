@@ -242,6 +242,27 @@ type DownloadResult struct {
 	Size int64  `json:"size"`
 }
 
+type DiagnosticPackageInput struct {
+	Report   string `json:"report"`
+	Filename string `json:"filename"`
+}
+
+type DiagnosticPackageResult struct {
+	Path string `json:"path"`
+	Size int64  `json:"size"`
+}
+
+type UpdateInfo struct {
+	CurrentVersion  string `json:"currentVersion"`
+	LatestVersion   string `json:"latestVersion"`
+	UpdateAvailable bool   `json:"updateAvailable"`
+	ReleaseURL      string `json:"releaseUrl"`
+	DownloadURL     string `json:"downloadUrl"`
+	PublishedAt     string `json:"publishedAt"`
+	Name            string `json:"name"`
+	Body            string `json:"body"`
+}
+
 type AttachmentPreview struct {
 	Filename      string `json:"filename"`
 	MimeType      string `json:"mimeType"`

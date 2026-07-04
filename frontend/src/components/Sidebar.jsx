@@ -69,6 +69,7 @@ export function Sidebar({
                             className={`endpoint-card ${profile.id === selectedProfileId ? 'active' : ''}`}
                             key={profile.id}
                             type="button"
+                            aria-current={profile.id === selectedProfileId ? 'page' : undefined}
                             title={`${profile.name}\n${profile.baseUrl}`}
                             onClick={() => onProfileSelect(profile)}
                         >
@@ -154,6 +155,7 @@ export function Sidebar({
                                     className={`domain-item ${domain === workspace?.selectedDomain ? 'active' : ''}`}
                                     key={domain}
                                     type="button"
+                                    aria-current={domain === workspace?.selectedDomain ? 'true' : undefined}
                                     title={domain}
                                     onClick={() => onDomainChange(domain)}
                                 >
@@ -181,11 +183,12 @@ export function Sidebar({
                                     className={`account-chip ${account.id === workspace?.selectedAccountId ? 'active' : ''}`}
                                     key={account.id}
                                     type="button"
+                                    aria-current={account.id === workspace?.selectedAccountId ? 'true' : undefined}
                                     onClick={() => onAccountChange(account.id)}
                                     title={account.address}
                                 >
                                     <span>{account.address}</span>
-                                    {account.unread ? <small>{account.unread}</small> : null}
+                                    {account.unread ? <small aria-label={`${account.unread} 封未读`}>{account.unread}</small> : null}
                                 </button>
                             ))}
                             {mailboxLoading ? <MutedLine>正在加载邮箱账号</MutedLine> : null}
@@ -196,7 +199,13 @@ export function Sidebar({
             )}
 
             <div className="sidebar-footer">
-                <button className="endpoint-button" type="button" onClick={() => setProfileMenuOpen(!profileMenuOpen)}>
+                <button
+                    className="endpoint-button"
+                    type="button"
+                    aria-expanded={profileMenuOpen}
+                    aria-haspopup="menu"
+                    onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                >
                     <span className="endpoint-avatar"><ShieldCheck size={16} /></span>
                     <span>
                         <strong>{selectedProfile?.name || '未选择接入点'}</strong>
@@ -210,32 +219,32 @@ export function Sidebar({
                 </button>
 
                 {profileMenuOpen ? (
-                    <div className="endpoint-menu">
-                        <button type="button" onClick={toggleTheme}>
+                    <div className="endpoint-menu" role="menu">
+                        <button type="button" role="menuitem" onClick={toggleTheme}>
                             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
                             {theme === 'dark' ? '切换浅色模式' : '切换深色模式'}
                         </button>
-                        <button type="button" onClick={onAuth} disabled={!selectedProfile}>
+                        <button type="button" role="menuitem" onClick={onAuth} disabled={!selectedProfile}>
                             <KeyRound size={16} />
                             授权当前接入点
                         </button>
-                        <button type="button" onClick={onManageProfiles}>
+                        <button type="button" role="menuitem" onClick={onManageProfiles}>
                             <ShieldCheck size={16} />
                             管理接入点
                         </button>
-                        <button type="button" onClick={onManageDomains} disabled={!selectedProfile?.hasToken}>
+                        <button type="button" role="menuitem" onClick={onManageDomains} disabled={!selectedProfile?.hasToken}>
                             <Globe2 size={16} />
                             管理域名
                         </button>
-                        <button type="button" onClick={onManageAccounts} disabled={!selectedProfile?.hasToken}>
+                        <button type="button" role="menuitem" onClick={onManageAccounts} disabled={!selectedProfile?.hasToken}>
                             <Mail size={16} />
                             管理邮箱账号
                         </button>
-                        <button type="button" onClick={() => selectedProfile && onEditProfile(selectedProfile)} disabled={!selectedProfile}>
+                        <button type="button" role="menuitem" onClick={() => selectedProfile && onEditProfile(selectedProfile)} disabled={!selectedProfile}>
                             <Settings size={16} />
                             编辑接入点
                         </button>
-                        <button className="danger" type="button" onClick={() => selectedProfile && onDeleteProfile(selectedProfile)} disabled={!selectedProfile || busy === 'delete'}>
+                        <button className="danger" type="button" role="menuitem" onClick={() => selectedProfile && onDeleteProfile(selectedProfile)} disabled={!selectedProfile || busy === 'delete'}>
                             <Trash2 size={16} />
                             删除接入点
                         </button>

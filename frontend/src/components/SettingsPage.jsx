@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
-import {Activity, ArrowLeft, ClipboardList, KeyRound, Mail, Moon, PanelLeftOpen, ShieldCheck, Sun} from 'lucide-react';
-import {ClipboardSetText} from '../../wailsjs/runtime/runtime';
+import {Activity, ArrowLeft, ClipboardList, Download, ExternalLink, KeyRound, Mail, Moon, PanelLeftOpen, RefreshCw, ShieldCheck, Sun} from 'lucide-react';
+import {BrowserOpenURL, ClipboardSetText} from '../../wailsjs/runtime/runtime';
+import {CheckForUpdates, SaveDiagnosticPackage} from '../../wailsjs/go/main/App';
 import {formatCount, settingsTabs, stringifyDiagnosticReport} from '../app/utils';
 import {EmptyState, SettingRow, StatusBadge} from './Common';
 import {AuditLogPanel, DiagnosticsPanel} from './InsightsPanels';
@@ -31,6 +32,9 @@ export function SettingsPage({
     workspace
 }) {
     const [activeTab, setActiveTab] = useState('general');
+    const [checkingUpdate, setCheckingUpdate] = useState(false);
+    const [savingDiagnostics, setSavingDiagnostics] = useState(false);
+    const [updateInfo, setUpdateInfo] = useState(null);
     const insightsLoaded = Boolean(selectedProfile && insightsProfileId === selectedProfile.id && diagnostics);
     const setup = insightsLoaded ? diagnostics.setup : null;
     const auditCount = insightsLoaded ? diagnostics.counts?.auditLogs || auditLogs.length : 0;
@@ -45,18 +49,57 @@ export function SettingsPage({
         }
     }, [activeTab, visibleTabs]);
 
-    async function handleCopyDiagnostics() {
-        if (!selectedProfile) {
-            return;
-        }
-
-        const report = stringifyDiagnosticReport({
+    function currentDiagnosticReport() {
+        return stringifyDiagnosticReport({
             auditLogs,
             diagnostics,
             profile: selectedProfile,
             status,
             storagePath
         });
+    }
+
+    async function handleCheckUpdates() {
+        setCheckingUpdate(true);
+        try {
+            const info = await CheckForUpdates();
+            setUpdateInfo(info);
+            if (info?.updateAvailable) {
+                onNotify?.('success', '发现新版本', `最新版本 ${info.latestVersion}`);
+            } else {
+                onNotify?.('success', '当前已是最新版本', info?.currentVersion || '');
+            }
+        } catch (error) {
+            onNotify?.('error', '检查更新失败', error.message || '无法读取 GitHub Release。');
+        } finally {
+            setCheckingUpdate(false);
+        }
+    }
+
+    async function handleSaveDiagnostics() {
+        const filename = `omnimail-diagnostics-${new Date().toISOString().slice(0, 10)}.json`;
+        setSavingDiagnostics(true);
+        try {
+            const result = await SaveDiagnosticPackage({
+                filename,
+                report: currentDiagnosticReport()
+            });
+            onNotify?.('success', '诊断包已保存', result?.path || filename);
+        } catch (error) {
+            if (!String(error.message || '').toLowerCase().includes('canceled')) {
+                onNotify?.('error', '保存诊断包失败', error.message || '无法写入诊断文件。');
+            }
+        } finally {
+            setSavingDiagnostics(false);
+        }
+    }
+
+    async function handleCopyDiagnostics() {
+        if (!selectedProfile) {
+            return;
+        }
+
+        const report = currentDiagnosticReport();
 
         try {
             await ClipboardSetText(report);
@@ -149,8 +192,40 @@ export function SettingsPage({
                             <SettingRow
                                 icon={ClipboardList}
                                 title="诊断导出"
-                                body={selectedProfile ? '复制当前接入点的脱敏诊断 JSON。' : '选择接入点后可复制诊断 JSON。'}
-                                action={<button type="button" onClick={handleCopyDiagnostics} disabled={!selectedProfile}>复制 JSON</button>}
+                                body={selectedProfile ? '复制或保存当前接入点的脱敏诊断 JSON，本地包会附带最近应用日志。' : '选择接入点后可复制诊断 JSON；本地诊断包仍可保存应用日志。'}
+                                action={(
+                                    <span className="setting-row-actions">
+                                        <button type="button" onClick={handleCopyDiagnostics} disabled={!selectedProfile}>复制 JSON</button>
+                                        <button type="button" onClick={handleSaveDiagnostics} disabled={savingDiagnostics}>
+                                            <Download size={15} />
+                                            {savingDiagnostics ? '保存中' : '保存'}
+                                        </button>
+                                    </span>
+                                )}
+                            />
+                            <SettingRow
+                                icon={RefreshCw}
+                                title="版本更新"
+                                body={updateInfo
+                                    ? updateInfo.updateAvailable
+                                        ? `当前 ${updateInfo.currentVersion}，最新 ${updateInfo.latestVersion}。`
+                                        : `当前 ${updateInfo.currentVersion}，已是最新版本。`
+                                    : '启动后会自动检查 GitHub Release，也可以在这里手动检查。'}
+                                action={(
+                                    <span className="setting-row-actions">
+                                        <button type="button" onClick={handleCheckUpdates} disabled={checkingUpdate}>
+                                            {checkingUpdate ? '检查中' : '检查更新'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => BrowserOpenURL(updateInfo?.downloadUrl || updateInfo?.releaseUrl || '')}
+                                            disabled={!updateInfo?.updateAvailable || (!updateInfo?.downloadUrl && !updateInfo?.releaseUrl)}
+                                        >
+                                            <ExternalLink size={15} />
+                                            下载
+                                        </button>
+                                    </span>
+                                )}
                             />
                             <SettingRow
                                 icon={Mail}

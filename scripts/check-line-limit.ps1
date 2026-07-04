@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $limit = 600
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $rootPath = $root.Path.TrimEnd("\")
-$extensions = @(".go", ".js", ".jsx", ".css", ".ps1")
+$extensions = @(".go", ".js", ".jsx", ".mjs", ".css", ".ps1")
 $excludedDirs = @(
     ".git",
     ".gocache",

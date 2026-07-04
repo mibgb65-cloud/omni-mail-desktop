@@ -159,7 +159,7 @@ export function ReadingSkeleton() {
 
 export function NavItem({active, count, icon: Icon, label, onClick}) {
     return (
-        <button className={`nav-item ${active ? 'active' : ''}`} type="button" onClick={onClick}>
+        <button className={`nav-item ${active ? 'active' : ''}`} type="button" aria-current={active ? 'page' : undefined} onClick={onClick}>
             <Icon size={17} />
             <span>{label}</span>
             <small>{count}</small>

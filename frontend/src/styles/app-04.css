@@ -22,11 +22,23 @@
     padding: 0 var(--space-2) var(--space-4);
 }
 
+.message-list-virtual {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.message-list-virtual > span {
+    flex: 0 0 auto;
+}
+
 .mail-row {
     position: relative;
     display: grid;
     grid-template-columns: 10px minmax(0, 1fr);
     gap: var(--space-2);
+    flex: 0 0 auto;
     width: 100%;
     min-height: 96px;
     border: 1px solid transparent;

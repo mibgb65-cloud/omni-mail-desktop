@@ -12,6 +12,8 @@ export function ChangePassword(arg1:main.ChangePasswordInput):Promise<main.AuthR
 
 export function CheckEndpointHealth(arg1:string):Promise<main.EndpointHealth>;
 
+export function CheckForUpdates():Promise<main.UpdateInfo>;
+
 export function ClearAdminSession(arg1:main.ProfileActionInput):Promise<main.Profile>;
 
 export function CreateAccount(arg1:main.AccountInput):Promise<main.Account>;
@@ -55,6 +57,8 @@ export function RevokeSessions(arg1:main.ProfileActionInput):Promise<main.AuthRe
 export function RunSystemCleanup(arg1:main.CleanupInput):Promise<main.CleanupResult>;
 
 export function SaveAccountSettings(arg1:main.AccountSettingsInput):Promise<main.AccountSettings>;
+
+export function SaveDiagnosticPackage(arg1:main.DiagnosticPackageInput):Promise<main.DiagnosticPackageResult>;
 
 export function SaveProfile(arg1:main.ProfileInput):Promise<main.Profile>;
 

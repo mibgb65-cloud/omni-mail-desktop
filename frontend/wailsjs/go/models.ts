@@ -814,6 +814,34 @@ export namespace main {
 		    return a;
 		}
 	}
+	export class DiagnosticPackageInput {
+	    report: string;
+	    filename: string;
+
+	    static createFrom(source: any = {}) {
+	        return new DiagnosticPackageInput(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.report = source["report"];
+	        this.filename = source["filename"];
+	    }
+	}
+	export class DiagnosticPackageResult {
+	    path: string;
+	    size: number;
+
+	    static createFrom(source: any = {}) {
+	        return new DiagnosticPackageResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.size = source["size"];
+	    }
+	}
 	export class DiagnosticStep {
 	    id: string;
 	    label: string;
@@ -1337,6 +1365,32 @@ export namespace main {
 	        this.deviceLabel = source["deviceLabel"];
 	    }
 	}
+	export class UpdateInfo {
+	    currentVersion: string;
+	    latestVersion: string;
+	    updateAvailable: boolean;
+	    releaseUrl: string;
+	    downloadUrl: string;
+	    publishedAt: string;
+	    name: string;
+	    body: string;
+
+	    static createFrom(source: any = {}) {
+	        return new UpdateInfo(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.currentVersion = source["currentVersion"];
+	        this.latestVersion = source["latestVersion"];
+	        this.updateAvailable = source["updateAvailable"];
+	        this.releaseUrl = source["releaseUrl"];
+	        this.downloadUrl = source["downloadUrl"];
+	        this.publishedAt = source["publishedAt"];
+	        this.name = source["name"];
+	        this.body = source["body"];
+	    }
+	}
 	export class UserInput {
 	    profileId: string;
 	    userId: string;
@@ -1363,4 +1417,3 @@ export namespace main {
 	}
 
 }
-

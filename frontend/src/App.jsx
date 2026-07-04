@@ -4,6 +4,7 @@ import {
     WindowSetDarkTheme,
     WindowSetLightTheme
 } from '../wailsjs/runtime/runtime';
+import {CheckForUpdates} from '../wailsjs/go/main/App';
 
 import {emptyAccountForm, emptyAuthForm, emptyComposeForm, emptyDomainForm, emptyProfileForm, composeHasContent, clamp, invalidRecipients, isTypingTarget, isUnreadMessage, layoutDefaults, layoutLimits, mailboxPageSize, normalizeDomainInput, readStoredWidth, splitRecipients, upsertProfile} from './app/utils';
 import {ContextMenu, ResizeHandle, TitleBar, Toast} from './components/Common';
@@ -198,6 +199,20 @@ function App() {
 
     useEffect(() => {
         loadInitialState();
+    }, []);
+
+    useEffect(() => {
+        let canceled = false;
+        CheckForUpdates()
+            .then((info) => {
+                if (!canceled && info?.updateAvailable) {
+                    showToast('success', '发现新版本', `最新版本 ${info.latestVersion}`);
+                }
+            })
+            .catch(() => undefined);
+        return () => {
+            canceled = true;
+        };
     }, []);
 
     useEffect(() => {

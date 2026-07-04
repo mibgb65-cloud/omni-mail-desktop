@@ -66,6 +66,10 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Smoke test frontend build
+        working-directory: frontend
+        run: npm run smoke
+
       - name: Run Go vet
         shell: pwsh
         run: ./scripts/check-go.ps1 -Command vet
@@ -91,6 +95,14 @@ jobs:
       - name: Build Windows executable
         run: wails build -clean
 
+      - name: Sign Windows executable
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_CERT_BASE64: ${{ secrets.WINDOWS_SIGNING_CERT_BASE64 }}
+          WINDOWS_SIGNING_CERT_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERT_PASSWORD }}
+          WINDOWS_SIGNING_TIMESTAMP_URL: ${{ vars.WINDOWS_SIGNING_TIMESTAMP_URL }}
+        run: ./scripts/sign-windows-artifacts.ps1 -ArtifactPattern "build\bin\OmniMailDesktop.exe"
+
       - name: Install Inno Setup
         run: choco install innosetup --no-progress --yes
 
@@ -100,9 +112,21 @@ jobs:
           $version = (Get-Content wails.json | ConvertFrom-Json).info.productVersion
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$version" build\windows\OmniMailDesktop.iss
 
+      - name: Sign Windows installer
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_CERT_BASE64: ${{ secrets.WINDOWS_SIGNING_CERT_BASE64 }}
+          WINDOWS_SIGNING_CERT_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERT_PASSWORD }}
+          WINDOWS_SIGNING_TIMESTAMP_URL: ${{ vars.WINDOWS_SIGNING_TIMESTAMP_URL }}
+        run: ./scripts/sign-windows-artifacts.ps1
+
       - name: Generate installer checksum
         shell: pwsh
         run: ./scripts/write-installer-checksum.ps1
+
+      - name: Generate SBOM
+        shell: pwsh
+        run: ./scripts/write-sbom.ps1
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -113,6 +137,7 @@ jobs:
             build/bin/OmniMailDesktop.exe
             build/installer/OmniMailDesktop-Setup-*.exe
             build/installer/OmniMailDesktop-Setup-*.exe.sha256
+            build/installer/OmniMailDesktop-Setup-*.sbom.json
           if-no-files-found: error
 
   release:
@@ -145,3 +170,4 @@ jobs:
           files: |
             artifacts/**/OmniMailDesktop-Setup-*.exe
             artifacts/**/OmniMailDesktop-Setup-*.exe.sha256
+            artifacts/**/OmniMailDesktop-Setup-*.sbom.json

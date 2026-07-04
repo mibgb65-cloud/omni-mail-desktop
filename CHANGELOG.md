@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add an in-app GitHub Release update check with startup update notifications and a manual settings action.
+- Add diagnostic package export with recent local application log lines.
+- Add a frontend build smoke check to CI.
+- Add optional Windows code signing hooks for release executables and installers.
+- Add CycloneDX SBOM generation for Windows release assets.
+
+### Changed
+
+- Virtualize large mailbox lists to reduce render work when many messages are loaded.
+- Improve left sidebar accessibility states for active folders, domains, accounts, endpoint cards, and endpoint menus.
+
 ## [v1.0.5] - 2026-07-04
 
 ### Added

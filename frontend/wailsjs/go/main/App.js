@@ -22,6 +22,10 @@ export function CheckEndpointHealth(arg1) {
   return window['go']['main']['App']['CheckEndpointHealth'](arg1);
 }
 
+export function CheckForUpdates() {
+  return window['go']['main']['App']['CheckForUpdates']();
+}
+
 export function ClearAdminSession(arg1) {
   return window['go']['main']['App']['ClearAdminSession'](arg1);
 }
@@ -108,6 +112,10 @@ export function RunSystemCleanup(arg1) {
 
 export function SaveAccountSettings(arg1) {
   return window['go']['main']['App']['SaveAccountSettings'](arg1);
+}
+
+export function SaveDiagnosticPackage(arg1) {
+  return window['go']['main']['App']['SaveDiagnosticPackage'](arg1);
 }
 
 export function SaveProfile(arg1) {
