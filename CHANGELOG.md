@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [v1.0.6] - 2026-07-04
+
 ### Added
 
 - Add an in-app GitHub Release update check with startup update notifications and a manual settings action.
