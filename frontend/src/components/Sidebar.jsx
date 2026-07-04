@@ -1,4 +1,4 @@
-import {Activity, ArrowLeft, Globe2, KeyRound, LayoutDashboard, Mail, MailPlus, Moon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Plus, Settings, ShieldCheck, Sun, Trash2} from 'lucide-react';
+import {Activity, ArrowLeft, Globe2, KeyRound, LayoutDashboard, Mail, MailPlus, Moon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Plus, Settings, ShieldCheck, Sun, Trash2} from 'lucide-react';
 import {folders} from '../app/utils';
 import {IconButton, MutedLine, NavItem, SectionLabel, SidebarNotice} from './Common';
 
@@ -22,6 +22,7 @@ export function Sidebar({
     onManageDomains,
     onManageProfiles,
     onOpenActivity,
+    onOpenAttachments,
     onOpenDashboard,
     onOpenSettings,
     onProfileSelect,
@@ -43,6 +44,7 @@ export function Sidebar({
     const mailboxLoading = Boolean(selectedProfile?.hasToken) && busy === 'mailbox' && !workspace;
     const isProfilePage = sidebarPage === 'profiles';
     const updateAvailable = Boolean(updateInfo?.updateAvailable);
+    const attachmentCount = (workspace?.messages || []).reduce((total, message) => total + (message.attachments?.length || 0), 0);
 
     if (isProfilePage) {
         return (
@@ -140,6 +142,13 @@ export function Sidebar({
                     icon={Activity}
                     label="活动"
                     onClick={onOpenActivity}
+                />
+                <NavItem
+                    active={activeWorkspacePage === 'attachments'}
+                    count={attachmentCount}
+                    icon={Paperclip}
+                    label="附件"
+                    onClick={onOpenAttachments}
                 />
                 <NavItem
                     active={activeWorkspacePage === 'settings'}

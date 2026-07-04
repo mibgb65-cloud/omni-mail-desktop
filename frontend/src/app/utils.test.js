@@ -2,14 +2,18 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+    attachmentCenterStats,
+    collectMessageAttachments,
     attachmentKind,
     buildDiagnosticReport,
+    filterMessageAttachments,
     formatFileSize,
     invalidRecipients,
     isPreviewableAttachment,
     normalizeDomainInput,
     normalizeMailboxSettings,
     readStoredWidth,
+    sortMessageAttachments,
     splitRecipients,
     upsertProfile
 } from './utils.js';
@@ -54,6 +58,44 @@ test('attachment helpers classify previewable files', () => {
     );
     assert.equal(isPreviewableAttachment({filename: 'image.PNG', mimeType: ''}), true);
     assert.equal(isPreviewableAttachment({filename: 'archive.zip', mimeType: 'application/zip'}), false);
+});
+
+test('attachment center helpers enrich, filter, sort, and summarize attachments', () => {
+    const messages = [
+        {
+            id: 'm1',
+            subject: 'Invoice',
+            author: 'Alice',
+            time: '2026-07-04T10:00:00Z',
+            attachments: [
+                {id: 'a1', filename: 'invoice.pdf', mimeType: 'application/pdf', size: 2048, downloadable: true}
+            ]
+        },
+        {
+            id: 'm2',
+            subject: 'Photos',
+            email: 'bob@example.com',
+            time: '2026-07-04T11:00:00Z',
+            attachments: [
+                {id: 'a2', filename: 'photo.png', mimeType: 'image/png', size: 1024, downloadable: false},
+                {id: 'a3', filename: 'backup.zip', mimeType: 'application/zip', size: 4096, downloadable: true}
+            ]
+        }
+    ];
+
+    const attachments = collectMessageAttachments(messages);
+    assert.equal(attachments.length, 3);
+    assert.equal(attachments[0].messageSubject, 'Invoice');
+    assert.equal(filterMessageAttachments(attachments, {group: 'images'}).length, 1);
+    assert.equal(filterMessageAttachments(attachments, {group: 'previewable'}).length, 2);
+    assert.equal(filterMessageAttachments(attachments, {query: 'alice'}).length, 1);
+    assert.equal(sortMessageAttachments(attachments, 'largest')[0].filename, 'backup.zip');
+    assert.deepEqual(attachmentCenterStats(attachments), {
+        total: 3,
+        totalSize: 7168,
+        previewable: 2,
+        downloadable: 2
+    });
 });
 
 test('formatFileSize keeps compact labels', () => {

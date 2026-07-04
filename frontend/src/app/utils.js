@@ -337,3 +337,106 @@ export function isPreviewableAttachment(attachment = {}) {
         || isTextPreviewMime(mimeType)
         || /\.(png|jpe?g|gif|webp|svg|pdf|txt|log|md|json|csv|xml)$/.test(filename);
 }
+
+export function attachmentGroup(attachment = {}) {
+    const mimeType = attachmentMime(attachment);
+    const filename = String(attachment.filename || '').toLowerCase();
+
+    if (mimeType.startsWith('image/') || /\.(png|jpe?g|gif|webp|svg)$/.test(filename)) {
+        return 'images';
+    }
+    if (
+        mimeType === 'application/pdf'
+        || mimeType.startsWith('text/')
+        || mimeType.includes('json')
+        || mimeType.includes('xml')
+        || mimeType.includes('csv')
+        || mimeType.includes('word')
+        || mimeType.includes('spreadsheet')
+        || /\.(pdf|txt|log|md|json|csv|xml|docx?|xlsx?)$/.test(filename)
+    ) {
+        return 'documents';
+    }
+    if (mimeType.includes('zip') || mimeType.includes('archive') || /\.(zip|rar|7z)$/.test(filename)) {
+        return 'archives';
+    }
+    return 'other';
+}
+
+export function collectMessageAttachments(messages = []) {
+    return (Array.isArray(messages) ? messages : []).flatMap((message) => {
+        const attachments = Array.isArray(message.attachments) ? message.attachments : [];
+
+        return attachments.map((attachment, index) => {
+            const filename = attachment.filename || `附件 ${index + 1}`;
+            const kind = attachmentKind({...attachment, filename});
+            const size = Number(attachment.size || 0);
+            const enriched = {
+                ...attachment,
+                filename,
+                size: Number.isFinite(size) ? size : 0
+            };
+
+            return {
+                ...enriched,
+                attachmentKey: `${message.id || 'message'}:${attachment.id || index}`,
+                downloadable: Boolean(attachment.id) && attachment.downloadable !== false,
+                previewable: isPreviewableAttachment(enriched),
+                group: attachmentGroup(enriched),
+                kindLabel: kind.label,
+                kindShort: kind.short,
+                message,
+                messageId: message.id || '',
+                messageSubject: message.subject || '无主题',
+                messageAuthor: message.author || message.email || '未知发件人',
+                messageTime: message.time || '',
+                searchText: [
+                    filename,
+                    attachment.mimeType,
+                    message.subject,
+                    message.author,
+                    message.email
+                ].filter(Boolean).join(' ').toLowerCase()
+            };
+        });
+    });
+}
+
+export function filterMessageAttachments(attachments = [], {group = 'all', query = ''} = {}) {
+    const normalizedQuery = String(query || '').trim().toLowerCase();
+
+    return (Array.isArray(attachments) ? attachments : []).filter((attachment) => {
+        const groupMatch = group === 'all'
+            || (group === 'previewable' && attachment.previewable)
+            || attachment.group === group;
+        const queryMatch = !normalizedQuery || String(attachment.searchText || '').includes(normalizedQuery);
+        return groupMatch && queryMatch;
+    });
+}
+
+export function sortMessageAttachments(attachments = [], sortKey = 'newest') {
+    const sorted = [...(Array.isArray(attachments) ? attachments : [])];
+
+    if (sortKey === 'largest') {
+        return sorted.sort((first, second) => Number(second.size || 0) - Number(first.size || 0));
+    }
+    if (sortKey === 'name') {
+        return sorted.sort((first, second) => String(first.filename || '').localeCompare(String(second.filename || ''), 'zh-CN'));
+    }
+    return sorted.sort((first, second) => {
+        const firstTime = Date.parse(first.messageTime || '') || 0;
+        const secondTime = Date.parse(second.messageTime || '') || 0;
+        return secondTime - firstTime;
+    });
+}
+
+export function attachmentCenterStats(attachments = []) {
+    const items = Array.isArray(attachments) ? attachments : [];
+
+    return {
+        total: items.length,
+        totalSize: items.reduce((sum, attachment) => sum + Number(attachment.size || 0), 0),
+        previewable: items.filter((attachment) => attachment.previewable).length,
+        downloadable: items.filter((attachment) => attachment.downloadable).length
+    };
+}

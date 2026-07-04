@@ -1,6 +1,7 @@
 import {Activity, ArrowLeft, BarChart3, Clock3, Globe2, Inbox, Mail, MailPlus, Paperclip, RefreshCw, Settings, ShieldCheck, Star, Users} from 'lucide-react';
 import {formatCount, formatMessageTime, isStarredMessage, isUnreadMessage} from '../app/utils';
 import {EmptyState, StatusBadge} from './Common';
+import {AttachmentCenterPage} from './AttachmentCenterPage';
 import {AuditLogPanel, DiagnosticsPanel} from './InsightsPanels';
 import {SettingsPage} from './SettingsPage';
 
@@ -43,14 +44,18 @@ export function WorkspacePageRouter({
     onBack,
     onClearCurrentDraft,
     onCompose,
+    onDownloadAttachment,
     onLoadInsights,
+    onLoadMoreMessages,
     onManageAccounts,
     onManageDomains,
     onNotify,
     onOpenActivity,
+    onOpenAttachments,
     onOpenMessage,
     onOpenProfiles,
     onOpenSettings,
+    onPreviewAttachment,
     onProfileUpdate,
     onReloadMailbox,
     onResetLayout,
@@ -75,11 +80,27 @@ export function WorkspacePageRouter({
                 onManageAccounts={onManageAccounts}
                 onManageDomains={onManageDomains}
                 onOpenActivity={onOpenActivity}
+                onOpenAttachments={onOpenAttachments}
                 onOpenMessage={onOpenMessage}
                 onOpenSettings={onOpenSettings}
                 onReloadMailbox={onReloadMailbox}
                 profiles={profiles}
                 selectedAccount={selectedAccount}
+                selectedProfile={selectedProfile}
+                workspace={workspace}
+            />
+        );
+    }
+
+    if (page === 'attachments') {
+        return (
+            <AttachmentCenterPage
+                busy={busy}
+                onBack={onBack}
+                onDownload={onDownloadAttachment}
+                onLoadMore={onLoadMoreMessages}
+                onOpenMessage={onOpenMessage}
+                onPreview={onPreviewAttachment}
                 selectedProfile={selectedProfile}
                 workspace={workspace}
             />
@@ -136,6 +157,7 @@ export function DashboardPage({
     onManageAccounts,
     onManageDomains,
     onOpenActivity,
+    onOpenAttachments,
     onOpenMessage,
     onOpenSettings,
     onReloadMailbox,
@@ -216,6 +238,10 @@ export function DashboardPage({
                         <button type="button" onClick={onOpenActivity} disabled={!selectedProfile?.hasToken}>
                             <Activity size={16} />
                             活动中心
+                        </button>
+                        <button type="button" onClick={onOpenAttachments} disabled={!selectedProfile?.hasToken || !workspace?.selectedAccountId}>
+                            <Paperclip size={16} />
+                            附件中心
                         </button>
                         <button type="button" onClick={onOpenSettings}>
                             <Settings size={16} />

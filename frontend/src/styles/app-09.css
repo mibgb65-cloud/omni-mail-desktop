@@ -1,0 +1,247 @@
+.workspace-attachments-page {
+    padding: var(--space-6);
+}
+
+.attachment-center-layout {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.attachment-center-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+.attachment-center-metrics article {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel);
+    padding: var(--space-4);
+}
+
+.attachment-center-metrics strong {
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 22px;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attachment-center-metrics small {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.attachment-center-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 168px;
+    gap: var(--space-3);
+    align-items: center;
+}
+
+.attachment-search-box {
+    display: flex;
+    min-width: 0;
+    min-height: 40px;
+    align-items: center;
+    gap: var(--space-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-tertiary);
+    padding: 0 var(--space-3);
+}
+
+.attachment-search-box:focus-within {
+    border-color: var(--accent);
+    box-shadow: var(--focus);
+}
+
+.attachment-search-box input {
+    min-width: 0;
+    flex: 1 1 auto;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+}
+
+.attachment-filter-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.attachment-filter-tabs button,
+.attachment-center-actions button {
+    display: inline-flex;
+    min-height: 34px;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+    padding: 0 var(--space-3);
+    font-weight: 620;
+}
+
+.attachment-filter-tabs button:hover,
+.attachment-center-actions button:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.attachment-filter-tabs button.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+}
+
+.attachment-center-list {
+    display: grid;
+    gap: var(--space-3);
+}
+
+.attachment-center-item {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    gap: var(--space-3);
+    align-items: center;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-panel-soft);
+    padding: var(--space-3);
+}
+
+.attachment-center-kind {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+}
+
+.attachment-center-kind em {
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 760;
+}
+
+.attachment-center-copy {
+    display: grid;
+    min-width: 0;
+    gap: 5px;
+}
+
+.attachment-center-copy > strong,
+.attachment-center-copy > small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attachment-center-copy > strong {
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.attachment-center-copy > small,
+.attachment-center-copy button small {
+    color: var(--text-tertiary);
+    font-size: 12px;
+}
+
+.attachment-center-copy button {
+    display: inline-grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    width: fit-content;
+    max-width: 100%;
+    align-items: center;
+    gap: var(--space-1);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 2px 0;
+    text-align: left;
+}
+
+.attachment-center-copy button:hover {
+    color: var(--accent-strong);
+}
+
+.attachment-center-copy button span,
+.attachment-center-copy button small {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attachment-center-copy button small {
+    grid-column: 2;
+}
+
+.attachment-center-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.attachment-center-actions .status-badge {
+    white-space: nowrap;
+}
+
+@media (max-width: 920px) {
+    .attachment-center-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .attachment-center-item {
+        grid-template-columns: 48px minmax(0, 1fr);
+    }
+
+    .attachment-center-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+        padding-left: 60px;
+    }
+}
+
+@media (max-width: 720px) {
+    .workspace-attachments-page {
+        padding: var(--space-5);
+    }
+
+    .attachment-center-controls,
+    .attachment-center-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .attachment-center-item {
+        align-items: start;
+        grid-template-columns: 44px minmax(0, 1fr);
+    }
+
+    .attachment-center-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        padding-left: 0;
+    }
+
+    .attachment-center-actions .status-badge {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+}

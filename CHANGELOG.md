@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [v1.0.13] - 2026-07-04
+
+### Added
+
+- Add a left-sidebar attachment center for the current mailbox with attachment metrics, type filters, search, sorting, preview, download, and jump-to-message actions.
+- Add attachment aggregation helpers and frontend tests for attachment filtering, sorting, and summary counts.
+
 ## [v1.0.12] - 2026-07-04
 
 ### Added

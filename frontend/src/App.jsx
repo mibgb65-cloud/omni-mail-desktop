@@ -307,7 +307,7 @@ function App() {
     const showAccountPage = contentPage === 'account';
     const showAccountManagerPage = contentPage === 'accounts';
     const showDomainManagerPage = contentPage === 'domains';
-    const showWorkspacePage = ['dashboard', 'activity', 'settings'].includes(contentPage);
+    const showWorkspacePage = ['dashboard', 'activity', 'attachments', 'settings'].includes(contentPage);
     const showStartPage = contentPage === 'start' || (!selectedProfile && !showEndpointPage && !showProfilePage && !showWorkspacePage);
     const openWorkspacePage = (page) => {
         setContentPage(page);
@@ -357,6 +357,7 @@ function App() {
                     onManageDomains={handleOpenDomainManager}
                     onManageProfiles={handleOpenProfileManager}
                     onOpenActivity={() => openWorkspacePage('activity')}
+                    onOpenAttachments={() => openWorkspacePage('attachments')}
                     onOpenDashboard={() => openWorkspacePage('dashboard')}
                     onOpenSettings={openSettingsPage}
                     onCompose={() => setComposerOpen(true)}
@@ -478,14 +479,18 @@ function App() {
                         onBack={() => setContentPage('mail')}
                         onCompose={() => setComposerOpen(true)}
                         onClearCurrentDraft={clearCurrentDraft}
+                        onDownloadAttachment={handleDownloadAttachment}
                         onLoadInsights={loadEndpointInsights}
+                        onLoadMoreMessages={loadMoreMessages}
                         onManageAccounts={handleOpenAccountManager}
                         onManageDomains={handleOpenDomainManager}
                         onOpenActivity={() => openWorkspacePage('activity')}
+                        onOpenAttachments={() => openWorkspacePage('attachments')}
                         onOpenMessage={openMessageFromWorkspace}
                         onNotify={showToast}
                         onOpenProfiles={handleOpenProfileManager}
                         onOpenSettings={openSettingsPage}
+                        onPreviewAttachment={handlePreviewAttachment}
                         onProfileUpdate={(profile) => setProfiles((current) => upsertProfile(current, profile))}
                         onReloadMailbox={reloadCurrentMailbox}
                         onResetLayout={resetLayoutPreferences}

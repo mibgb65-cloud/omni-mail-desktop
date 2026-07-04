@@ -11,6 +11,7 @@ Windows desktop client for OmniMail Worker deployments.
 - Load domains, mailboxes, and messages through the selected endpoint.
 - Review a workspace overview with mailbox metrics, priority messages, recent mail, and common actions.
 - Inspect endpoint activity with diagnostics, deployment progress, recent mailbox activity, and audit logs.
+- Browse current-mailbox attachments from a dedicated center with metrics, type filters, search, sorting, preview, download, and jump-to-message actions.
 - Install desktop updates with global update notifications, update badges, release notes, automatic-check preferences, remind-later and skip-version controls, download progress, cancel support, SHA256 verification, and verified installer cache reuse.
 - Inspect local app information, recent application logs, update cache usage, and clear update or preview caches from the settings page.
 
@@ -70,9 +71,9 @@ Before tagging a release:
 For example:
 
 ```bash
-git tag v1.0.12
+git tag v1.0.13
 git push origin main
-git push origin v1.0.12
+git push origin v1.0.13
 ```
 
 The tag version and `wails.json` `productVersion` must match. CI enforces that match and checks that `CHANGELOG.md` contains the matching release section.
