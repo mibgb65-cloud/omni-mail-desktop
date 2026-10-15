@@ -137,7 +137,7 @@ jobs:
         run: ./scripts/write-sbom.ps1
 
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: OmniMailDesktop-windows
           retention-days: 14
